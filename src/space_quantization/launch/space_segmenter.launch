@@ -1,0 +1,14 @@
+<launch>
+  <arg name="name" default="takeshi_2"/>
+
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <remap from="cloud" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
+    <param name="nClusters" value="128" type="int"/>
+    <param name="iterations" value="8" type="int"/>
+    <param name="visualizeCentroids" value="true" type="bool"/>
+    <param name="visualizeSegCloud" value="false" type="bool"/>
+  </node>
+  <node pkg="rosbag" type="play" name="player" args="--clock $(find space_quantization)/bags/$(arg name).bag">
+    <param name="use_sim_time" value="true"/></node>
+
+</launch>

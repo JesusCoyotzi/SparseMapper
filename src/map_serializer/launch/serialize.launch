@@ -1,0 +1,17 @@
+<launch>
+
+  <arg name="serial_file" default="map.txt"/>
+  <arg name="map_file" default="map.yaml"/>
+
+     <node pkg="map_server" type="map_server" name="map_server" output="screen" args="$(arg map_file)">
+        <!-- <remap from="/image" to="/hsrb/hand_camera/image_raw" />
+        -->
+       </node>
+ <node pkg="map_serializer" type="map_serializer_node" name="map_serializer_node" output="screen" args="$(arg serial_file)">
+    <!-- <remap from="/image" to="/hsrb/hand_camera/image_raw" />
+    -->
+  </node>
+
+
+
+</launch>

@@ -1,0 +1,5 @@
+float64 target_yaw
+float64 target_pitch
+---
+float64 current_yaw
+float64 current_pitch
