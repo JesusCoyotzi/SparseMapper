@@ -1,5 +1,19 @@
 #include "space_seg.h"
 
+spaceSegmenter::spaceSegmenter(int nClusters)
+{
+        //empty constructor, for test!
+        colors = (int *)malloc(nClusters*sizeof(int));
+        makeColors(colors,nClusters);
+        for (size_t i = 0; i < nClusters; i++) {
+
+                uint8_t r = (colors[i] >> 16) & 0x0000ff;
+                uint8_t g = (colors[i] >> 8)  & 0x0000ff;
+                uint8_t b = (colors[i])       & 0x0000ff;
+                printf("RGB: [%d,%d,%d]\n",r,g,b );
+        }
+}
+
 spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
 {
         ros::NodeHandle nh_priv("~");
@@ -12,7 +26,7 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         nh_priv.param<std::string>("cloudFrame",cloudFrame,
                                    "head_rgbd_sensor_rgb_frame");
 
-        sub_cloud = nh.subscribe<sensor_msgs::PointCloatiud2>
+        sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>
                             ("cloud",4,
                             &spaceSegmenter::cloudCallback,
                             this);
@@ -291,7 +305,7 @@ void spaceSegmenter::makeSegmentedCloudAndPublish(point3 *space,
                         byteBlob[i+u]=changer.byteStream[k];
                 }
                 changer.assembledFloat = space[j].y;
-                for (k = 0; k < 4 ; k++, u++) {
+                for (k = 0; k < 4; k++, u++) {
                         byteBlob[i+u]=changer.byteStream[k];
                 }
                 changer.assembledFloat = space[j].z;
@@ -313,37 +327,42 @@ void spaceSegmenter::makeColors(int *colors,int nClusters)
 {
         //generates nClusters random rgba colors for later usage
         srand(0);
-        double r,g,b;
         int rgba;
-        double v = i, vmin=0, vmax=nClusters;
-
+        double v, vmin=0, vmax=nClusters;
+        printf("Colors!\n" );
         for (int i = 0; i < nClusters; i++) {
+                double r=1,g=1,b=1;
                 //generate a random rgb tuple and pack on an int.
                 // r=(unsigned char)(rand()%255);
                 // g=(unsigned char)(rand()%255);
                 // b=(unsigned char)(rand()%255);
+                v=i;
+                //printf("v is %f @ %d\n",v,i );
                 if (v < vmin)
-                   v = vmin;
+                        v = vmin;
                 if (v > vmax)
-                   v = vmax;
+                        v = vmax;
                 double dv = vmax - vmin;
 
                 if (v < (vmin + 0.25 * dv)) {
-                   r = 0;
-                   g = 4 * (v - vmin) / dv;
+                        r = 0;
+                        g = 4 * (v - vmin) / dv;
                 } else if (v < (vmin + 0.5 * dv)) {
-                   r = 0;
-                   b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
+                        r = 0;
+                        b = 1 + 4 * (vmin + 0.25 * dv - v) / dv;
                 } else if (v < (vmin + 0.75 * dv)) {
-                   r = 4 * (v - vmin - 0.5 * dv) / dv;
-                   b = 0;
+                        r = 4 * (v - vmin - 0.5 * dv) / dv;
+                        b = 0;
                 } else {
-                   g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
-                   b = 0;
+                        g = 1 + 4 * (vmin + 0.75 * dv - v) / dv;
+                        b = 0;
                 }
 
                 //from pcl docs,
-                rgba = ((int)(r*255)) << 16 | ((int)(g*255)) << 8 | ((int)(b*255));
+                r*=255; g*=255; b*=255;
+                printf("[%f,%f,%f]\n",r,g,b );
+
+                rgba = ((int)r << 16 | (int)g << 8 | (int)b);
                 //rgba = ((int)(r)) << 16 | ((int)(g)) << 8 | ((int)(b));
                 colors[i] =rgba;
         }

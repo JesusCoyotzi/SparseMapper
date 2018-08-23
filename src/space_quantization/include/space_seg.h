@@ -48,7 +48,7 @@ void makeSegmentedCloudAndPublish(point3 *space, int *partition,
 void makeColors(int *colors,int nClusters);
 public:
 spaceSegmenter (ros::NodeHandle nh);
-
+spaceSegmenter(int nClusters);
 
 ~spaceSegmenter ();
 };

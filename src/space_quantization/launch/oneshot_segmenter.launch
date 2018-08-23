@@ -1,0 +1,23 @@
+<launch>
+  <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
+  <arg name="name" default="takeshiBagPack1"/>
+
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <remap from="cloud" to="/hsrb/cloud"/>
+    <param name="nClusters" value="48" type="int"/>
+    <param name="iterations" value="10" type="int"/>
+    <param name="visualizeCentroids" value="false" type="bool"/>
+    <param name="visualizeSegCloud" value="true" type="bool"/>
+  </node>
+
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_table" args="-0.005 1.115 0.802 -0.037 0.821 -0.569 -0.015 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+
+  <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_backpack" args="0.016 -0.073 0.979 -0.009, 0.887, -0.462, -0.004 base_link head_rgbd_sensor_rgb_frame 100"/>
+
+
+<node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd 1" output="screen">
+  <remap from="cloud_pcd" to="/hsrb/cloud"/>
+  <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+</node>
+
+</launch>

@@ -64,4 +64,5 @@ cuda_add_library(segmentationLib STATIC src/quantization.cu)
  add_dependencies(segmentation_node segmentationLib)
  target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})# segmentationLib)
 
-add_executable(testColor test/testColor.cpp include/space_seg.h src/seg_node.cpp)
+#add_executable(testColor src/space_seg.cpp include/space_seg.h test/colortest.cpp)
+# target_link_libraries(testColor segmentationLib ${catkin_LIBRARIES})
