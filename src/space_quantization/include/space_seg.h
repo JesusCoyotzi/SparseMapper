@@ -24,8 +24,9 @@ class spaceSegmenter {
 private:
 ros::NodeHandle nh_;
 ros::Subscriber sub_cloud;
-ros::Publisher marker_pub, segClouds_pub;
+ros::Publisher marker_pub, segClouds_pub, freeCloud_pub, occCloud_pub;
 tf::TransformListener tf_listener;
+float freeThr;
 int nClusters, iterations;   //number of clusters and iterations to run
 int *colors=NULL;
 bool vizCnt, vizSegCloud;
@@ -46,9 +47,11 @@ void makeVizMsgAndPublish(point3 *codebook, int nClusters);
 void makeSegmentedCloudAndPublish(point3 *space, int *partition,
                                   int nPoints);
 void makeColors(int *colors,int nClusters);
+void separateSpaceAndPublish(point3* space, point3* codebook,
+                        int * partition,
+                        int nPoints);
 public:
 spaceSegmenter (ros::NodeHandle nh);
-spaceSegmenter(int nClusters);
 
 ~spaceSegmenter ();
 };

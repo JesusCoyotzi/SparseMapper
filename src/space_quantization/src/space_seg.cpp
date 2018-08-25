@@ -1,19 +1,5 @@
 #include "space_seg.h"
 
-spaceSegmenter::spaceSegmenter(int nClusters)
-{
-        //empty constructor, for test!
-        colors = (int *)malloc(nClusters*sizeof(int));
-        makeColors(colors,nClusters);
-        for (size_t i = 0; i < nClusters; i++) {
-
-                uint8_t r = (colors[i] >> 16) & 0x0000ff;
-                uint8_t g = (colors[i] >> 8)  & 0x0000ff;
-                uint8_t b = (colors[i])       & 0x0000ff;
-                printf("RGB: [%d,%d,%d]\n",r,g,b );
-        }
-}
-
 spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
 {
         ros::NodeHandle nh_priv("~");
@@ -21,21 +7,23 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         nh_priv.param<int>("iterations",iterations,16);
         nh_priv.param<bool>("visualizeCentroids",vizCnt,false);
         nh_priv.param<bool>("visualizeSegCloud",vizSegCloud,true);
-
+        nh_priv.param<float>("freeThr",freeThr,0.1);
         nh_priv.param<std::string>("baseFrame",baseFrame,"base_link");
         nh_priv.param<std::string>("cloudFrame",cloudFrame,
                                    "head_rgbd_sensor_rgb_frame");
 
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>
-                            ("cloud",4,
+                            ("cloud",10,
                             &spaceSegmenter::cloudCallback,
                             this);
+        freeCloud_pub = nh.advertise<sensor_msgs::PointCloud2>
+                                ("free_space",2);
+        occCloud_pub = nh.advertise<sensor_msgs::PointCloud2>
+                               ("occupied_space",2);
         std::cout << "Starting ROS node for segmentation by Coyo-soft" << '\n';
-        marker_pub = nh.advertise<visualization_msgs::Marker>
-                             ("visualization_marker", 10);
-        segClouds_pub = nh.advertise<sensor_msgs::PointCloud2>
-                                ("Segmented_cloud",2);
         if (vizCnt) {
+                marker_pub = nh.advertise<visualization_msgs::Marker>
+                                     ("visualization_marker", 10);
                 //initialize visualization_msgs, free space
                 free_points.header.frame_id = baseFrame;
                 free_points.header.stamp = ros::Time::now();
@@ -44,8 +32,9 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
                 free_points.pose.orientation.w =  1.0;
                 free_points.id = 0;
                 free_points.type = visualization_msgs::Marker::POINTS;
-                free_points.scale.x = 0.2;
-                free_points.scale.y = 0.2;
+                free_points.scale.x = 0.1;
+                free_points.scale.y = 0.1;
+                free_points.scale.z = 0.1;
                 free_points.color.g = 1.0f;
                 free_points.color.a = 1.0;
                 //initialize visualization_msgs, occupied space
@@ -56,17 +45,19 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
                 occ_points.pose.orientation.w =  1.0;
                 occ_points.id = 1;
                 occ_points.type = visualization_msgs::Marker::POINTS;
-                occ_points.scale.x = 0.2;
-                occ_points.scale.y = 0.2;
+                occ_points.scale.x = 0.1;
+                occ_points.scale.y = 0.1;
+                occ_points.scale.z = 0.1;
                 occ_points.color.r = 1.0f;
                 occ_points.color.a = 1.0;
         }
-
-        if (vizSegCloud)
-        {
-                colors = (int *)malloc(nClusters*sizeof(int));
-                makeColors(colors,nClusters);
+        if (vizSegCloud) {
+                segClouds_pub = nh.advertise<sensor_msgs::PointCloud2>
+                                        ("segmented_cloud",2);
         }
+        //allocate color for segmentation
+        colors = (int *)malloc(nClusters*sizeof(int));
+        makeColors(colors,nClusters);
         return;
 }
 
@@ -191,6 +182,7 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         if (vizSegCloud) {
                 makeSegmentedCloudAndPublish(space,partition,nValid);
         }
+        separateSpaceAndPublish(space,codebook,partition,nValid);
         //free host memory
         free(space); free(codebook); free(partition);
 }
@@ -259,7 +251,7 @@ void spaceSegmenter::makeVizMsgAndPublish(point3 *codebook, int nClusters)
                 p.x = codebook[i].x;
                 p.y = codebook[i].y;
                 p.z = codebook[i].z;
-                if (p.z < 0.3) {
+                if (p.z < freeThr) {
                         free_points.points.push_back(p);
 
                 }
@@ -271,10 +263,116 @@ void spaceSegmenter::makeVizMsgAndPublish(point3 *codebook, int nClusters)
         marker_pub.publish(occ_points);
 }
 
+void spaceSegmenter::separateSpaceAndPublish(point3* space, point3* codebook,
+                                             int * partition,
+                                             int nPoints)
+{
+        // Ensemble pointcloud for free & occupied space.
+        // and vomit them on to a fancy cloud2 msg.
+
+        //check how many points are on free space
+        //free space is assigned on centroids with z lower than freeThr
+        int nFreePoints=0, nOccPoints =0;
+        for (unsigned int i = 0; i < nPoints; i++)
+        {
+                if (codebook[partition[i]].z<=freeThr) {
+                        nFreePoints++;
+                }
+        }
+        nOccPoints =nPoints-nFreePoints;
+
+
+        printf("%d points are on free space | %d points are on occupied space\n",
+               nFreePoints, nOccPoints);
+        //info for free space.
+        sensor_msgs::PointCloud2 freeCloud;
+        freeCloud.header.frame_id = baseFrame;
+        freeCloud.header.stamp = ros::Time::now();
+        freeCloud.width = nFreePoints;
+        freeCloud.height = 1;
+        freeCloud.is_bigendian = true;
+        freeCloud.point_step = 4*4; //3 floats, x y z  rgb of 4 bytes
+        freeCloud.row_step = nFreePoints*freeCloud.point_step;
+        //info for occ space
+        sensor_msgs::PointCloud2 occCloud;
+        occCloud.header.frame_id = baseFrame;
+        occCloud.header.stamp = ros::Time::now();
+        occCloud.width = nOccPoints;
+        occCloud.height = 1;
+        occCloud.is_bigendian = true;
+        occCloud.point_step = 4*4; //4 floats, x y z  rgb of 4 bytes
+        occCloud.row_step = nOccPoints*occCloud.point_step;
+        //Header for the cloud
+        sensor_msgs::PointField pf;
+        pf.name = "x";  pf.offset = 0;  pf.datatype = (unsigned char)7; pf.count =1;
+        freeCloud.fields.push_back(pf);
+        occCloud.fields.push_back(pf);
+        pf.name = "y";  pf.offset = 4;  pf.datatype = (unsigned char)7; pf.count =1;
+        freeCloud.fields.push_back(pf);
+        occCloud.fields.push_back(pf);
+        pf.name = "z";  pf.offset = 8;  pf.datatype = (unsigned char)7; pf.count =1;
+        freeCloud.fields.push_back(pf);
+        occCloud.fields.push_back(pf);
+        pf.name = "rgb";  pf.offset = 12;  pf.datatype = (unsigned char)7; pf.count =1;
+        freeCloud.fields.push_back(pf);
+        occCloud.fields.push_back(pf);
+
+        //Now ensemble the byteBlob
+        //4 float of 4 bytes of nFreePoints 4*4*nFreePoints
+        std::vector<unsigned char> byteBlobFree(freeCloud.row_step);
+        std::vector<unsigned char> byteBlobOcc(occCloud.row_step);
+        charToFloat changer;
+        //This could be ewasily the most complex for in my
+        //whoole life
+        for (int i=0, j = 0, w=0; j< nPoints; j++)
+        {
+                std::vector<unsigned char> tmp(4*4);
+
+                changer.assembledFloat = space[j].x;
+                int u,k;
+                for (u = 0,k = 0; k < 4; k++, u++) {
+                        tmp[u]=changer.byteStream[k];
+                }
+                changer.assembledFloat = space[j].y;
+                for (k = 0; k < 4; k++, u++) {
+                        tmp[u]=changer.byteStream[k];
+                }
+                changer.assembledFloat = space[j].z;
+                for (k = 0; k < 4; k++, u++) {
+                        tmp[u]=changer.byteStream[k];
+                }
+                changer.assembledInt = colors[partition[j]];
+                for (k = 0; k < 4; k++, u++) {
+                        tmp[u]=changer.byteStream[k];
+                }
+                if (codebook[partition[j]].z<=freeThr)
+                {
+                        for (int v = 0; v < 16; v++) {
+                                byteBlobFree[i+v]=tmp[v];
+                        }
+                        i+=freeCloud.point_step;
+                }
+                else
+                {
+                        for (int v = 0; v < 16; v++) {
+                                byteBlobOcc[w+v]=tmp[v];
+                        }
+                        w+=occCloud.point_step;
+                }
+        }
+        freeCloud.data = byteBlobFree;
+        occCloud.data = byteBlobOcc;
+        freeCloud_pub.publish(freeCloud);
+        occCloud_pub.publish(occCloud);
+
+}
+
 void spaceSegmenter::makeSegmentedCloudAndPublish(point3 *space,
                                                   int *partition,
                                                   int nPoints)
 {
+        //Ensenbles a partitiones pointcloud, merely for
+        // visualization purposes
         sensor_msgs::PointCloud2 segCloud;
         segCloud.header.frame_id = baseFrame;
         segCloud.header.stamp = ros::Time::now();
@@ -284,6 +382,7 @@ void spaceSegmenter::makeSegmentedCloudAndPublish(point3 *space,
         segCloud.point_step = 4*4; //4 floats, x y z rgb of 4 bytes
         segCloud.row_step = nPoints*segCloud.point_step;
         std::vector<unsigned char> byteBlob(nPoints*segCloud.point_step);
+        //Header for the cloud
         sensor_msgs::PointField pf;
         pf.name = "x";  pf.offset = 0;  pf.datatype = (unsigned char)7; pf.count =1;
         segCloud.fields.push_back(pf);
@@ -293,8 +392,8 @@ void spaceSegmenter::makeSegmentedCloudAndPublish(point3 *space,
         segCloud.fields.push_back(pf);
         pf.name = "rgb";  pf.offset = 12;  pf.datatype = (unsigned char)7; pf.count =1;
         segCloud.fields.push_back(pf);
+        //Now ensemble the byteBlob
         charToFloat changer;
-        unsigned char tmp[4];
         for (int i = 0, j = 0;
              i < byteBlob.size();
              i+=segCloud.point_step, j++  )
@@ -316,8 +415,6 @@ void spaceSegmenter::makeSegmentedCloudAndPublish(point3 *space,
                 for (k = 0; k < 4; k++, u++) {
                         byteBlob[i+u]=changer.byteStream[k];
                 }
-
-
         }
         segCloud.data = byteBlob;
         segClouds_pub.publish(segCloud);
