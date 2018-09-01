@@ -6,7 +6,7 @@
     <remap from="cloud" to="/hsrb/cloud"/>
     <param name="nClusters" value="32" type="int"/>
     <param name="iterations" value="10" type="int"/>
-    <param name="visualizeCentroids" value="false" type="bool"/>
+    <param name="visualizeCentroids" value="True" type="bool"/>
     <param name="visualizeSegCloud" value="false" type="bool"/>
     <param name="freeThr" value="0.05" type="double"/>
   </node>
@@ -15,10 +15,9 @@
 
   <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_backpack" args="0.016 -0.073 0.979 -0.009, 0.887, -0.462, -0.004 base_link head_rgbd_sensor_rgb_frame 100"/>
 
-
-<node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd 2" output="screen">
-  <remap from="cloud_pcd" to="/hsrb/cloud"/>
-  <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
-</node>
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
+    <remap from="cloud_pcd" to="/hsrb/cloud"/>
+    <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+  </node>
 
 </launch>
