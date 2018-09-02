@@ -3,6 +3,7 @@ project(space_quantization)
 #set(CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}") //can't compile
 # Get the information about this package's buildtime dependencies
 find_package(PCL 1.8 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
@@ -19,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
    pcl_ros
    visualization_msgs
    )
+
+
 
 set(
  CUDA_NVCC_FLAGS
@@ -64,5 +67,7 @@ cuda_add_library(segmentationLib STATIC src/quantization.cu)
  add_dependencies(segmentation_node segmentationLib)
  target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})# segmentationLib)
 
+ add_executable(cloud_preprocessor src/preprocessing_node.cpp src/preprocessing.cpp)
+ target_link_libraries(cloud_preprocessor ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 #add_executable(testColor src/space_seg.cpp include/space_seg.h test/colortest.cpp)
 # target_link_libraries(testColor segmentationLib ${catkin_LIBRARIES})
