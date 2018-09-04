@@ -2,24 +2,56 @@
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
   <arg name="name" default="takeshiBagPack1"/>
 
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" args="xterm -e gdb --args" output="screen">
+    <remap from="/cloud" to="/hsrb/cloud"/>
+    <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
+    <param name="cropEnable" value="false" type="bool"/>
+    <param name="cropDistance" value="3.5" type="double"/>
+    <param name="voxelSize" value="0.01" type="double"/>
+    <param name="voxEnable" value="true" type="bool"/>
+  </node>
+
   <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
-    <remap from="cloud" to="/hsrb/cloud"/>
-    <param name="nClusters" value="16" type="int"/>
+    <remap from="cloud" to="/hsrb/processed_cloud"/>
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <remap from="quantized_space" to="/hsrb/quantized_space"/>
+    <param name="nClusters" value="32" type="int"/>
     <param name="iterations" value="10" type="int"/>
-    <param name="visualizeCentroids" value="True" type="bool"/>
-    <param name="visualizeSegCloud" value="false" type="bool"/>
-    <param name="freeThr" value="0.05" type="double"/>
+    <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
+  </node>
+
+  <node name="space_sep" pkg="space_quantization" type="space_separation_node" output="screen" >
+    <remap from="quantized_space" to="/hsrb/quantized_space"/>
+    <remap from="free_space" to="/hsrb/free_space"/>
+    <remap from="occupied_space" to="/hsrb/occupied_space"/>
+    <remap from="occupied_quantized" to="/hsrb/occupied_quantized"/>
+    <param name="free_thr" value="0.05" type="double"/>
+    <param name="pub_seg_space" value="true" type="bool"/>
+  </node>
+
+  <node name="adjGraph" pkg="space_quantization" type="adjacency_graph_node" output="screen">
+    <remap from="quantized_space" to="/hsrb/occupied_quantized"/>
+    <param name="k_neighboors" value="3" type="int"/>
+    <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
   </node>
 
   <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_table" args="-0.005 1.115 0.802 -0.037 0.821 -0.569 -0.015 base_link head_rgbd_sensor_rgb_frame 100"/> -->
 
-  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_backpack" args="0.016 -0.073 0.979 -0.009, 0.887, -0.462, -0.004 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+  <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_backpack" args="0.016 -0.073 0.979 -0.009, 0.887, -0.462, -0.004 base_link head_rgbd_sensor_rgb_frame 100"/>
 
-  <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame  100"/>
-<!-- head_rgbd_sensor_rgb_frame -->
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_coyotzi" args="0.012, 0.022, 1.323 -0.085, 0.772, -0.627, 0.057 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+
+  <!--j <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+  <!-- head_rgbd_sensor_rgb_frame -->
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+  </node>
+
+  <node name="viewr" pkg="pcl_ros" type="convert_pointcloud_to_image" args="" output="screen">
+    <remap from="input" to="/hsrb/cloud"/>
+    <remap from="output" to="/hsrb/head_rgbd_sensor/rgb/image_raw"/>
+
   </node>
 
 </launch>

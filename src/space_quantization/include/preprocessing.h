@@ -19,7 +19,7 @@ private:
   ros::Publisher processedCloudPub;
   tf::TransformListener tf_listener;
   float cropDistance,voxelSize;
-  bool cropEnable, voxelEnable;
+  bool cropEnable, voxEnable;
   std::string baseFrame;
   void processCallback(const sensor_msgs::PointCloud2ConstPtr& input);
   void filterDistanceZ(double maxDist, cloudRGBAPtr cloud);

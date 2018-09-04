@@ -25,9 +25,11 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
         std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
         if (cropEnable) {
           filterDistanceZ(cropDistance,cloud);
+          
         }
         if (voxEnable) {
           voxelFilter(voxelSize,cloud);
+
         }
         transformCloud(cloud);
         //convert to msg and publish

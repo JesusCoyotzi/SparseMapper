@@ -2,16 +2,8 @@
 <launch>
   <arg name="name" default="takeshiBagPack1"/>
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
-    <remap from="cloud_pcd" to="/hsrb/processed_cloud"/>
+    <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
   </node>
   <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_backpack" args="0.016 -0.073 0.979 -0.009, 0.887, -0.462, -0.004 base_link head_rgbd_sensor_rgb_frame 100"/>
-
-
-  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" args=""  output="screen">
-    <remap from="/cloud" to="/hsrb/cloud"/>
-    <param name="cropDistance" value="3.5" type="double"/>
-    <param name="voxelSize" value="0.01" type="double"/>
-  </node>
-
-</launch>
+  </launch>
