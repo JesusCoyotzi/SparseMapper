@@ -44,6 +44,7 @@ set(CUDA_VERBOSE_BUILD ON)
  # Declare the message files to be built
 add_message_files(FILES
    quantizedSpace.msg
+   codebook.msg
 )
 
  # Declare the service files to be built
@@ -88,6 +89,9 @@ cuda_add_library(segmentationLib STATIC src/quantization.cu)
 
  add_executable(space_separation_node src/space_separation.cpp src/space_separation_node.cpp)
  target_link_libraries(space_separation_node ${catkin_LIBRARIES})
+
+ add_executable(space_separation_voxel_node src/space_separation_voxel_node.cpp src/space_separation.cpp )
+ target_link_libraries(space_separation_voxel_node ${catkin_LIBRARIES})
 
  add_executable(adjacency_graph_node src/adjacency_graph_node.cpp src/adjacency_graph.cpp)
  target_link_libraries(adjacency_graph_node ${catkin_LIBRARIES})

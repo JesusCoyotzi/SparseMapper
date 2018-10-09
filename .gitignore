@@ -4,5 +4,9 @@ devel
 build/*
 devel/*
 bags/*
+frames_pdf/*
 
 .git
+
+*.tar*
+*.png

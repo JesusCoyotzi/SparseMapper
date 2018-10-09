@@ -3,17 +3,86 @@ spaceSeparator::spaceSeparator(ros::NodeHandle &nh)
 {
         nh_=nh;
         ros::NodeHandle nh_priv("~");
-        spaceSub = nh_.subscribe("quantized_space",10, &spaceSeparator::spaceCallback, this);
+
         nh_priv.param<float>("free_thr",freeThr,0.1);
         nh_priv.param<bool>("pub_seg_space",pubSegSpace,true);
+}
 
+void spaceSeparator::setVQMapCallbacks()
+{
+        //used space quantization to generate free and occupied space
         freeCloudPub = nh_.advertise<sensor_msgs::PointCloud2>("free_space",2);
         occCloudPub = nh_.advertise<sensor_msgs::PointCloud2>("occupied_space",2);
-
         quantizedSpacePub= nh_.advertise<space_quantization::quantizedSpace>("occupied_quantized",2);
-
-        //Viz messages
         markerPub = nh_.advertise<visualization_msgs::MarkerArray>("centroids_marker_array",2);
+        spaceSub = nh_.subscribe("quantized_space",10, &spaceSeparator::spaceCallback, this);
+        return;
+}
+
+void spaceSeparator::setVoxelMapCallbacks()
+{
+        //Uses octomap as a voxelization technique.
+        //subscribe to pointcloud2 callback and separate space
+        octoSub = nh_.subscribe("voxelmap_cloud",10, &spaceSeparator::voxelMapCloudCallback,this);
+        freeCodebookPub = nh_.advertise<space_quantization::codebook>("free_voxels",2);
+        occupiedCodebookPub = nh_.advertise<space_quantization::codebook>("occupied_voxels",2);
+        markerPub = nh_.advertise<visualization_msgs::Marker>("voxels_marker",2);
+        return;
+}
+
+void spaceSeparator::voxelSeparatorAndPublish(  Point3 * Ps, int nP, pointArray &codebookFree, pointArray &codebookOcc)
+{
+        ///Check all points check if z component islower than threes and
+        for (size_t i = 0; i < nP; i++) {
+                geometry_msgs::Point p;
+                p.x=Ps[i].x;
+                p.y=Ps[i].y;
+                p.z=Ps[i].z;
+                if (Ps[i].z<=freeThr) {
+                        codebookFree.push_back(p);
+                }
+                else {
+                        codebookOcc.push_back(p);
+                }
+        }
+        space_quantization::codebook c;
+        c.header.frame_id=voxelCloudFrame;
+        c.header.stamp=voxelStamp;
+        c.centroids = codebookFree;
+        freeCodebookPub.publish(c);
+        c.centroids = codebookOcc;
+        occupiedCodebookPub.publish(c);
+        return;
+}
+
+void spaceSeparator::voxelMapCloudCallback(const sensor_msgs::PointCloud2 &msg)
+{
+        //gET PointCloud2 check all voxels and threhold heaight to send
+        //Ground as free space
+        //unpacking
+        sensor_msgs::PointCloud2 space = msg;
+        int n=space.height*space.width;
+        std::cout << "Got label cloud of:" << n << "Points"<< '\n';
+        voxelCloudFrame = space.header.frame_id;
+        voxelStamp = space.header.stamp;
+        std::cout << "In frame " << voxelCloudFrame << " on Stamp " <<voxelStamp<< '\n';
+
+        //extract pointcloud to a more convenient data storage
+
+        Point3 * Points = (Point3 *)malloc(n*sizeof(Point3));
+        int validP=toPoint3(space,Points);
+        std::cout << "ValidP: " << validP<<'\n';
+        if (validP<1)
+        {
+                ROS_ERROR("No points read");
+                return;
+        }
+        pointArray codebookF, codebookO;
+        voxelSeparatorAndPublish(Points,validP,codebookF,codebookO);
+        makeVizMarkerAndPublish(codebookF,true);
+        makeVizMarkerAndPublish(codebookO,false);
+
+        free(Points);
 }
 
 void spaceSeparator::spaceCallback(const space_quantization::quantizedSpace &msg)
@@ -64,6 +133,35 @@ int spaceSeparator::makeInt(unsigned char * byteArray)
         return S.assembledInt;
 }
 
+int spaceSeparator::toPoint3(sensor_msgs::PointCloud2 Cloud,
+                             Point3 * points)
+{
+        /*cloud cloud on the robot base frame;
+           points arrray of points to store valid points,
+           returns: Number of no NaN poinst actually stored, continously on points         */
+        int point_step = Cloud.point_step;
+        int data_step = sizeof(float);
+        std::cout << "data_step: " << data_step <<'\n';
+        std::vector<unsigned char> byteArray = Cloud.data;
+        int j=0;
+        for (size_t i = 0; i < byteArray.size(); i+=point_step)
+        {
+
+                float tmp =makeFloat(&byteArray[i]);
+                if(!std::isnan(tmp)) {
+                        points[j].x=makeFloat(&byteArray[i]);
+                        points[j].y=makeFloat(&byteArray[i+data_step]);
+                        points[j].z=makeFloat(&byteArray[i+2*data_step]);
+                        j++;
+                }
+        }
+        // std::cout << "Point " << points[j/2].x <<" "
+        //           <<    points[j/2].y <<" "
+        //           <<    points[j/2].z << '\n';
+        // std::cout << j << '\n';
+        return j;
+}
+
 int spaceSeparator::tolabelPoint3(sensor_msgs::PointCloud2 Cloud,
                                   labelPoint3 * points)
 {
@@ -77,7 +175,7 @@ int spaceSeparator::tolabelPoint3(sensor_msgs::PointCloud2 Cloud,
         int j=0;
         for (size_t i = 0; i < byteArray.size(); i+=point_step)
         {
-          //std::cout << "WHYYY!!!!" << '\n';
+                //std::cout << "WHYYY!!!!" << '\n';
                 float tmp =makeFloat(&byteArray[i]);
                 if(!std::isnan(tmp)) {
                         points[j].x=makeFloat(&byteArray[i]);
@@ -201,7 +299,12 @@ spaceSeparator::separateSpaceAndPublish(labelPoint3* space,
         //make quantizedSpace obj
         space_quantization::quantizedSpace qs;
         qs.space = occCloud;
-        qs.codebook = codebook;
+        //Pass only free space centroids
+        for (size_t i = 0; i < codebook.size(); i++) {
+                if (codebook[i].z<=freeThr) {
+                        qs.codebook.push_back(codebook[i]);
+                }
+        }
         //Allows for publish only segmented cloud
         if (pubSegSpace)
         {
@@ -215,9 +318,9 @@ spaceSeparator::separateSpaceAndPublish(labelPoint3* space,
 
 
 
-void spaceSeparator::makeVizMsgAndPublish( pointArray codebook)
+void spaceSeparator::makeVizMsgAndPublish( pointArray &codebook)
 {
-        const float radius = 0.1;
+        const float radius = 0.05;
         visualization_msgs::MarkerArray centroidsArray;
         centroidsArray.markers.resize(codebook.size());
         for (int i = 0; i < codebook.size(); i++) {
@@ -249,5 +352,43 @@ void spaceSeparator::makeVizMsgAndPublish( pointArray codebook)
 
         }
         markerPub.publish(centroidsArray);
+        return;
+}
+
+void spaceSeparator::makeVizMarkerAndPublish( pointArray &codebook, bool free)
+{
+        const float radius = 0.05;
+        visualization_msgs::Marker centroidsMarker;
+        //centroidsMarker.points.resize(codebook.size());
+        centroidsMarker.ns = "centroids";
+
+        centroidsMarker.action = visualization_msgs::Marker::ADD;
+        centroidsMarker.header.frame_id = voxelCloudFrame;
+        centroidsMarker.header.stamp = ros::Time();
+        centroidsMarker.type = visualization_msgs::Marker::SPHERE_LIST;
+        centroidsMarker.pose.orientation.w = 1.0;
+        centroidsMarker.scale.x = radius;
+        centroidsMarker.scale.y = radius;
+        centroidsMarker.scale.z = radius;
+
+        if (free) {
+                centroidsMarker.id = 1;
+                centroidsMarker.color.r=0.0;
+                centroidsMarker.color.b=1.0;
+                centroidsMarker.color.g=0.0;
+                centroidsMarker.color.a=1.0;
+
+        }
+        else
+        {
+                centroidsMarker.id = 2;
+                centroidsMarker.color.r=1.0;
+                centroidsMarker.color.b=0.0;
+                centroidsMarker.color.g=0.0;
+                centroidsMarker.color.a=1.0;
+        }
+        centroidsMarker.points = codebook;
+        std::cout << "Publishing coddeob of:" << codebook.size()<<'\n';
+        markerPub.publish(centroidsMarker);
         return;
 }
