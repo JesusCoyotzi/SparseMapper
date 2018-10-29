@@ -4,8 +4,8 @@ adjacencyGraph::adjacencyGraph(ros::NodeHandle &nh)
 {
         nh_=nh;
         ros::NodeHandle nh_priv("~");
-        quantSub = nh_.subscribe("quantized_space",10, &adjacencyGraph::quantizedCallback, this);
         quantSub = nh_.subscribe("voxelized_space",10, &adjacencyGraph::codebookCallback, this);
+        quantSub = nh_.subscribe("quantized_space",10, &adjacencyGraph::quantizedCallback, this);
         graphMakeSub = nh_.subscribe("make_graph",1, &adjacencyGraph::makeGraph,this);
         markerPub = nh_.advertise<visualization_msgs::Marker>("graph_marker",2);
         nh_priv.param<int>("k_neighboors",kNeighboors,6);
@@ -54,7 +54,9 @@ void adjacencyGraph::codebookCallback(const space_quantization::codebook &msg)
 void adjacencyGraph::makeGraph(const std_msgs::Empty &msg)
 {
         //Allocate an initialize adj matrix
+        std::cout << "Adj Graph->Constructing adjacency graph" << '\n';
         if (codebook.empty()) {
+                std::cout << "Adj Graph-> Codebook is empty" << '\n';
                 return;
         }
         adjacencyList adjList(edges);

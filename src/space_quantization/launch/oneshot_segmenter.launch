@@ -4,7 +4,7 @@
   <arg name="crop" default="2.0"/>
   <arg name="freeSpace" default="0.05"/>
 
-  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" args="xterm -e gdb --args" output="screen">
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
     <remap from="/cloud" to="/hsrb/cloud"/>
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
@@ -47,7 +47,7 @@
 
   <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame 100"/> -->
   <!-- head_rgbd_sensor_rgb_frame -->
-  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd 2" output="screen">
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
   </node>
