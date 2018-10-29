@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node name="tfReader" pkg="quantization_utilities" type="tf_reader_node" args="$(find quantization_utilities)/tf/test2.txt" output="screen"></node>
+
+</launch>

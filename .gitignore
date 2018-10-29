@@ -10,3 +10,6 @@ frame_pdf/*
 *.tar.gz
 
 .git
+
+*.tar*
+*.png
