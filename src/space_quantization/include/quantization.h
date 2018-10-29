@@ -36,20 +36,21 @@ __global__ void recalcCentroids(point3 *points,
                                 int * partition,
                                 int k, int n);
 __global__ void recalcCentroidsOuter(point3 * points,
-                                     point3* partialResult,
                                      point3* centroids,
                                      int *partition,
-                                     int *partitionOut,
+                                     int *histogram,
                                      int k, int n);
 __global__ void recalcCentroidsInner(point3 * points,
-                                     point3* sumOut,
-                                     point3* centroids,
+                                     point3* partialResult,
                                      int *partition,
-                                     int *partitionOut,
-                                     int k, int n);
+                                     int n);
 __global__ void makePartition(int *partition,
-                              float *distances,
+                              float *distances, int *histogram,
                               int k, int n);
+__global__ void prepareReduceArray(point3 *points,
+                                   int *partition,
+                                   point3 *reduceArrray,
+                                   int centroid, int n);
 void kmeans(point3 *h_points, int *h_partition,
             point3* h_codebook,
             int iterations, int clusters, int nPoints);
@@ -62,4 +63,4 @@ void printPoint3Array(point3 *p, int n);
 void printPoint3(point3 p);
 void serializeQuantization(point3* points, point3* codebook, int * partition, int n, int k, char *filename);
 void initializeCodebook(point3 * points, point3 minPoint,
-                       point3 maxPoint,int nPoints);
+                        point3 maxPoint,int nPoints);

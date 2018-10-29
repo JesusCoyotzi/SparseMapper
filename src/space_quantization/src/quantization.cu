@@ -104,6 +104,7 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
         printf("\nMin point:\t"); printPoint3(minPoint);
         printf("\n");
         srand(time(NULL));
+
         for (unsigned int i = 0; i < nClusters; i++)
         {
                 codebook[i] = randomPoint3(minPoint,maxPoint);
@@ -114,7 +115,7 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
 
 __device__ float euclideanDistance(point3 p1, point3 p2)
 {
-        return sqrtf( (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)+(p1.z-p2.z)*(p1.z-p2.z));
+        return ( (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)+(p1.z-p2.z)*(p1.z-p2.z));
 }
 
 __device__ void setZerosDevice(point3 *p,int n)
@@ -145,6 +146,8 @@ __device__ void setZerosDevice(int *p,int n)
 __global__ void distanceKernel(point3 * points, point3 * centroids,float * distances, int k, int n )
 {
         //distances[k*n]
+        /*The distance array is a 2d array but i flattened it into a one dimensional array cause i am
+           to lazy to create a 2d array on cuda. */
         int idx = threadIdx.x + blockIdx.x * blockDim.x;
         if (idx < n) {
 
@@ -160,10 +163,13 @@ __global__ void distanceKernel(point3 * points, point3 * centroids,float * dista
 }
 
 __global__ void makePartition(int *partition,
-                              float *distances,int k, int n)
+                              float *distances, int *histogram,
+                              int k, int n)
 {
         int idx  = threadIdx.x + blockIdx.x * blockDim.x;
         //__shared__ int sharedPartition[THREADS];
+        //setZerosDevice(histogram,k);
+        //__syncthreads();
         if (idx < n) {
                 //int tid = threadIdx.x;
                 int minixd=0;
@@ -177,34 +183,64 @@ __global__ void makePartition(int *partition,
                         }
                 }
                 partition[idx]=minixd;
+                atomicAdd(&histogram[minixd],1);
+        }
+        // __syncthreads();
+        // if (idx==0) {
+        //   printf("-----\n" );
+        //         for (int i = 0; i < k; i++) {
+        //                 printf("Histogram[%d]=%d\n",i,histogram[i] );
+        //         }
+        // }
+        return;
+}
+
+__global__ void prepareReduceArray(point3 *points, int *partition, point3 *reduceArrray, int centroid, int n)
+{
+        //takes the whole partition array and outputs a single array that only has points belonging to a
+        //particular centroid
+        int idx = blockIdx.x*blockDim.x+threadIdx.x;
+        if(idx < n)
+        {
+                //set all to 0;
+                //copy to shared if assigned to jth centroid
+                if(partition[idx]==centroid)
+                {
+                        //only copy from partition j
+                        reduceArrray[idx]=points[idx];
+                }
+                else
+                {
+                        point3 zero;
+                        zero.x=0; zero.y=0; zero.z=0;
+                        reduceArrray[idx]=zero;
+                }
         }
         return;
 }
 
-__global__ void recalcCentroidsOuter(point3 * points,
+__global__ void recalcCentroidsInner(point3 * points,
                                      point3* partialResult,
-                                     //point3* centroids,
                                      int *partition,
-                                     int *partitionOut,
-                                     int k, int n)
+                                     int n)
 {
+        //n = histogram[n]
         __shared__ point3 pointsShared[THREADS];
-        __shared__ int partitionShared[THREADS];
+        //__shared__ int partitionShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
         if(idx < n)
         {
                 int tid = threadIdx.x;
                 //set all to 0;
                 setZerosDevice(pointsShared,THREADS); //Size of shared memory
-                setZerosDevice(partitionShared,THREADS); //Size of shared memory
-                //copy to shared if assigned to jth centroid
+                //setZerosDevice(partitionShared,THREADS); //Size of shared memory
+
                 __syncthreads();
-                if(partition[idx]==k)
-                {
-                        //only copy from partition j
-                        pointsShared[tid]=points[idx];
-                        partitionShared[tid]=1;
-                } //makes two arrays [j j j 0 0 0 0 j j j]
+                //only copy from partition j
+                pointsShared[tid]=points[idx];
+                //makes two arrays [k k k 0 0 0 0 k k k]
+                //[1 1 1 0 0 0 0 1 1 1]
+                /*Array of valid points and zeros and array of ones*/
                 __syncthreads();
                 for (int s = blockDim.x/2; s>0; s>>=1)
                 {
@@ -214,7 +250,7 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                         pointsShared[tid]=addPoint3(
                                                 pointsShared[tid],
                                                 pointsShared[tid+s]);
-                                        partitionShared[tid]+=partitionShared[tid+s];
+
                                 }
                         }
                         __syncthreads();
@@ -222,7 +258,7 @@ __global__ void recalcCentroidsOuter(point3 * points,
                 if(tid==0) {
                         //printf("Block: %d\n",blockIdx.x);
                         //printf("Number of elements in  %d is %d\n",k, partitionShared[0]);
-                        partitionOut[blockIdx.x] = partitionShared[0];
+                        //partitionOut[blockIdx.x] = partitionShared[0];
                         partialResult[blockIdx.x] = pointsShared[0];
                         //centroids[k] = mulPoint3(pointsShared[0],1.0/partitionShared[0]);
                 }
@@ -230,15 +266,14 @@ __global__ void recalcCentroidsOuter(point3 * points,
         __syncthreads();
 }
 
-__global__ void recalcCentroidsInner(point3 * points,
-                                     point3* sumOut,
+__global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
                                      int *partition,
-                                     int *partitionOut,
+                                     int *histogram,
                                      int k, int n)
 {
+        //histogram is a count of how many elements belong to each centroid
         __shared__ point3 pointsShared[THREADS];
-        __shared__ int partitionShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
         if(idx < n)
         {
@@ -246,14 +281,9 @@ __global__ void recalcCentroidsInner(point3 * points,
 
                 //set all to 0; //El error estaba en alocar n cachos
                 setZerosDevice(pointsShared,THREADS); //Size of shared memory
-                setZerosDevice(partitionShared,THREADS); //Size of shared memory
-                //copy to shared if assigned to jth centroid
                 __syncthreads();
 
-                //only copy from partition j
                 pointsShared[tid]=points[idx];
-                partitionShared[tid]=partition[idx];
-                //makes two arrays [j j j 0 0 0 0 j j j]
                 __syncthreads();
                 for (int s = blockDim.x/2; s>0; s>>=1)
                 {
@@ -263,7 +293,7 @@ __global__ void recalcCentroidsInner(point3 * points,
                                         pointsShared[tid]=addPoint3(
                                                 pointsShared[tid],
                                                 pointsShared[tid+s]);
-                                        partitionShared[tid]+=partitionShared[tid+s];
+
                                 }
                         }
                         __syncthreads();
@@ -274,10 +304,8 @@ __global__ void recalcCentroidsInner(point3 * points,
                         //printf("[Inner] Number of elements in  %d is %d\n",k, partitionShared[0]);
                         // printf("Centroid[%d] prior:%f,%f,%f\n",
                         //        k,centroids[k].x,centroids[k].y,centroids[k].z);
-                        partitionOut[blockIdx.x] = partitionShared[0];
-                        sumOut[blockIdx.x] = pointsShared[0];
-                        if(partitionShared[0]>0) {
-                                centroids[k] = mulPoint3(pointsShared[0],1.0/partitionShared[0]);
+                        if(histogram[k]>0) {
+                                centroids[k] = mulPoint3(pointsShared[0],1.0/histogram[k]);
                         }
                 }
         }
@@ -333,12 +361,14 @@ void kmeans(point3 *h_points, int *h_partition,
         //Pointers
         point3 *d_points, *d_codebook, *d_partialSum;
         float *d_distances,*h_distances;
-        int *d_partition, *d_partialPart;
+        int *d_partition, *d_partialPart, *d_histogram;
+        point3 *d_reduceArray;
         //sizes
-        int nPointsSize = nPoints*sizeof(point3);
-        int clustersSize = clusters*sizeof(point3);
-        int distanceSize = nPoints*clusters*sizeof(float);
-        int partitionSize= nPoints*sizeof(int);
+        int nPointsSize   = nPoints*sizeof(point3);
+        int clustersSize  = clusters*sizeof(point3);
+        int distanceSize  = nPoints*clusters*sizeof(float);
+        int partitionSize = nPoints*sizeof(int);
+        int histogramSize = clusters*sizeof(int);
 
         h_distances = (float *) malloc(distanceSize);
         //h_partition = (int *) malloc(partitionSize);
@@ -349,6 +379,9 @@ void kmeans(point3 *h_points, int *h_partition,
         cudaMalloc((void**)&d_partition,partitionSize);
         cudaMalloc((void**)&d_partialSum,THREADS*sizeof(point3));
         cudaMalloc((void**)&d_partialPart,THREADS*sizeof(int));
+
+        cudaMalloc((void**)&d_reduceArray,nPointsSize);
+        cudaMalloc((void**)&d_histogram,histogramSize);
 
         cudaMemcpy(d_points,h_points,nPointsSize,cudaMemcpyHostToDevice);
         cudaMemcpy(d_codebook,h_codebook,clustersSize,cudaMemcpyHostToDevice);
@@ -364,14 +397,19 @@ void kmeans(point3 *h_points, int *h_partition,
                 distanceKernel<<<blks,THREADS>>>
                 (d_points,d_codebook,d_distances,clusters,nPoints);
                 //cudaDeviceSynchronize();
+                cudaMemset(d_histogram, 0, histogramSize);
                 makePartition<<<blks,THREADS>>>
-                (d_partition,d_distances,clusters,nPoints);
+                (d_partition,d_distances,d_histogram,clusters,nPoints);
                 for(int i= 0; i<clusters; i++)
                 {
-                        recalcCentroidsOuter<<<blks,THREADS>>>
-                        (d_points,d_partialSum,d_partition,d_partialPart,i,nPoints);
-                        recalcCentroidsInner<<<1,THREADS>>> //accccesing ilegal meory ?
-                        (d_partialSum,d_partialSum,d_codebook,d_partialPart,d_partialPart,i,blks);
+                        prepareReduceArray<<<blks,THREADS>>>
+                        (d_points,d_partition,d_reduceArray,i,nPoints);
+                        //aqui iria un while
+                        recalcCentroidsInner<<<blks,THREADS>>>
+                        (d_reduceArray,d_reduceArray,d_partition,nPoints);
+                        //Aqui acabaria el while
+                        recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
+                        (d_reduceArray,d_codebook,d_partition,d_histogram,i,blks);
                         if (cudaPeekAtLastError() != cudaSuccess) {
                                 printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
                         }
