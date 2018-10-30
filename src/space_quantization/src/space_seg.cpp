@@ -78,9 +78,7 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         point3 *space =
                 (point3 *)malloc(n*sizeof(point3));
         int nValid = toPoint3(*msg,space);
-        //Find max and min point for initialization
-        point3 minP,maxP;
-        getMinMax(space,maxP,minP,nValid);
+
         //allocate memory for codebook on host
         point3 *codebook =
                 (point3 *)malloc(nClusters*sizeof(point3));
@@ -88,7 +86,11 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         int * partition =
                 (int *)malloc(n*sizeof(int));
         //initializa codebook
+        //Find max and min point for initialization
+        point3 minP,maxP;
+        getMinMax(space,maxP,minP,nValid);
         initializeCodebook(codebook,minP,maxP,nClusters);
+        //initializeCodebook(space,codebook,nClusters,nValid);
         //Call quantizator
         kmeans(space,partition,codebook,iterations,
                nClusters,nValid);

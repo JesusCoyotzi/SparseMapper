@@ -64,3 +64,4 @@ void printPoint3(point3 p);
 void serializeQuantization(point3* points, point3* codebook, int * partition, int n, int k, char *filename);
 void initializeCodebook(point3 * points, point3 minPoint,
                         point3 maxPoint,int nPoints);
+void initializeCodebook(point3 *points,point3 * codebook, int nClusters, int n);

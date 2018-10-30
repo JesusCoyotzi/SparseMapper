@@ -41,7 +41,7 @@ void printPoint3Array(point3 *p, int n)
         }
 }
 
-__device__ point3 addPoint3(point3 p1,point3 p2)
+__device__ __host__ point3 addPoint3(point3 p1,point3 p2)
 {
         point3 sum;
         sum.x=p1.x+p2.x;
@@ -51,7 +51,7 @@ __device__ point3 addPoint3(point3 p1,point3 p2)
         return sum;
 }
 
-__device__ point3 mulPoint3(point3 p, float s)
+__device__ __host__ point3 mulPoint3(point3 p, float s)
 {
         point3 mul;
         mul.x=s*p.x;
@@ -108,6 +108,44 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
         for (unsigned int i = 0; i < nClusters; i++)
         {
                 codebook[i] = randomPoint3(minPoint,maxPoint);
+                //printPoint3(codebook[i]);
+        }
+        return;
+}
+
+point3 getCentroid(point3 * points, int n)
+{
+        point3 acc;
+        acc.x=0.0; acc.y=0.0; acc.z=0.0;
+        for (int i = 0; i < n; i++) {
+                acc.x+=points[i].x;
+                acc.y+=points[i].y;
+                acc.z+=points[i].z;
+        }
+        point3 centroid = mulPoint3(acc,1.0/n);
+        printf("The centroid is [%f,%f,%f] \n",centroid.x,centroid.y,centroid.z);
+        return centroid;
+}
+
+
+void initializeCodebook(point3* points,point3 * codebook, int nClusters, int n)
+{
+        //loop over all clusters
+        printf("Initializing centroids\n");
+        point3 centroid = getCentroid(points,n);
+
+        float offset = 2.0/n;
+        float inc = M_PI*(3.0-sqrtf(5.0));
+        for (unsigned int i = 0; i < nClusters; i++)
+        {
+                float y = (i*offset-1)+offset/2;
+                float r = sqrtf(1- pow(y,2));
+                float phi = ((i+1)%n)*inc;
+                float x = cos(phi)*r;
+                float z = cos(phi)*r;
+                codebook[i].x = x+centroid.x;
+                codebook[i].y = y+centroid.y;
+                codebook[i].z = z+centroid.z;
                 //printPoint3(codebook[i]);
         }
         return;
@@ -407,6 +445,15 @@ void kmeans(point3 *h_points, int *h_partition,
                         //aqui iria un while
                         recalcCentroidsInner<<<blks,THREADS>>>
                         (d_reduceArray,d_reduceArray,d_partition,nPoints);
+                        while (blks>THREADS) {
+                                //cudaMemcpy(d_idata, d_odata, s*sizeof(T), cudaMemcpyDeviceToDevice);
+                                recalcCentroidsInner<<<blks,THREADS>>>
+                                (d_reduceArray,d_reduceArray,d_partition,blks);
+                                blks = (blks + THREADS - 1) / THREADS;
+                                n = blks;
+                                printf("Blocks!!! %d\n",blks );
+                        }
+
                         //Aqui acabaria el while
                         recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
                         (d_reduceArray,d_codebook,d_partition,d_histogram,i,blks);
