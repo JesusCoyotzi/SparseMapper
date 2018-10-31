@@ -37,12 +37,10 @@ __global__ void recalcCentroids(point3 *points,
                                 int k, int n);
 __global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
-                                     int *partition,
-                                     int *histogram,
+                                    int *histogram,
                                      int k, int n);
 __global__ void recalcCentroidsInner(point3 * points,
                                      point3* partialResult,
-                                     int *partition,
                                      int n);
 __global__ void makePartition(int *partition,
                               float *distances, int *histogram,
@@ -52,7 +50,7 @@ __global__ void prepareReduceArray(point3 *points,
                                    point3 *reduceArrray,
                                    int centroid, int n);
 void kmeans(point3 *h_points, int *h_partition,
-            point3* h_codebook,
+            point3* h_codebook, int *h_histogram,
             int iterations, int clusters, int nPoints);
 void printVec(int vec[], int n);
 void randomInts(int arr[],int n);

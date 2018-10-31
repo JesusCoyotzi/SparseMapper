@@ -9,8 +9,6 @@ cloudPreprocessor::cloudPreprocessor(ros::NodeHandle &nh)
         nh_priv.param<float>("voxelSize",voxelSize,0.01); //in meters
         nh_priv.param<bool>("cropEnable",cropEnable,false);
         nh_priv.param<bool>("voxEnable",voxEnable,true);
-
-
         inCloudSub = nh_.subscribe<sensor_msgs::PointCloud2>("/cloud",10,&cloudPreprocessor::processCallback,this);
         processedCloudPub=nh_.advertise<sensor_msgs::PointCloud2>
                                    ("/processed_cloud",2);
@@ -19,17 +17,16 @@ cloudPreprocessor::cloudPreprocessor(ros::NodeHandle &nh)
 }
 void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& input)
 {
-
         pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
-        pcl::fromROSMsg(*input, *cloud);
         std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
-        if (cropEnable) {
-          filterDistanceZ(cropDistance,cloud);
-          
+        pcl::fromROSMsg(*input, *cloud);
+        if (cropDistance>0) {
+                std::cout << "Z filter" << '\n';
+                filterDistanceZ(cropDistance,cloud);
         }
-        if (voxEnable) {
-          voxelFilter(voxelSize,cloud);
-
+        if (voxelSize>0) {
+                std::cout << "Voxel filter" << '\n';
+                voxelFilter(voxelSize,cloud);
         }
         transformCloud(cloud);
         //convert to msg and publish
@@ -53,28 +50,29 @@ void cloudPreprocessor::filterDistanceZ(double maxDist, cloudRGBAPtr cloud)
 
 void cloudPreprocessor::voxelFilter(double vSize,cloudRGBAPtr cloud)
 {
-  //Simple voxel filtering object
-  pcl::VoxelGrid<pcl::PointXYZRGBA> sor;
-  sor.setInputCloud (cloud);
-  sor.setLeafSize (vSize, vSize, vSize);
-  sor.filter (*cloud);
+        //Simple voxel filtering object
+        pcl::VoxelGrid<pcl::PointXYZRGBA> sor;
+        sor.setInputCloud (cloud);
+        sor.setLeafSize (vSize, vSize, vSize);
+        sor.filter (*cloud);
 }
 
 bool cloudPreprocessor::transformCloud(cloudRGBAPtr cloud)
 {
-  bool sux = false;
-  tf::StampedTransform transformTf;
-  try{
-          sux = pcl_ros::transformPointCloud(baseFrame,
-                                             *cloud,
-                                             *cloud,
-                                             tf_listener
-                                             );
-  }
-  catch (tf::TransformException ex) {
-          //std::cout << "Erroring!!!!!" << '\n';
-          ROS_ERROR("%s",ex.what());
-          ros::Duration(1.0).sleep();
-  }
-  return sux;
+        bool sux = false;
+        tf::StampedTransform transformTf;
+        std::cout << "TRansforming cloud" << '\n';
+        try{
+                sux = pcl_ros::transformPointCloud(baseFrame,
+                                                   *cloud,
+                                                   *cloud,
+                                                   tf_listener
+                                                   );
+        }
+        catch (tf::TransformException ex) {
+                //std::cout << "Erroring!!!!!" << '\n';
+                ROS_ERROR("%s",ex.what());
+                ros::Duration(1.0).sleep();
+        }
+        return sux;
 }

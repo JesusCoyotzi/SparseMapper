@@ -7,6 +7,7 @@
 #include "pcl_ros/transforms.h"
 
 #include "space_quantization/quantizedSpace.h"
+#include "space_quantization/codebook.h"
 
 #include <iostream>
 #include <vector>
@@ -26,7 +27,7 @@ class spaceSegmenter {
 private:
 ros::NodeHandle nh_;
 ros::Subscriber sub_cloud;
-ros::Publisher labeledCloudPub, quantizedSpace_pub;
+ros::Publisher labeledCloudPub, quantizedSpace_pub, codebook_pub;
 ros::Publisher freeCloud, occCloud;
 bool pubSegSpace;
 float freeThr;
@@ -44,14 +45,15 @@ void getMinMax(point3 * points,
                int nPoints);
 float norm(point3 p);
 void labelSpaceAndPublish(point3* space, point3* codebook,
-                          int * partition,
+                          int * partition, int *histogram,
                           int nPoints);
 void separateSpaceAndPublish(point3* space,
                              point3* codebook,
                              int * partition,
+                             int * histogram,
                              int nPoints);
 void makeCodebookMsg(std::vector<geometry_msgs::Point> &msg,
-                     point3 *codebook, int nClusters);
+                     point3 *codebook, int* histogram, int nClusters);
 void makeCloudHeader(sensor_msgs::PointCloud2 &cloud, int points);
 
 public:

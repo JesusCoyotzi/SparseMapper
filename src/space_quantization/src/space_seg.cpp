@@ -12,13 +12,15 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
                             &spaceSegmenter::cloudCallback,
                             this);
         labeledCloudPub = nh.advertise<sensor_msgs::PointCloud2>
-                                   ("labeled_cloud",2);
+                                  ("labeled_cloud",2);
         // freeCloudPub = nh.advertise<sensor_msgs::PointCloud2>
         //                            ("free_space",2);
         // occCloudPub = nh.advertise<sensor_msgs::PointCloud2>
         //                            ("occ_space",2);
         quantizedSpace_pub = nh.advertise<space_quantization::quantizedSpace>
                                      ("quantized_space",2);
+        codebook_pub = nh.advertise<space_quantization::codebook>
+                                     ("codebook",2);
 
         std::cout << "Starting ROS node for segmentation by Coyo-soft" << '\n';
         return;
@@ -85,19 +87,22 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         //don't forget to allocate memory for partition
         int * partition =
                 (int *)malloc(n*sizeof(int));
+        //And the histogram
+        int * histogram =
+                (int*)malloc(nClusters*sizeof(int));
         //initializa codebook
         //Find max and min point for initialization
         point3 minP,maxP;
         getMinMax(space,maxP,minP,nValid);
         initializeCodebook(codebook,minP,maxP,nClusters);
-        //initializeCodebook(space,codebook,nClusters,nValid);
+        // initializeCodebook(space,codebook,nClusters,nValid);
         //Call quantizator
-        kmeans(space,partition,codebook,iterations,
+        kmeans(space,partition,codebook,histogram,iterations,
                nClusters,nValid);
 
-        labelSpaceAndPublish(space,codebook,partition,nValid);
+        labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         //free host memory
-        free(space); free(codebook); free(partition);
+        free(space); free(codebook); free(partition); free(histogram);
 }
 
 float spaceSegmenter::norm(point3 p)
@@ -156,16 +161,23 @@ int spaceSegmenter::toPoint3(sensor_msgs::PointCloud2 tfCloud,
 }
 
 void spaceSegmenter::makeCodebookMsg(std::vector<geometry_msgs::Point> &msg,
-                                     point3 *codebook,
+                                     point3 *codebook, int* histogram,
                                      int nClusters)
 {
         //Ensemnles a geometry_msgs::Point[] vector to send the codebook to other topics
         //Basically finishes takin the quantization library types to pure ros msg
         for (int i = 0; i < nClusters; i++)
         {
-                msg[i].x=codebook[i].x;
-                msg[i].y=codebook[i].y;
-                msg[i].z=codebook[i].z;
+                if (histogram[i]>0) {
+                        geometry_msgs::Point chg;
+                        chg.x=codebook[i].x;
+                        chg.y=codebook[i].y;
+                        chg.z=codebook[i].z;
+                        msg.push_back(chg);
+                        // msg[i].x=codebook[i].x;
+                        // msg[i].y=codebook[i].y;
+                        // msg[i].z=codebook[i].z;
+                }
         }
 }
 
@@ -200,6 +212,7 @@ void
 spaceSegmenter::separateSpaceAndPublish(point3* space,
                                         point3* codebook,
                                         int * partition,
+                                        int * histogram,
                                         int nPoints)
 {
         // Ensemble pointcloud for free & occupied space.
@@ -270,7 +283,7 @@ spaceSegmenter::separateSpaceAndPublish(point3* space,
         occCloud.data = byteBlobOcc;
 
         std::vector<geometry_msgs::Point> centroids(nClusters);
-        makeCodebookMsg(centroids,codebook,nClusters);
+        makeCodebookMsg(centroids,codebook, histogram,nClusters);
         //make quantizedSpace obj
         space_quantization::quantizedSpace qs;
         qs.space = occCloud;
@@ -289,6 +302,7 @@ void
 spaceSegmenter::labelSpaceAndPublish(point3* space,
                                      point3* codebook,
                                      int * partition,
+                                     int * histogram,
                                      int nPoints)
 {
         // Ensemble pointcloud for free & occupied space.
@@ -334,8 +348,8 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         }
         labeledCloud.data = byteBlobLabel;
 
-        std::vector<geometry_msgs::Point> centroids(nClusters);
-        makeCodebookMsg(centroids,codebook,nClusters);
+        std::vector<geometry_msgs::Point> centroids;
+        makeCodebookMsg(centroids,codebook,histogram,nClusters);
         //make quantizedSpace obj
         space_quantization::quantizedSpace qs;
         qs.space = labeledCloud;
@@ -346,5 +360,11 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
                 labeledCloudPub.publish(labeledCloud);
         }
         quantizedSpace_pub.publish(qs);
+
+        space_quantization::codebook cdbk;
+        cdbk.centroids = centroids;
+        cdbk.header.frame_id =  cloudFrame;
+        cdbk.header.stamp = stamp;
+        codebook_pub.publish(cdbk);
         return;
 }

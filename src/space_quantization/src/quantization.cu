@@ -225,7 +225,7 @@ __global__ void makePartition(int *partition,
         }
         // __syncthreads();
         // if (idx==0) {
-        //   printf("-----\n" );
+        //         printf("-----\n" );
         //         for (int i = 0; i < k; i++) {
         //                 printf("Histogram[%d]=%d\n",i,histogram[i] );
         //         }
@@ -259,7 +259,6 @@ __global__ void prepareReduceArray(point3 *points, int *partition, point3 *reduc
 
 __global__ void recalcCentroidsInner(point3 * points,
                                      point3* partialResult,
-                                     int *partition,
                                      int n)
 {
         //n = histogram[n]
@@ -297,8 +296,10 @@ __global__ void recalcCentroidsInner(point3 * points,
                         //printf("Block: %d\n",blockIdx.x);
                         //printf("Number of elements in  %d is %d\n",k, partitionShared[0]);
                         //partitionOut[blockIdx.x] = partitionShared[0];
+                        // printf("Partial Sum:%f,%f,%f\n",
+                        //        pointsShared[0].x,pointsShared[0].y,pointsShared[0].z);
                         partialResult[blockIdx.x] = pointsShared[0];
-                        //centroids[k] = mulPoint3(pointsShared[0],1.0/partitionShared[0]);
+
                 }
         }
         __syncthreads();
@@ -306,7 +307,6 @@ __global__ void recalcCentroidsInner(point3 * points,
 
 __global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
-                                     int *partition,
                                      int *histogram,
                                      int k, int n)
 {
@@ -340,10 +340,15 @@ __global__ void recalcCentroidsOuter(point3 * points,
                 {
                         //printf("Thread: %d\t",idx);
                         //printf("[Inner] Number of elements in  %d is %d\n",k, partitionShared[0]);
-                        // printf("Centroid[%d] prior:%f,%f,%f\n",
-                        //        k,centroids[k].x,centroids[k].y,centroids[k].z);
                         if(histogram[k]>0) {
+                                // printf("Centroid[%d] prior:%f,%f,%f\n",
+                                //        k,centroids[k].x,centroids[k].y,centroids[k].z);
+                                // printf("--Poinst[%d] posterior:%f,%f,%f\n",
+                                //        0,pointsShared[0].x,pointsShared[0].y,pointsShared[0].z);
+                                // printf("Centroid[%d] posterior:%f,%f,%f\n",
+                                //        k,centroids[k].x,centroids[k].y,centroids[k].z);
                                 centroids[k] = mulPoint3(pointsShared[0],1.0/histogram[k]);
+
                         }
                 }
         }
@@ -390,17 +395,17 @@ void initializeCentroids(point3 *points, point3 aleatorios)
 //aleatorios vectores aleatorios para perturbar el centroide
 
 void kmeans(point3 *h_points, int *h_partition,
-            point3* h_codebook,
+            point3* h_codebook, int *h_histogram,
             int iterations, int clusters, int nPoints)
 {
 
         printf("Received: %d\n",nPoints);
 
         //Pointers
-        point3 *d_points, *d_codebook, *d_partialSum;
+        point3 *d_points, *d_codebook;
         float *d_distances,*h_distances;
-        int *d_partition, *d_partialPart, *d_histogram;
-        point3 *d_reduceArray;
+        int *d_partition,  *d_histogram;
+        point3 *d_reduceArray, *d_partialReduce;
         //sizes
         int nPointsSize   = nPoints*sizeof(point3);
         int clustersSize  = clusters*sizeof(point3);
@@ -415,23 +420,23 @@ void kmeans(point3 *h_points, int *h_partition,
         cudaMalloc((void**)&d_codebook,clustersSize);
         cudaMalloc((void**)&d_distances,distanceSize);
         cudaMalloc((void**)&d_partition,partitionSize);
-        cudaMalloc((void**)&d_partialSum,THREADS*sizeof(point3));
-        cudaMalloc((void**)&d_partialPart,THREADS*sizeof(int));
 
         cudaMalloc((void**)&d_reduceArray,nPointsSize);
+        cudaMalloc((void**)&d_partialReduce,nPointsSize);
         cudaMalloc((void**)&d_histogram,histogramSize);
 
         cudaMemcpy(d_points,h_points,nPointsSize,cudaMemcpyHostToDevice);
         cudaMemcpy(d_codebook,h_codebook,clustersSize,cudaMemcpyHostToDevice);
 
-        int blks = (nPoints + THREADS - 1) / THREADS;
-        ///if blks > THREADS return error not enough kenerls
         //int blks = nPoints/ THREADS;
+        int blks = (nPoints + THREADS - 1) / THREADS;
         printf("Issuing %d blocks with %d threads\n",blks, THREADS);
         //cudaDeviceSynchronize();
         // recalcCentroids<<<(nPoints + THREADS - 1) / THREADS,THREADS>>>
         // (d_points,d_codebook,d_partition,clusters,nPoints);
         for (int m = 0; m <iterations; m++) {
+                ///if blks > THREADS return error not enough kenerls
+                blks = (nPoints + THREADS - 1) / THREADS;
                 distanceKernel<<<blks,THREADS>>>
                 (d_points,d_codebook,d_distances,clusters,nPoints);
                 //cudaDeviceSynchronize();
@@ -440,23 +445,31 @@ void kmeans(point3 *h_points, int *h_partition,
                 (d_partition,d_distances,d_histogram,clusters,nPoints);
                 for(int i= 0; i<clusters; i++)
                 {
+                        blks = (nPoints + THREADS - 1) / THREADS;
                         prepareReduceArray<<<blks,THREADS>>>
                         (d_points,d_partition,d_reduceArray,i,nPoints);
-                        //aqui iria un while
+                        //printf(">>>>>First RUN on cluster [%d]\n",i );
                         recalcCentroidsInner<<<blks,THREADS>>>
-                        (d_reduceArray,d_reduceArray,d_partition,nPoints);
+                        (d_reduceArray,d_reduceArray,nPoints);
+                        //cudaDeviceSynchronize();
                         while (blks>THREADS) {
-                                //cudaMemcpy(d_idata, d_odata, s*sizeof(T), cudaMemcpyDeviceToDevice);
-                                recalcCentroidsInner<<<blks,THREADS>>>
-                                (d_reduceArray,d_reduceArray,d_partition,blks);
+                                //Si entra aquí los resutlados parciales dan 0 y
+                                //no tengo idea por que.
+                                //Pero solo despues de una iteración
+                                //Ni siquiera agarra todos los puntos
+                                int n = blks;
+                                //printf(">>>>>Another RUN\n" );
+                                // cudaMemcpy(d_partialReduce, d_reduceArray, nPointsSize, cudaMemcpyDeviceToDevice);
                                 blks = (blks + THREADS - 1) / THREADS;
-                                n = blks;
-                                printf("Blocks!!! %d\n",blks );
+                                //printf("Blocks: %d Points: %d!!!\n",blks,n);
+                                recalcCentroidsInner<<<blks,THREADS>>>
+                                (d_reduceArray,d_reduceArray,n);
+                                //cudaDeviceSynchronize();
                         }
 
                         //Aqui acabaria el while
                         recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
-                        (d_reduceArray,d_codebook,d_partition,d_histogram,i,blks);
+                        (d_reduceArray,d_codebook,d_histogram,i,blks);
                         if (cudaPeekAtLastError() != cudaSuccess) {
                                 printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
                         }
@@ -472,13 +485,15 @@ void kmeans(point3 *h_points, int *h_partition,
                    clustersSize,cudaMemcpyDeviceToHost);
         cudaMemcpy(h_partition,d_partition,
                    partitionSize,cudaMemcpyDeviceToHost);
-        //printVec(h_partition,nPoints);
+        cudaMemcpy(h_histogram,d_histogram,
+                   histogramSize,cudaMemcpyDeviceToHost);
+
         //printVec(h_distances,nPoints*clusters);
         //printVec(h_partition,nPoints);
         printf("---Optimized centroids---\n");
         printPoint3Array(h_codebook, clusters);
         cudaFree(d_points); cudaFree(d_distances); cudaFree(d_codebook);
-        cudaFree(d_partition); cudaFree(d_partialSum); cudaFree(d_partialPart);
+        cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
 
         free(h_distances);
         return;

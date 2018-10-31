@@ -2,14 +2,14 @@
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
   <arg name="name" default="wrs2018"/>
   <arg name="crop" default="-2.0"/>
-  <arg name="freeSpace" default="0.15"/>
+  <arg name="freeSpace" default="0.05"/>
 
   <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
     <remap from="/cloud" to="/hsrb/cloud"/>
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
-    <param name="voxelSize" value="0.08" type="double"/>
+    <param name="voxelSize" value="-0.1" type="double"/>
     <param name="voxEnable" value="true" type="bool"/>
   </node>
 
@@ -17,27 +17,9 @@
     <remap from="cloud" to="/hsrb/processed_cloud"/>
     <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
     <remap from="quantized_space" to="/hsrb/quantized_space"/>
-    <remap from="codebook" to="/hsrb/codebook"/>
-    <param name="nClusters" value="256" type="int"/>
-    <param name="iterations" value="10" type="int"/>
+    <param name="nClusters" value="16" type="int"/>
+    <param name="iterations" value="8" type="int"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
-  </node>
-
-  <node name="space_sep" pkg="space_quantization" type="space_separation_node" output="screen" >
-    <remap from="quantized_space" to="/hsrb/quantized_space"/>
-    <remap from="free_space" to="/hsrb/free_space"/>
-    <remap from="occupied_space" to="/hsrb/occupied_space"/>
-    <remap from="occupied_quantized" to="/hsrb/occupied_quantized"/>
-    <param name="free_thr" value="$(arg freeSpace)" type="double"/>
-    <param name="pub_seg_space" value="true" type="bool"/>
-  </node>
-
-  <node name="adjGraph" pkg="space_quantization" type="adjacency_graph_node" output="screen">
-    <remap from="quantized_space" to="/hsrb/occupied_quantized"/>
-    <remap from="graph_marker" to="/hsrb/graph_marker"/>
-    <param name="k_neighboors" value="6" type="int"/>
-    <param name="max_dist" value="1.5" type="double"/>
-    <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
   </node>
 
   <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_table" args="-0.005 1.115 0.802 -0.037 0.821 -0.569 -0.015 base_link head_rgbd_sensor_rgb_frame 100"/> -->
@@ -51,7 +33,7 @@
   <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="-15 5 0 0 0 0 1 base_link head_rgbd_sensor_rgb_frame 100" />
 
   <!-- head_rgbd_sensor_rgb_frame -->
-  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd" output="screen">
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd 5" output="screen">
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
   </node>

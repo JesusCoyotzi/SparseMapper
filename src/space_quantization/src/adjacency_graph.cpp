@@ -4,7 +4,7 @@ adjacencyGraph::adjacencyGraph(ros::NodeHandle &nh)
 {
         nh_=nh;
         ros::NodeHandle nh_priv("~");
-        quantSub = nh_.subscribe("voxelized_space",10, &adjacencyGraph::codebookCallback, this);
+        voxelSub = nh_.subscribe("voxelized_space",10, &adjacencyGraph::codebookCallback, this);
         quantSub = nh_.subscribe("quantized_space",10, &adjacencyGraph::quantizedCallback, this);
         graphMakeSub = nh_.subscribe("make_graph",1, &adjacencyGraph::makeGraph,this);
         markerPub = nh_.advertise<visualization_msgs::Marker>("graph_marker",2);

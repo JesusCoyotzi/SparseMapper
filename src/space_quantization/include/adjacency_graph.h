@@ -43,7 +43,7 @@ struct distanceLabel {
         int label;
 };
 ros::NodeHandle nh_;
-ros::Subscriber quantSub, graphMakeSub;
+ros::Subscriber quantSub, voxelSub,graphMakeSub;
 ros::Publisher markerPub;
 ros::Time stamp;
 int kNeighboors;
