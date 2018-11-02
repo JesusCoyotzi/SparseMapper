@@ -9,7 +9,7 @@ typedef struct _point3 {
         float z;
 } point3;
 
-typedef geometry_msgs::Point pointGeom;
+typedef geometry_msgs::Point geomPoint;
 
 class Cylinder {
   //A simple class to represent a cylinder and check collisions with it

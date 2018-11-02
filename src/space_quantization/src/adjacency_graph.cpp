@@ -7,6 +7,7 @@ adjacencyGraph::adjacencyGraph(ros::NodeHandle &nh)
         nh_priv.param<float>("free_thr",freeThr,0.1);
         nh_priv.param<float>("safety_height",safetyHeight,1.2);
         nh_priv.param<float>("safety_radius",safetyRadius,0.75);
+        nh_priv.param<float>("connection_radius",connectionRadius,0.4);
         nh_priv.param<int>("k_neighboors",kNeighboors,6);
         nh_priv.param<std::string>("graph_file",graphFile,"adjGraph.txt");
         nh_priv.param<float>("max_dist",maxDist,2); //max distance between neighboors
@@ -98,15 +99,54 @@ bool adjacencyGraph::validateFreeCentroid(pointGeom &freeCentroid, float height,
                 collision=cilynderCollision(freeCentroid,vz, occCodebook[i],height,radius);
                 if (collision)
                 {
-                        printf("Collision with : ");
-                        printf("[%f,%f,%f] &",
-                               freeCentroid.x,freeCentroid.y,freeCentroid.z );
-                        printf(" [%f,%f,%f]\n",
-                               occCodebook[i].x,occCodebook[i].y,occCodebook[i].z );
+                        // printf("Collision with : ");
+                        // printf("[%f,%f,%f] &",
+                        //        freeCentroid.x,freeCentroid.y,freeCentroid.z );
+                        // printf(" [%f,%f,%f]\n",
+                        //        occCodebook[i].x,occCodebook[i].y,occCodebook[i].z );
                         break;
                 }
         }
         return collision;
+}
+
+bool adjacencyGraph::validateConnection(pointGeom p1, pointGeom p2, float radius)
+{
+        //Chceck if a connection between two free centroids is intersected by an occupied
+        //point
+        Eigen::Vector3d p1Eigen(p1.z,p1.y,p1.z);
+        Eigen::Vector3d p2Eigen(p2.z,p2.y,p2.z);
+        bool collision = false;
+        for (size_t i = 0; i < occCodebook.size(); i++) {
+                Eigen::Vector3d q(occCodebook[i].x,occCodebook[i].y,occCodebook[i].z);
+                collision = cylinderCollision(p1Eigen,p2Eigen,q,radius);
+                if (collision) {
+                        break;
+                }
+        }
+        return collision;
+}
+
+
+bool adjacencyGraph::cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q, float radius)
+{
+        Eigen::Vector3d p2_p1=p2-p1;
+        float distanceLid1 = (q-p1).dot(p2_p1);
+        if (distanceLid1<0) {
+                return false;
+        }
+        float distanceLid2=(q-p2).dot(-p2_p1);
+        if (distanceLid2<0) {
+                return false;
+        }
+        double num = (q-p1).cross(p2_p1).norm();
+        double den = p2_p1.norm();
+        float distanceSpine = num/den;
+        if (distanceSpine>radius) {
+                return false;
+        }
+        printf("Collision distance = %f\n", distanceSpine  );
+        return true;
 }
 
 bool adjacencyGraph::cilynderCollision(pointGeom pi,pointGeom v, pointGeom q, float height, float radius)
@@ -229,12 +269,18 @@ void adjacencyGraph::Knn(pointArray centroids, adjacencyList & adjL)
                         // printf("[%d,%f],", distances[k].label,distances[k].dist);
                         if(distances[k].dist <= maxDist)
                         {
-                                adjL[i].push_back(distances[k].label);
+                                int label=distances[k].label; //wich centroid
+                                if (!validateConnection(centroids[label],centroids[i],
+                                                        connectionRadius))
+                                {
+                                        adjL[i].push_back(label);
+                                }
                         }
                 }
 
         }
 }
+
 
 float ** adjacencyGraph::makeAdjacencyMat(int nEdges)
 {

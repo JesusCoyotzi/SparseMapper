@@ -9,7 +9,7 @@
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
-    <param name="voxelSize" value="0.08" type="double"/>
+    <param name="voxelSize" value="0.05" type="double"/>
     <param name="voxEnable" value="true" type="bool"/>
   </node>
 
@@ -18,7 +18,7 @@
     <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
     <remap from="quantized_space" to="/hsrb/quantized_space"/>
     <remap from="codebook" to="/hsrb/codebook"/>
-    <param name="nClusters" value="256" type="int"/>
+    <param name="nClusters" value="320" type="int"/>
     <param name="iterations" value="10" type="int"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
   </node>
@@ -39,7 +39,8 @@
     <param name="k_neighboors" value="6" type="int"/>
     <param name="max_dist" value="1.5" type="double"/>
     <param name="safety_height" value="1.5" type="double"/>
-    <param name="safety_radius" value="0.40" type="double"/>
+    <param name="safety_radius" value="0.5" type="double"/>
+    <param name="connection_radius" value="0.4" type="double"/>
     <param name="free_thr" value="$(arg freeSpace)" type="double"/>
     <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
   </node>

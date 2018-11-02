@@ -32,7 +32,7 @@ typedef geometry_msgs::Point pointGeom;
 typedef std::vector<geometry_msgs::Point> pointArray;
 typedef std::vector<std::vector<int> > adjacencyList;
 
-//This receies a quantizedSpace message
+//This receives a quantizedSpace message
 //With the occupied space and the centroids
 //Ensembles an adjacency graph and makes viz messages.
 
@@ -49,7 +49,7 @@ ros::Publisher markerPub;
 ros::Time stamp;
 int kNeighboors;
 float **adjMat;
-float maxDist,freeThr,safetyHeight,safetyRadius;
+float maxDist,freeThr,safetyHeight,safetyRadius,connectionRadius;
 int edges; //number of elements in graph
 std::string cloudFrame,graphFile;
 std::vector<geometry_msgs::Point> freeCodebook, occCodebook,codebook;
@@ -59,8 +59,11 @@ float norm(geometry_msgs::Point dp);
 pointGeom makeGeometryMsg(float x, float y, float z);
 bool validateFreeCentroid(pointGeom &freeCentroid,
                           float height, float radius);
+bool validateConnection(pointGeom p1, pointGeom p2, float radius);
 bool cilynderCollision(pointGeom pi,pointGeom v, pointGeom q,
                        float height, float radius);
+bool cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q,
+                          float radius);
 void quantizedCallback(const space_quantization::quantizedSpace &msg);
 void codebookCallback(const space_quantization::codebook &msg);
 void makeGraph(const std_msgs::Empty &msg);
