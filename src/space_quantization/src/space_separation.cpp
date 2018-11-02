@@ -11,11 +11,13 @@ spaceSeparator::spaceSeparator(ros::NodeHandle &nh)
 void spaceSeparator::setVQMapCallbacks()
 {
         //used space quantization to generate free and occupied space
-        freeCloudPub = nh_.advertise<sensor_msgs::PointCloud2>("free_space",2);
-        occCloudPub = nh_.advertise<sensor_msgs::PointCloud2>("occupied_space",2);
-        quantizedSpacePub= nh_.advertise<space_quantization::quantizedSpace>("occupied_quantized",2);
+        // freeCloudPub = nh_.advertise<sensor_msgs::PointCloud2>("free_space",2);
+        // occCloudPub = nh_.advertise<sensor_msgs::PointCloud2>("occupied_space",2);
+        // quantizedSpacePub= nh_.advertise<space_quantization::quantizedSpace>("occupied_quantized",2);
+        // spaceSub = nh_.subscribe("quantized_space",10, &spaceSeparator::spaceCallback, this);
+        //Now this node only does visualization
         markerPub = nh_.advertise<visualization_msgs::MarkerArray>("centroids_marker_array",2);
-        spaceSub = nh_.subscribe("quantized_space",10, &spaceSeparator::spaceCallback, this);
+        codebookSub = nh_.subscribe("codebook",10, &spaceSeparator::spaceCallback, this);
         return;
 }
 
@@ -29,6 +31,8 @@ void spaceSeparator::setVoxelMapCallbacks()
         markerPub = nh_.advertise<visualization_msgs::Marker>("voxels_marker",2);
         return;
 }
+
+
 
 void spaceSeparator::voxelSeparatorAndPublish(  Point3 * Ps, int nP, pointArray &codebookFree, pointArray &codebookOcc)
 {
@@ -85,31 +89,21 @@ void spaceSeparator::voxelMapCloudCallback(const sensor_msgs::PointCloud2 &msg)
         free(Points);
 }
 
-void spaceSeparator::spaceCallback(const space_quantization::quantizedSpace &msg)
+void spaceSeparator::spaceCallback(const space_quantization::codebook &msg)
 {
         //unpacking
-        sensor_msgs::PointCloud2 space = msg.space;
-        int n=space.height*space.width;
-        std::cout << "Got label cloud of:" << n << "Points"<< '\n';
-        cloudFrame = space.header.frame_id;
-        stamp = space.header.stamp;
+        std::cout << "Got codebook of:" << msg.centroids.size() << "Points"<< '\n';
+        cloudFrame = msg.header.frame_id;
+        stamp = msg.header.stamp;
         std::cout << "In frame " << cloudFrame << "on Stamp " <<stamp<< '\n';
-        std::vector<geometry_msgs::Point> codebook = msg.codebook;
+        std::vector<geometry_msgs::Point> codebook = msg.centroids;
         //extract pointcloud to a more convenient data storage
-
-        labelPoint3 * labeledPoints = (labelPoint3 *)malloc(n*sizeof(labelPoint3));
-        int validP=tolabelPoint3(space,labeledPoints);
-        std::cout << "ValidP: " << validP<<'\n';
-        if (validP<0)
-        {
-                ROS_ERROR("No points read");
-                return;
-        }
         //separate in free and occupied space and publish all.
         //Both for visualization and processing
-        separateSpaceAndPublish(labeledPoints, codebook, n);
+        //separateSpaceAndPublish(labeledPoints, codebook, n);
+        //voxelSeparatorAndPublish(Points,validP,codebookF,codebookO);
         makeVizMsgAndPublish(codebook);
-        free(labeledPoints);
+        return;
 }
 
 float spaceSeparator::makeFloat(unsigned char * byteArray)

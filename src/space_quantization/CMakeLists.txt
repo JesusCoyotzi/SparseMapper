@@ -13,9 +13,11 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 #Esto ya es ocio
-message(AUTHOR_WARNING Los directions de PCL son: ${PCL_LIBRARY_DIRS} )
+message(AUTHOR_WARNING "Los directions de PCL son:" ${PCL_LIBRARY_DIRS} )
 
 find_package(CUDA REQUIRED)
+find_package(catkin REQUIRED cmake_modules)
+find_package(Eigen REQUIRED)
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
 
@@ -60,16 +62,19 @@ add_message_files(FILES
    sensor_msgs
    geometry_msgs
    )
+
  # Declare that this catkin package's runtime dependencies
  catkin_package(
   CATKIN_DEPENDS  std_msgs sensor_msgs geometry_msgs
   message_runtime
+  DEPENDS Eigen
  )
 
 
  include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
  )
 
  #Cuda stuff

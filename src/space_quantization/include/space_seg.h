@@ -9,6 +9,7 @@
 #include "space_quantization/quantizedSpace.h"
 #include "space_quantization/codebook.h"
 
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -20,6 +21,8 @@ union charToFloat
         int assembledInt;
 
 };
+
+
 
 /*This class implements the kmeans cuda-based segmentation algorithm
    on a PointCloud2 ros message*/

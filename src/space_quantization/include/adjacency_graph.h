@@ -7,6 +7,8 @@
 #include "space_quantization/quantizedSpace.h"
 #include "space_quantization/codebook.h"
 
+#include <Eigen/Dense>
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -26,8 +28,7 @@ typedef struct segmentedPoint3_
         int label;
 }labelPoint3;
 
-
-
+typedef geometry_msgs::Point pointGeom;
 typedef std::vector<geometry_msgs::Point> pointArray;
 typedef std::vector<std::vector<int> > adjacencyList;
 
@@ -48,13 +49,18 @@ ros::Publisher markerPub;
 ros::Time stamp;
 int kNeighboors;
 float **adjMat;
-float maxDist;
+float maxDist,freeThr,safetyHeight,safetyRadius;
 int edges; //number of elements in graph
 std::string cloudFrame,graphFile;
-std::vector<geometry_msgs::Point> codebook;
+std::vector<geometry_msgs::Point> freeCodebook, occCodebook,codebook;
 float distance(geometry_msgs::Point p1,
                geometry_msgs::Point p2);
 float norm(geometry_msgs::Point dp);
+pointGeom makeGeometryMsg(float x, float y, float z);
+bool validateFreeCentroid(pointGeom &freeCentroid,
+                          float height, float radius);
+bool cilynderCollision(pointGeom pi,pointGeom v, pointGeom q,
+                       float height, float radius);
 void quantizedCallback(const space_quantization::quantizedSpace &msg);
 void codebookCallback(const space_quantization::codebook &msg);
 void makeGraph(const std_msgs::Empty &msg);

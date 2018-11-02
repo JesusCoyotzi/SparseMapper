@@ -95,12 +95,16 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         point3 minP,maxP;
         getMinMax(space,maxP,minP,nValid);
         initializeCodebook(codebook,minP,maxP,nClusters);
-        // initializeCodebook(space,codebook,nClusters,nValid);
+        //initializeCodebook(space,codebook,nClusters,nValid);
         //Call quantizator
         kmeans(space,partition,codebook,histogram,iterations,
                nClusters,nValid);
 
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
+        std::cout << "Histogram:" << '\n';
+        for (int i = 0; i < nClusters; i++) {
+          printf("Cluster[%d]: %d\n",i,histogram[i] );
+        }
         //free host memory
         free(space); free(codebook); free(partition); free(histogram);
 }
@@ -354,11 +358,6 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         space_quantization::quantizedSpace qs;
         qs.space = labeledCloud;
         qs.codebook = centroids;
-        //Allows for publish only segmented cloud
-        if (pubSegSpace)
-        {
-                labeledCloudPub.publish(labeledCloud);
-        }
         quantizedSpace_pub.publish(qs);
 
         space_quantization::codebook cdbk;
@@ -366,5 +365,14 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         cdbk.header.frame_id =  cloudFrame;
         cdbk.header.stamp = stamp;
         codebook_pub.publish(cdbk);
+        //Allows for publish only segmented cloud
+        if (pubSegSpace)
+        {
+          //Enable visualization:
+          //labeledCloud
+          labeledCloudPub.publish(labeledCloud);
+
+
+        }
         return;
 }

@@ -4,13 +4,17 @@ adjacencyGraph::adjacencyGraph(ros::NodeHandle &nh)
 {
         nh_=nh;
         ros::NodeHandle nh_priv("~");
-        voxelSub = nh_.subscribe("voxelized_space",10, &adjacencyGraph::codebookCallback, this);
-        quantSub = nh_.subscribe("quantized_space",10, &adjacencyGraph::quantizedCallback, this);
-        graphMakeSub = nh_.subscribe("make_graph",1, &adjacencyGraph::makeGraph,this);
-        markerPub = nh_.advertise<visualization_msgs::Marker>("graph_marker",2);
+        nh_priv.param<float>("free_thr",freeThr,0.1);
+        nh_priv.param<float>("safety_height",safetyHeight,1.2);
+        nh_priv.param<float>("safety_radius",safetyRadius,0.75);
         nh_priv.param<int>("k_neighboors",kNeighboors,6);
         nh_priv.param<std::string>("graph_file",graphFile,"adjGraph.txt");
         nh_priv.param<float>("max_dist",maxDist,2); //max distance between neighboors
+
+        voxelSub = nh_.subscribe("voxelized_space",10, &adjacencyGraph::codebookCallback, this);
+        quantSub = nh_.subscribe("codebook",10, &adjacencyGraph::codebookCallback, this);
+        graphMakeSub = nh_.subscribe("make_graph",1, &adjacencyGraph::makeGraph,this);
+        markerPub = nh_.advertise<visualization_msgs::Marker>("graph_marker",2);
         std::cout << "Starting Adjacency graph maker node by CoyoSoft" << '\n';
         std::cout << graphFile << '\n';
 
@@ -41,30 +45,114 @@ void adjacencyGraph::quantizedCallback (const space_quantization::quantizedSpace
 
 void adjacencyGraph::codebookCallback(const space_quantization::codebook &msg)
 {
-        codebook = msg.centroids;
-        edges = codebook.size();
         cloudFrame = msg.header.frame_id;
         stamp = msg.header.stamp;
+        //TODO use remove erase idiom
+        pointArray centroids = msg.centroids;
+        for (int i = 0; i < centroids.size(); i++)
+        {
+                pointGeom cnt = centroids[i];
+                if (cnt.z>freeThr)
+                {
+                        occCodebook.push_back(cnt);
+                        //centroids.erase(centroids.begin()+i);
+                }
+        }
+        for (int i = 0; i < centroids.size(); i++)
+        {
+                pointGeom cnt = centroids[i];
+                if (cnt.z<freeThr) {
+                        if (!validateFreeCentroid(cnt,safetyHeight,safetyRadius))
+                        {
+                                freeCodebook.push_back(cnt);
+                        }
+                }
+        }
+
+        edges = freeCodebook.size();
         std::cout << "Got a codebook of:" << edges << " points"<< '\n';
         std::cout << "In frame " << cloudFrame << " on Stamp " << stamp << "\n";
         //ideally will validate the codebook points
         return;
 }
 
+pointGeom adjacencyGraph::makeGeometryMsg(float x, float y, float z)
+{
+        //Helper function, to go from x,y,z to geometry_msgs::Point
+        pointGeom p;
+        p.x=x,p.y=y,p.z=z;
+        return p;
+}
+
+bool adjacencyGraph::validateFreeCentroid(pointGeom &freeCentroid, float height, float radius)
+{
+        //Checks if the free point is actually far enoguh from every occupied
+        //centroid
+        //Basically collision with the occupied codebook with  a cylinder
+        //with the robot height and radios of robot footprint as well and
+        //Centered on free centroid
+        bool collision = false;
+        pointGeom vz = makeGeometryMsg(0,0,1);
+        for (size_t i = 0; i < occCodebook.size(); i++)
+        {
+                collision=cilynderCollision(freeCentroid,vz, occCodebook[i],height,radius);
+                if (collision)
+                {
+                        printf("Collision with : ");
+                        printf("[%f,%f,%f] &",
+                               freeCentroid.x,freeCentroid.y,freeCentroid.z );
+                        printf(" [%f,%f,%f]\n",
+                               occCodebook[i].x,occCodebook[i].y,occCodebook[i].z );
+                        break;
+                }
+        }
+        return collision;
+}
+
+bool adjacencyGraph::cilynderCollision(pointGeom pi,pointGeom v, pointGeom q, float height, float radius)
+{
+        //checkl if point collides with cylinder
+        Eigen::Vector3d p1(pi.x,pi.y,pi.z);
+        Eigen::Vector3d dir(v.x,v.y,v.z);
+        dir=dir.normalized();
+        Eigen::Vector3d p2 = p1+height*dir;
+        Eigen::Vector3d testPoint(q.x,q.y,q.z);
+        Eigen::Vector3d p2_p1 = p2-p1;
+        //chcek distance to cylinder lids. If >= 0 the point is inside
+        //The cilinder
+        float distanceLid1=(testPoint-p1).dot(p2_p1);
+        if (distanceLid1<0) {
+                return false;
+        }
+        float distanceLid2=(testPoint-p2).dot(p1-p2);
+        if (distanceLid2<0) {
+                return false;
+        }
+        //check if inside cylinder radius
+        double num = (testPoint-p1).cross(p2_p1).norm();
+        double den = p2_p1.norm();
+        float distanceSpine = num/den;
+        if (distanceSpine>radius) {
+                return false;
+        }
+        printf("Collision distance = %f\n", distanceSpine  );
+        return true;
+}
+
 void adjacencyGraph::makeGraph(const std_msgs::Empty &msg)
 {
         //Allocate an initialize adj matrix
         std::cout << "Adj Graph->Constructing adjacency graph" << '\n';
-        if (codebook.empty()) {
+        if (freeCodebook.empty()) {
                 std::cout << "Adj Graph-> Codebook is empty" << '\n';
                 return;
         }
         adjacencyList adjList(edges);
-        Knn(codebook,adjList);
+        Knn(freeCodebook,adjList);
         //printAdjacencyMat(adjG,edges);
         //Save to disk as file
         printAdjacencyList(adjList);
-        saveAdjGraph(graphFile,codebook,adjList);
+        saveAdjGraph(graphFile,freeCodebook,adjList);
         makeVizMsgAndPublish(adjList);
         return;
 }
@@ -83,6 +171,7 @@ void adjacencyGraph::makeVizMsgAndPublish(adjacencyList l)
         connections.color.b=1.0;
         connections.color.g=1.0;
         connections.color.a=1.0;
+        connections.points.clear();
         for (size_t i = 0; i < l.size(); i++)
         {
                 for (size_t j = 0; j < l[i].size(); j++)
@@ -91,8 +180,8 @@ void adjacencyGraph::makeVizMsgAndPublish(adjacencyList l)
                         //l[i][j] = k meaning node i is connected to k
                         //j is an iterator
                         int k = l[i][j];
-                        connections.points.push_back(codebook[i]);
-                        connections.points.push_back(codebook[k]);
+                        connections.points.push_back(freeCodebook[i]);
+                        connections.points.push_back(freeCodebook[k]);
                 }
         }
         markerPub.publish(connections);

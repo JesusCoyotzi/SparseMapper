@@ -36,7 +36,7 @@ typedef std::vector<geometry_msgs::Point> pointArray;
 class spaceSeparator {
 private:
 ros::NodeHandle nh_;
-ros::Subscriber spaceSub, octoSub;
+ros::Subscriber spaceSub, octoSub, codebookSub;
 ros::Publisher freeCloudPub, occCloudPub,quantizedSpacePub, markerPub;
 ros::Publisher freeCodebookPub, occupiedCodebookPub;
 ros::Time stamp,voxelStamp;
@@ -45,7 +45,7 @@ float freeThr;
 std::string cloudFrame, voxelCloudFrame;
 bool pubSegSpace;
 
-void spaceCallback(const space_quantization::quantizedSpace &msg);
+void spaceCallback(const space_quantization::codebook &msg);
 void makeVizMsgAndPublish(pointArray &codebook);
 void makeVizMarkerAndPublish( pointArray &codebook, bool free);
 void separateSpaceAndPublish(labelPoint3* space,
