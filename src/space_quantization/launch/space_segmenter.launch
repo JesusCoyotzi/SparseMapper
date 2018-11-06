@@ -1,14 +1,32 @@
 <launch>
-  <arg name="name" default="takeshi_2"/>
+    <arg name="freeSpace" default="0.05"/>
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
+    <remap from="/cloud" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
+    <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
+    <param name="cropEnable" value="false" type="bool"/>
+    <param name="cropDistance" value="2.0" type="double"/>
+    <param name="voxelSize" value="0.01" type="double"/>
+    <param name="voxEnable" value="true" type="bool"/>
+    <param name="baseFrame" value="map" type="string"/>
+  </node>
 
   <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
-    <remap from="cloud" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
-    <param name="nClusters" value="128" type="int"/>
-    <param name="iterations" value="8" type="int"/>
-    <param name="visualizeCentroids" value="true" type="bool"/>
-    <param name="visualizeSegCloud" value="false" type="bool"/>
+    <remap from="cloud" to="/hsrb/processed_cloud"/>
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <remap from="quantized_space" to="/hsrb/quantized_space"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <param name="nClusters" value="16" type="int"/>
+    <param name="iterations" value="10" type="int"/>
   </node>
-  <node pkg="rosbag" type="play" name="player" args="--clock $(find space_quantization)/bags/$(arg name).bag">
-    <param name="use_sim_time" value="true"/></node>
 
+
+  <node name="space_sep" pkg="space_quantization" type="space_separation_node" output="screen">
+    <remap from="quantized_space" to="/hsrb/quantized_space"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <remap from="free_space" to="/hsrb/free_space"/>
+    <remap from="occupied_space" to="/hsrb/occupied_space"/>
+    <remap from="occupied_quantized" to="/hsrb/occupied_quantized"/>
+    <param name="free_thr" value="$(arg freeSpace)" type="double"/>
+    <param name="pub_seg_space" value="true" type="bool"/>
+  </node>
 </launch>
