@@ -27,7 +27,7 @@ typedef struct _point3 {
 //         float z[];
 // } points3;
 
-__device__ float euclideanDistance(point3 p1, point3 p2);
+__device__ __host__ float euclideanDistance(point3 p1, point3 p2);
 __global__ void distanceKernel(point3 * points, point3 * centroids,
                                float * distances,
                                int k, int n );
@@ -37,7 +37,7 @@ __global__ void recalcCentroids(point3 *points,
                                 int k, int n);
 __global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
-                                    int *histogram,
+                                     int *histogram,
                                      int k, int n);
 __global__ void recalcCentroidsInner(point3 * points,
                                      point3* partialResult,
@@ -63,3 +63,15 @@ void serializeQuantization(point3* points, point3* codebook, int * partition, in
 void initializeCodebook(point3 * points, point3 minPoint,
                         point3 maxPoint,int nPoints);
 void initializeCodebook(point3 *points,point3 * codebook, int nClusters, int n);
+//cosas lbgosas
+void LBGCPU(point3 *points,  point3 *codebook,
+            int *histogram, int *partition,
+            int iterations, int clusters, int nPoints);
+void perturbate(point3 *codes,point3 *prev,int n);
+void getPartition(point3 *codebook, point3 *points,
+                  int* partition, int* histogram,
+                  int nPoints, int clusters);
+void recalcCentroids(point3 *codebook, point3 *points,
+                     int* partition, int* histogram,
+                     int nPoints, int clusters);
+void copyCodebook(point3 * prev, point3 * cdbk, int nClusters);

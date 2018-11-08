@@ -12,10 +12,13 @@ adjacencyGraph::adjacencyGraph(ros::NodeHandle &nh)
         nh_priv.param<std::string>("graph_file",graphFile,"adjGraph.txt");
         nh_priv.param<float>("max_dist",maxDist,2); //max distance between neighboors
 
-        voxelSub = nh_.subscribe("voxelized_space",10, &adjacencyGraph::codebookCallback, this);
         quantSub = nh_.subscribe("codebook",10, &adjacencyGraph::codebookCallback, this);
         graphMakeSub = nh_.subscribe("make_graph",1, &adjacencyGraph::makeGraph,this);
-        markerPub = nh_.advertise<visualization_msgs::Marker>("graph_marker",2);
+        graphClearSub = nh_.subscribe("clear_graph",1, &adjacencyGraph::clearGraph,this);
+        markerPub =
+                nh_.advertise<visualization_msgs::Marker>("graph_marker",2);
+        centroidsMarkerPub=
+                nh_.advertise<visualization_msgs::Marker>("centroids_marker",2);
         std::cout << "Starting Adjacency graph maker node by CoyoSoft" << '\n';
         std::cout << graphFile << '\n';
 
@@ -25,6 +28,51 @@ adjacencyGraph::~adjacencyGraph()
 {
 
 }
+
+void adjacencyGraph::clearGraph(const std_msgs::Empty &msg)
+{
+        std::cout << "!!!Clearing all codebooks!!!!" << '\n';
+        occCodebook.clear();
+        freeCodebook.clear();
+        makeCentroidsMarkerAndPublish(freeCodebook,true);
+}
+
+void adjacencyGraph::makeCentroidsMarkerAndPublish( pointArray &codebook, bool free)
+{
+        const float radius = 0.05;
+        visualization_msgs::Marker centroidsMarker;
+        //centroidsMarker.points.resize(codebook.size());
+        centroidsMarker.ns = "centroids";
+        centroidsMarker.action = visualization_msgs::Marker::ADD;
+        centroidsMarker.header.frame_id = cloudFrame;
+        centroidsMarker.header.stamp = ros::Time();
+        centroidsMarker.type = visualization_msgs::Marker::CUBE_LIST;
+        centroidsMarker.pose.orientation.w = 1.0;
+        centroidsMarker.scale.x = radius;
+        centroidsMarker.scale.y = radius;
+        centroidsMarker.scale.z = radius;
+
+        if (free) {
+                centroidsMarker.id = 1;
+                centroidsMarker.color.r=0.5;
+                centroidsMarker.color.b=0.5;
+                centroidsMarker.color.g=1.0;
+                centroidsMarker.color.a=1.0;
+
+        }
+        else
+        {
+                centroidsMarker.id = 2;
+                centroidsMarker.color.r=1.0;
+                centroidsMarker.color.b=0.0;
+                centroidsMarker.color.g=0.25;
+                centroidsMarker.color.a=1.0;
+        }
+        centroidsMarker.points = codebook;
+        centroidsMarkerPub.publish(centroidsMarker);
+        return;
+}
+
 
 void adjacencyGraph::quantizedCallback (const space_quantization::quantizedSpace &msg)
 {
@@ -49,11 +97,12 @@ void adjacencyGraph::codebookCallback(const space_quantization::codebook &msg)
         cloudFrame = msg.header.frame_id;
         stamp = msg.header.stamp;
         //TODO use remove erase idiom
+
         pointArray centroids = msg.centroids;
         for (int i = 0; i < centroids.size(); i++)
         {
                 pointGeom cnt = centroids[i];
-                if (cnt.z>freeThr)
+                if (cnt.z>=freeThr)
                 {
                         occCodebook.push_back(cnt);
                         //centroids.erase(centroids.begin()+i);
@@ -67,13 +116,40 @@ void adjacencyGraph::codebookCallback(const space_quantization::codebook &msg)
                         {
                                 freeCodebook.push_back(cnt);
                         }
+                        // else
+                        // {
+                        //         occCodebook.push_back(cnt);
+                        // }
                 }
         }
 
-        edges = freeCodebook.size();
-        std::cout << "Got a codebook of:" << edges << " points"<< '\n';
+        edges = freeCodebook.size()+occCodebook.size();
+        std::cout << "Got a codebook of:" << centroids.size() << " points"<< '\n';
         std::cout << "In frame " << cloudFrame << " on Stamp " << stamp << "\n";
-        //ideally will validate the codebook points
+        std::cout << "Global map is " << freeCodebook.size() << "points long\n";
+        std::cout << "Occupied space is " << occCodebook.size()<< "points long\n";
+
+        makeCentroidsMarkerAndPublish(freeCodebook,true);
+        makeCentroidsMarkerAndPublish(occCodebook,false);
+
+        return;
+}
+
+void adjacencyGraph::makeGraph(const std_msgs::Empty &msg)
+{
+        //Allocate an initialize adj matrix
+        std::cout << "Adj Graph->Constructing adjacency graph" << '\n';
+        if (freeCodebook.empty()) {
+                std::cout << "Adj Graph-> Codebook is empty" << '\n';
+                return;
+        }
+        adjacencyList adjList(freeCodebook.size());
+        std::cout << "**********" << '\n';
+        Knn(freeCodebook,adjList);
+        //Save to disk as file
+        printAdjacencyList(adjList);
+        //saveAdjGraph(graphFile,freeCodebook,adjList);
+        makeVizMsgAndPublish(adjList);
         return;
 }
 
@@ -114,8 +190,9 @@ bool adjacencyGraph::validateConnection(pointGeom p1, pointGeom p2, float radius
 {
         //Chceck if a connection between two free centroids is intersected by an occupied
         //point
-        Eigen::Vector3d p1Eigen(p1.z,p1.y,p1.z);
-        Eigen::Vector3d p2Eigen(p2.z,p2.y,p2.z);
+        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z);
+        Eigen::Vector3d p2Eigen(p2.x,p2.y,p2.z);
+        //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
         bool collision = false;
         for (size_t i = 0; i < occCodebook.size(); i++) {
                 Eigen::Vector3d q(occCodebook[i].x,occCodebook[i].y,occCodebook[i].z);
@@ -131,22 +208,36 @@ bool adjacencyGraph::validateConnection(pointGeom p1, pointGeom p2, float radius
 bool adjacencyGraph::cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q, float radius)
 {
         Eigen::Vector3d p2_p1=p2-p1;
+        // std::cout << "Conecttions from " << '\n';
+        // std::cout << "p1: " <<  p1<<'\n';
+        // std::cout << "p2: " <<  p2<<'\n';
+        // std::cout << "q: " <<  q<<'\n';
+        if (p2_p1.norm()<0.001) {
+                std::cout << "Same point no cylinder " <<  p2_p1.norm() <<'\n';
+                return true;
+        }
         float distanceLid1 = (q-p1).dot(p2_p1);
-        if (distanceLid1<0) {
-                return false;
+        bool collision=false;
+        if (distanceLid1>=0)
+        {
+                float distanceLid2=(q-p2).dot(p1-p2);
+                if (distanceLid2>=0)
+                {
+                        //double num = (q-p1).cross(p2_p1).norm();
+                        double num = (q-p1).cross(q-p2).norm();
+                        double den = p2_p1.norm();
+                        float distanceSpine = num/den;
+
+                        if (distanceSpine<radius)
+                        {
+                                //printf("Connection collision distance = %f\n", distanceSpine  );
+                                collision=true;
+                        }
+                        //printf("Query distance = %f\n", distanceSpine  );
+                }
+
         }
-        float distanceLid2=(q-p2).dot(-p2_p1);
-        if (distanceLid2<0) {
-                return false;
-        }
-        double num = (q-p1).cross(p2_p1).norm();
-        double den = p2_p1.norm();
-        float distanceSpine = num/den;
-        if (distanceSpine>radius) {
-                return false;
-        }
-        printf("Collision distance = %f\n", distanceSpine  );
-        return true;
+        return collision;
 }
 
 bool adjacencyGraph::cilynderCollision(pointGeom pi,pointGeom v, pointGeom q, float height, float radius)
@@ -175,27 +266,10 @@ bool adjacencyGraph::cilynderCollision(pointGeom pi,pointGeom v, pointGeom q, fl
         if (distanceSpine>radius) {
                 return false;
         }
-        printf("Collision distance = %f\n", distanceSpine  );
+        //printf("Collision distance = %f\n", distanceSpine  );
         return true;
 }
 
-void adjacencyGraph::makeGraph(const std_msgs::Empty &msg)
-{
-        //Allocate an initialize adj matrix
-        std::cout << "Adj Graph->Constructing adjacency graph" << '\n';
-        if (freeCodebook.empty()) {
-                std::cout << "Adj Graph-> Codebook is empty" << '\n';
-                return;
-        }
-        adjacencyList adjList(edges);
-        Knn(freeCodebook,adjList);
-        //printAdjacencyMat(adjG,edges);
-        //Save to disk as file
-        printAdjacencyList(adjList);
-        saveAdjGraph(graphFile,freeCodebook,adjList);
-        makeVizMsgAndPublish(adjList);
-        return;
-}
 
 void adjacencyGraph::makeVizMsgAndPublish(adjacencyList l)
 {
@@ -249,12 +323,34 @@ void adjacencyGraph::Knn(pointArray centroids, float ** adjG)
         }
 }
 
-void adjacencyGraph::Knn(pointArray centroids, adjacencyList & adjL)
+void adjacencyGraph::printCentroids(pointArray &centroids)
+{
+        std::cout << "**********" << '\n';
+        for (size_t i = 0; i < freeCodebook.size(); i++) {
+                std::cout << freeCodebook[i].x << ","
+                          << freeCodebook[i].y << ","
+                          << freeCodebook[i].z << '\n';
+        }
+        std::cout << "**********" << '\n';
+}
+
+void adjacencyGraph::printPoint(pointGeom &p)
+{
+
+        std::cout <<"["<< p.x << ","
+                  << p.y << ","
+                  << p.z << "]\n";
+
+}
+
+void adjacencyGraph::Knn(pointArray &centroids, adjacencyList & adjL)
 {
         //calculate the k nearest neighborrs of the centroids
         //And return the adjacency graph
         int nCnt = centroids.size();
         std::vector<distanceLabel> distances(nCnt);
+
+
         for (int i = 0; i <nCnt; i++)
         {
                 for (int j = 0; j < nCnt; j++)
@@ -266,10 +362,14 @@ void adjacencyGraph::Knn(pointArray centroids, adjacencyList & adjL)
                 //Fisrt element is always the node compared
                 //with itself, distance=0 by definition
                 for (int k = 1; k < kNeighboors; k++) {
-                        // printf("[%d,%f],", distances[k].label,distances[k].dist);
+                        //printf("[%d,%f],", distances[k].label,distances[k].dist);
                         if(distances[k].dist <= maxDist)
                         {
                                 int label=distances[k].label; //wich centroid
+                                // printCentroids(centroids);
+                                // printf("C[%d]",label );                        printPoint(centroids[label]);
+                                // printf("C[%d]",i );                        printPoint(centroids[i]);
+
                                 if (!validateConnection(centroids[label],centroids[i],
                                                         connectionRadius))
                                 {
@@ -308,6 +408,9 @@ void adjacencyGraph::printAdjacencyList(adjacencyList l)
         printf("\n");
         for (size_t i = 0; i < l.size(); i++)
         {
+                if (l[i].size()<1) {
+                        continue;
+                }
                 printf("%ld:\t", i );
                 for (size_t j = 0; j < l[i].size(); j++)
                 {
@@ -337,47 +440,31 @@ void adjacencyGraph::printAdjacencyMat(float ** adjM, int n)
         }
 }
 
-void adjacencyGraph::saveAdjGraph(std::string filename, pointArray centroids, float ** adjG)
+
+void adjacencyGraph::saveAdjGraph(std::string filename, adjacencyList &adjL)
 {
         //Saves the adjacency matrix to a file to disk.
         std::cout << "Writing to "<<filename<<"\n";
         std::ofstream graphOut;
+        int freeNodes =freeCodebook.size(); int occNodes =  occCodebook.size();
+        int totalNodes = freeNodes+occNodes;
         graphOut.open(filename.c_str());
-        graphOut<<"Clusters: " <<edges  << "\n";
+        graphOut<<"Clusters: " << totalNodes << "\n";
         graphOut<<"Codebook: x,y,z,label\n";
-        for(int i=0; i<edges; i++)
+        graphOut << "Occupied Nodes:" << occNodes;
+        for(int i=0; i<occCodebook.size(); i++)
         {
-                graphOut<<centroids[i].x<<",";
-                graphOut<<centroids[i].y<<",";
-                graphOut<<centroids[i].z<<",";
+                graphOut<<occCodebook[i].x<<",";
+                graphOut<<occCodebook[i].y<<",";
+                graphOut<<occCodebook[i].z<<",";
                 graphOut<<i<<"\n";
         }
-        graphOut<<"Adjacency Matrix:\n";
-        for(int i=0; i<edges; i++)
+        graphOut << "Free Nodes:" << freeNodes;
+        for(int i=0; i<freeCodebook.size(); i++)
         {
-                for (int j = 0; j < edges; j++) {
-                        graphOut<<adjG[i][j]<<",";
-
-                }
-                graphOut<<"\n";
-        }
-        graphOut.close();
-        return;
-}
-
-void adjacencyGraph::saveAdjGraph(std::string filename, pointArray centroids, adjacencyList &adjL)
-{
-        //Saves the adjacency matrix to a file to disk.
-        std::cout << "Writing to "<<filename<<"\n";
-        std::ofstream graphOut;
-        graphOut.open(filename.c_str());
-        graphOut<<"Clusters: " <<edges  << "\n";
-        graphOut<<"Codebook: x,y,z,label\n";
-        for(int i=0; i<edges; i++)
-        {
-                graphOut<<centroids[i].x<<",";
-                graphOut<<centroids[i].y<<",";
-                graphOut<<centroids[i].z<<",";
+                graphOut<<freeCodebook[i].x<<",";
+                graphOut<<freeCodebook[i].y<<",";
+                graphOut<<freeCodebook[i].z<<",";
                 graphOut<<i<<"\n";
         }
         graphOut<<"Adjacency List:\n";
@@ -386,6 +473,11 @@ void adjacencyGraph::saveAdjGraph(std::string filename, pointArray centroids, ad
         //Node i: J K L etc
         for(int i=0; i<adjL.size(); i++)
         {
+                if (adjL[i].size()<1) {
+                        //If node is not connected to anything why even bother
+                        //Saving it to the graph?
+                        continue;
+                }
                 graphOut<<i<<":";
                 for (int j = 0; j < adjL[i].size(); j++) {
                         graphOut<<adjL[i][j]<<",";

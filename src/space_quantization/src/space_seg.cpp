@@ -17,10 +17,8 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         //                            ("free_space",2);
         // occCloudPub = nh.advertise<sensor_msgs::PointCloud2>
         //                            ("occ_space",2);
-        quantizedSpace_pub = nh.advertise<space_quantization::quantizedSpace>
-                                     ("quantized_space",2);
         codebook_pub = nh.advertise<space_quantization::codebook>
-                                     ("codebook",2);
+                               ("codebook",2);
 
         std::cout << "Starting ROS node for segmentation by Coyo-soft" << '\n';
         return;
@@ -97,13 +95,13 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         initializeCodebook(codebook,minP,maxP,nClusters);
         //initializeCodebook(space,codebook,nClusters,nValid);
         //Call quantizator
-        kmeans(space,partition,codebook,histogram,iterations,
-               nClusters,nValid);
-
+        kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
+        //LBG ON CPU
+        //LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         std::cout << "Histogram:" << '\n';
         for (int i = 0; i < nClusters; i++) {
-          printf("Cluster[%d]: %d\n",i,histogram[i] );
+                printf("Cluster[%d]: %d\n",i,histogram[i] );
         }
         //free host memory
         free(space); free(codebook); free(partition); free(histogram);
@@ -354,11 +352,6 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
 
         std::vector<geometry_msgs::Point> centroids;
         makeCodebookMsg(centroids,codebook,histogram,nClusters);
-        //make quantizedSpace obj
-        space_quantization::quantizedSpace qs;
-        qs.space = labeledCloud;
-        qs.codebook = centroids;
-        quantizedSpace_pub.publish(qs);
 
         space_quantization::codebook cdbk;
         cdbk.centroids = centroids;
@@ -368,9 +361,9 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         //Allows for publish only segmented cloud
         if (pubSegSpace)
         {
-          //Enable visualization:
-          //labeledCloud
-          labeledCloudPub.publish(labeledCloud);
+                //Enable visualization:
+                //labeledCloud
+                labeledCloudPub.publish(labeledCloud);
 
 
         }

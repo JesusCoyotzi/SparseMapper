@@ -151,7 +151,7 @@ void initializeCodebook(point3* points,point3 * codebook, int nClusters, int n)
         return;
 }
 
-__device__ float euclideanDistance(point3 p1, point3 p2)
+__device__ __host__ float euclideanDistance(point3 p1, point3 p2)
 {
         return ( (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)+(p1.z-p2.z)*(p1.z-p2.z));
 }
@@ -302,7 +302,7 @@ __global__ void recalcCentroidsInner(point3 * points,
 
                 }
         }
-        __syncthreads();
+      //  __syncthreads();
 }
 
 __global__ void recalcCentroidsOuter(point3 * points,
@@ -352,7 +352,7 @@ __global__ void recalcCentroidsOuter(point3 * points,
                         }
                 }
         }
-        __syncthreads();
+        //__syncthreads();
 }
 
 __global__ void partitionToLocal(point3 *points,
@@ -499,6 +499,7 @@ void kmeans(point3 *h_points, int *h_partition,
         return;
 }
 
+
 void serializeQuantization(point3* points, point3* codebook,
                            int * partition, int n, int k, char *filename)
 {
@@ -562,4 +563,114 @@ int getFreeMem()
         size_t *libre=NULL, *ocupada=NULL; //sí se me acabo el ingles
         cudaMemGetInfo(libre,ocupada);
         return *libre;
+}
+
+
+void LBGCPU(point3 *points,  point3 *codebook,
+            int *histogram, int *partition,
+            int iterations, int clusters, int nPoints)
+{
+        //CPu code to run LBG
+        point3 * prevCodebook;
+        prevCodebook = (point3 *) malloc(sizeof(point3)*clusters);
+        prevCodebook[0]=getCentroid(points,nPoints);
+        for (int i = 1; i < clusters; i=i<<1)
+        {
+                printf("Working with %d clusters\n",i*2 );
+                perturbate(codebook,prevCodebook,i);
+                printf("Codebook\n");
+                printPoint3Array(prevCodebook,i);
+                for (int j = 0; j < iterations; j++)
+                {
+                        //  printf("\tIteration [%d]\n",j );
+                        getPartition(codebook,points, partition, histogram, nPoints,i*2);
+                        recalcCentroids(codebook, points, partition, histogram,nPoints,i*2);
+                }
+                //copy centroids to prevCodebook
+                copyCodebook(prevCodebook,codebook,clusters);
+        }
+        free(prevCodebook);
+
+        return;
+
+}
+
+void copyCodebook(point3 * prev, point3 * cdbk, int nClusters)
+{
+        //Copy codebook prev into cdbk
+        for (size_t i = 0; i < nClusters; i++) {
+                prev[i]=cdbk[i];
+        }
+        return;
+}
+
+
+void perturbate(point3 *codes,point3 *prev,int n)
+{
+        const float e = 0.01;
+        point3 epsilon_plus; epsilon_plus.x=e; epsilon_plus.y=e; epsilon_plus.z=e;
+        point3 epsilon_min; epsilon_min.x=-e; epsilon_min.y=-e; epsilon_min.z=-e;
+        //int nextN = n<<1;
+        for (int i = 0; i < n; i+=2) {
+                codes[i] = addPoint3(prev[i],epsilon_plus);
+                codes[i+1] = addPoint3(prev[i],epsilon_min);
+        }
+        return;
+}
+
+void getPartition(point3 *codebook, point3 *points,
+                  int* partition, int * histogram,
+                  int nPoints, int clusters)
+{
+        //Get the points partition
+        for (size_t i = 0; i < clusters; i++) {
+                histogram[i]=0;
+        }
+        for (int j = 0; j < nPoints; j++)
+        {
+                partition[j] = 0;
+                float minDist = euclideanDistance(codebook[0],points[j]);
+                for (int k = 1; k < clusters; k++)
+                {
+                        float dist = euclideanDistance(codebook[k],points[j]);
+                        if (minDist>dist)
+                        {
+                                minDist=dist;
+                                partition[j]=k;
+                        }
+                }
+                histogram[partition[j]]++;
+        }
+        // for (int i = 0; i < clusters; i++) {
+        //         printf("Cluster[%d]: %d\n",i,histogram[i] );
+        // }
+        return;
+}
+
+void recalcCentroids(point3 *codebook, point3 *points,
+                     int* partition, int* histogram,
+                     int nPoints, int clusters)
+{
+        //recalc centroids and make histogram
+        for (int i = 0; i < clusters; i++) {
+                codebook[i].x=0;
+                codebook[i].y=0;
+                codebook[i].z=0;
+                //  printf("Cluster[%d]: %d\n",i,histogram[i] );
+        }
+        for (int i = 0; i < nPoints; i++)
+        {
+                codebook[partition[i]].x+=points[i].x;
+                codebook[partition[i]].y+=points[i].y;
+                codebook[partition[i]].z+=points[i].z;
+
+        }
+        for (int i = 0; i < clusters; i++) {
+                if (histogram[i]>0) {
+                        codebook[i]=mulPoint3(codebook[i],1.0/histogram[i]);
+                }
+                // printf("New Codebook @ [%d] with %d points\n",i,histogram[i]);
+                // printPoint3(codebook[i]);
+        }
+        return;
 }

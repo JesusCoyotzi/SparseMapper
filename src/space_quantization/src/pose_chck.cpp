@@ -4,6 +4,7 @@ poseChck::poseChck(ros::NodeHandle &nh)
 {
         nh_=nh;
         nh_.param<float>("angular_update",angularUpdate,90*M_PI/180);
+        angularUpdate *=(M_PI/180.0);
         nh_.param<float>("linear_update",linearUpdate,0.50);
 
         locSubs= nh_.subscribe("/localization_pose",1,&poseChck::checkAdvance,this);
@@ -20,6 +21,7 @@ poseChck::poseChck(ros::NodeHandle &nh)
         previousPose.pose.orientation.w = 1;
         publishCloud = true;
         std::cout << "*[-Started pose checker by Coyo-Soft-]*" << '\n';
+        std::cout << "Angular update is: " << angularUpdate *180/M_PI<<'\n';
 
 }
 

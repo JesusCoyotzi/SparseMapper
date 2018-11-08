@@ -44,8 +44,8 @@ struct distanceLabel {
         int label;
 };
 ros::NodeHandle nh_;
-ros::Subscriber quantSub, voxelSub,graphMakeSub;
-ros::Publisher markerPub;
+ros::Subscriber quantSub, voxelSub, graphMakeSub, graphClearSub;
+ros::Publisher markerPub, centroidsMarkerPub;
 ros::Time stamp;
 int kNeighboors;
 float **adjMat;
@@ -63,19 +63,23 @@ bool validateConnection(pointGeom p1, pointGeom p2, float radius);
 bool cilynderCollision(pointGeom pi,pointGeom v, pointGeom q,
                        float height, float radius);
 bool cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q,
-                          float radius);
+                       float radius);
 void quantizedCallback(const space_quantization::quantizedSpace &msg);
 void codebookCallback(const space_quantization::codebook &msg);
 void makeGraph(const std_msgs::Empty &msg);
+void clearGraph(const std_msgs::Empty &msg);
 static bool compareDistance(distanceLabel i, distanceLabel j);
 void Knn(pointArray centroids, float ** adjG);
-void Knn(pointArray centroids, adjacencyList & adjL);
+void Knn(pointArray &centroids, adjacencyList & adjL);
 float ** makeAdjacencyMat(int nEdges);
 void printAdjacencyMat(float ** adjM, int n);
 void printAdjacencyList(adjacencyList l);
-void saveAdjGraph(std::string filename, pointArray centroids, float ** adjG);
-void saveAdjGraph(std::string filename, pointArray centroids, adjacencyList &adjL);
+void saveAdjGraph(std::string filename, adjacencyList &adjL);
 void makeVizMsgAndPublish(adjacencyList l);
+void makeCentroidsMarkerAndPublish( pointArray &codebook, bool free);
+void printCentroids(pointArray &centroids);
+void printPoint(pointGeom &p);
+
 public:
 adjacencyGraph (ros::NodeHandle &nh);
 ~adjacencyGraph();
