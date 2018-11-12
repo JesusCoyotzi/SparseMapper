@@ -28,11 +28,16 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
                 std::cout << "Voxel filter" << '\n';
                 voxelFilter(voxelSize,cloud);
         }
-        transformCloud(cloud);
+        if (!transformCloud(cloud))
+        {
+          std::cout << "Cloud not transform cloud skipping" << '\n';
+          return;
+        }
         //convert to msg and publish
         sensor_msgs::PointCloud2 cloud_msg;
         pcl::toROSMsg(*cloud,cloud_msg);
         processedCloudPub.publish(cloud_msg);
+        return;
 }
 
 void cloudPreprocessor::filterDistanceZ(double maxDist, cloudRGBAPtr cloud)
@@ -73,6 +78,7 @@ bool cloudPreprocessor::transformCloud(cloudRGBAPtr cloud)
                 //std::cout << "Erroring!!!!!" << '\n';
                 ROS_ERROR("%s",ex.what());
                 ros::Duration(1.0).sleep();
+
         }
         return sux;
 }

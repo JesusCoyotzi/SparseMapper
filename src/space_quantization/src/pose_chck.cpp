@@ -3,9 +3,10 @@
 poseChck::poseChck(ros::NodeHandle &nh)
 {
         nh_=nh;
-        nh_.param<float>("angular_update",angularUpdate,90*M_PI/180);
+        ros::NodeHandle nh_priv("~");
+        nh_priv.param<float>("angular_update",angularUpdate,90);
         angularUpdate *=(M_PI/180.0);
-        nh_.param<float>("linear_update",linearUpdate,0.50);
+        nh_priv.param<float>("linear_update",linearUpdate,0.50);
 
         locSubs= nh_.subscribe("/localization_pose",1,&poseChck::checkAdvance,this);
         cloudSub = nh_.subscribe("/cloud_in",1,&poseChck::cloudCallback,this);

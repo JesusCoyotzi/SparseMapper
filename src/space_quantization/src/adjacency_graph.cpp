@@ -148,7 +148,7 @@ void adjacencyGraph::makeGraph(const std_msgs::Empty &msg)
         Knn(freeCodebook,adjList);
         //Save to disk as file
         printAdjacencyList(adjList);
-        //saveAdjGraph(graphFile,freeCodebook,adjList);
+        saveAdjGraph(graphFile,adjList);
         makeVizMsgAndPublish(adjList);
         return;
 }
@@ -451,7 +451,7 @@ void adjacencyGraph::saveAdjGraph(std::string filename, adjacencyList &adjL)
         graphOut.open(filename.c_str());
         graphOut<<"Clusters: " << totalNodes << "\n";
         graphOut<<"Codebook: x,y,z,label\n";
-        graphOut << "Occupied Nodes:" << occNodes;
+        graphOut << "Occupied Nodes: " << occNodes <<"\n";
         for(int i=0; i<occCodebook.size(); i++)
         {
                 graphOut<<occCodebook[i].x<<",";
@@ -459,7 +459,7 @@ void adjacencyGraph::saveAdjGraph(std::string filename, adjacencyList &adjL)
                 graphOut<<occCodebook[i].z<<",";
                 graphOut<<i<<"\n";
         }
-        graphOut << "Free Nodes:" << freeNodes;
+        graphOut << "Free Nodes:" << freeNodes<<"\n";
         for(int i=0; i<freeCodebook.size(); i++)
         {
                 graphOut<<freeCodebook[i].x<<",";
@@ -473,11 +473,11 @@ void adjacencyGraph::saveAdjGraph(std::string filename, adjacencyList &adjL)
         //Node i: J K L etc
         for(int i=0; i<adjL.size(); i++)
         {
-                if (adjL[i].size()<1) {
-                        //If node is not connected to anything why even bother
-                        //Saving it to the graph?
-                        continue;
-                }
+                // if (adjL[i].size()<1) {
+                //         //If node is not connected to anything why even bother
+                //         //Saving it to the graph?
+                //         continue;
+                // } //Saved to make graph continous
                 graphOut<<i<<":";
                 for (int j = 0; j < adjL[i].size(); j++) {
                         graphOut<<adjL[i][j]<<",";
