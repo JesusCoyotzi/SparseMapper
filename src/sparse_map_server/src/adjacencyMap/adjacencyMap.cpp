@@ -13,7 +13,6 @@ adjacencyMap::adjacencyMap(std::string mapFileName)
         return;
 }
 
-
 bool adjacencyMap::loadMap(std::string filename)
 {
         std::cout << "Loading map from" << filename <<'\n';
@@ -144,8 +143,91 @@ adjacencyList adjacencyMap::getGraph()
         return this->adjGraph;
 }
 
-void adjacencyMap::sayHi()
+pointArray adjacencyMap::Astar(pointGeom goal,pointGeom start)
 {
-        std::cout << "Helog there i am the functions" << '\n';
-        return;
+
+        int closestNodeStrt = getClosestNode(start);
+        int closestNodeGoal = getClosestNode(goal);
+        std::cout << "Closest node to start is: ";
+        printPointGeom(freeNodes[closestNodeStrt]);
+        std::cout << "Closest node to goal is: ";
+        printPointGeom(freeNodes[closestNodeGoal]);
+        const double maxCost = 1000;
+        std::vector<double> accCost(adjGraph.size(),maxCost);
+        std::vector<int> path(adjGraph.size(),-1);
+
+        std::priority_queue<graphNode> pq;
+        //double cost = euclideanDistance()
+        pq.push(graphNode(closestNodeStrt,0));
+        accCost[closestNodeStrt]=0;
+
+        while (!pq.empty()) {
+                int current = pq.top().vertex;
+                pq.pop();
+                //std::cout << "Current node" << current<<'\n';
+                if (current == closestNodeGoal)
+                {
+                        break;
+                }
+                for (int nxt = 0; nxt < adjGraph[current].size(); nxt++) {
+                        int nxtNode = adjGraph[current][nxt];
+                        pointGeom nxtPoint = freeNodes[nxtNode];
+                        double d =  euclideanDistance(freeNodes[current],
+                                                      nxtPoint);
+                        double newCost = d + accCost[current];
+                        if (newCost<accCost[nxtNode]) {
+                                accCost[nxtNode]=newCost;
+                                double priority =
+                                        newCost +
+                                        euclideanDistance(nxtPoint,
+                                                          freeNodes[closestNodeGoal]);
+                                pq.push(graphNode(nxtNode,priority));
+                                path[nxtNode]= current;
+                        }
+                }
+        }
+
+        pointArray fullPath;
+        fullPath.push_back(goal);
+        int nd = closestNodeGoal;
+        while (nd != closestNodeStrt) {
+                fullPath.push_back(freeNodes[nd]);
+                nd = path[nd];
+                std::cout << nd << '\n';
+        }
+        fullPath.push_back(start);
+        std::reverse(fullPath.begin(),fullPath.end());
+        return fullPath;
+}
+
+int adjacencyMap::getClosestNode(pointGeom p)
+{
+        //find closest node in graph to an arbitrary point
+        Eigen::Vector3d pointEigen(p.x,p.y,p.z);
+        Eigen::Vector3d node(freeNodes[0].x,freeNodes[0].y,freeNodes[0].z);
+        double minDistance = (pointEigen - node).norm();
+        int closestNode=0;
+        for (int i = 0; i < freeNodes.size(); i++)
+        {
+                node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
+                double distance = (pointEigen - node).norm();
+                if (distance<minDistance) {
+                        closestNode = i;
+                        minDistance = distance;
+                }
+        }
+        std::cout << "Closest node is" << closestNode <<'\n';
+        return closestNode;
+}
+
+double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
+{
+        Eigen::Vector3d eigenA(a.x,a.y,a.z);
+        Eigen::Vector3d eigenB(b.x,b.y,b.z);
+        return (eigenA-eigenB).norm();
+}
+
+void adjacencyMap::printPointGeom(pointGeom p)
+{
+        printf("[%f,%f,%f]\n",p.x,p.y,p.z );
 }

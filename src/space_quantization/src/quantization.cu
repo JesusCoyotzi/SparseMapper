@@ -95,6 +95,22 @@ point3 randomPoint3(point3 min, point3 max)
 
 }
 
+__global__ void setup_kernel(curandState *state)
+{
+        int idx = threadIdx.x+blockDim.x*blockIdx.x;
+        curand_init(1234, idx, 0, &state[idx]);
+}
+
+__device__ point3 randomPoint3(curandState *randState)
+{
+        //REturn a random number from 0-1 meters in every direction
+        point3 ranP3;
+        ranP3.x=curand_uniform(randState);
+        ranP3.y=curand_uniform(randState);
+        ranP3.z=curand_uniform(randState);
+        return ranP3;
+}
+
 void initializeCodebook(point3 * codebook, point3 minPoint,
                         point3 maxPoint,int nClusters)
 {
@@ -181,6 +197,8 @@ __device__ void setZerosDevice(int *p,int n)
         return;
 }
 
+
+
 __global__ void distanceKernel(point3 * points, point3 * centroids,float * distances, int k, int n )
 {
         //distances[k*n]
@@ -265,14 +283,24 @@ __global__ void recalcCentroidsInner(point3 * points,
         __shared__ point3 pointsShared[THREADS];
         //__shared__ int partitionShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
+        int tid = threadIdx.x;
+        //This is the way to do it
+        //If shared memoery is no zeroed
+        ///Sometimes i will read random stuff from out of range
+        point3 zero;
+        zero.x=0; zero.y=0; zero.z=0;
+        pointsShared[tid]=zero;
+        __syncthreads();
+
         if(idx < n)
         {
-                int tid = threadIdx.x;
                 //set all to 0;
-                setZerosDevice(pointsShared,THREADS); //Size of shared memory
-                //setZerosDevice(partitionShared,THREADS); //Size of shared memory
+                //This method is serial ==bad!!
+                // setZerosDevice(pointsShared,THREADS); //Size of shared memory
+                // //setZerosDevice(partitionShared,THREADS); //Size of shared memory
+                //This deaccelerates the code by a lot
+                //Whiuto some centroids are worng
 
-                __syncthreads();
                 //only copy from partition j
                 pointsShared[tid]=points[idx];
                 //makes two arrays [k k k 0 0 0 0 k k k]
@@ -302,24 +330,29 @@ __global__ void recalcCentroidsInner(point3 * points,
 
                 }
         }
-      //  __syncthreads();
+        //  __syncthreads();
 }
 
 __global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
                                      int *histogram,
-                                     int k, int n)
+                                     int k, int n,
+                                     curandState *crs)
 {
         //histogram is a count of how many elements belong to each centroid
         __shared__ point3 pointsShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
+        int tid = threadIdx.x;
+        point3 zero;
+        zero.x=0; zero.y=0; zero.z=0;
+        pointsShared[tid]=zero;
+        __syncthreads();
         if(idx < n)
         {
-                int tid = threadIdx.x;
 
                 //set all to 0; //El error estaba en alocar n cachos
-                setZerosDevice(pointsShared,THREADS); //Size of shared memory
-                __syncthreads();
+                // setZerosDevice(pointsShared,THREADS); //Size of shared memory
+                // __syncthreads();
 
                 pointsShared[tid]=points[idx];
                 __syncthreads();
@@ -331,7 +364,6 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                         pointsShared[tid]=addPoint3(
                                                 pointsShared[tid],
                                                 pointsShared[tid+s]);
-
                                 }
                         }
                         __syncthreads();
@@ -348,7 +380,11 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                 // printf("Centroid[%d] posterior:%f,%f,%f\n",
                                 //        k,centroids[k].x,centroids[k].y,centroids[k].z);
                                 centroids[k] = mulPoint3(pointsShared[0],1.0/histogram[k]);
-
+                        }
+                        else
+                        {
+                                point3 rp3=randomPoint3(crs);
+                                centroids[k]= addPoint3(centroids[k],rp3);
                         }
                 }
         }
@@ -428,6 +464,11 @@ void kmeans(point3 *h_points, int *h_partition,
         cudaMemcpy(d_points,h_points,nPointsSize,cudaMemcpyHostToDevice);
         cudaMemcpy(d_codebook,h_codebook,clustersSize,cudaMemcpyHostToDevice);
 
+        //curand stuff
+        curandState *d_state;
+        cudaMalloc(&d_state, sizeof(curandState));
+        setup_kernel<<<1,1>>>(d_state);
+
         //int blks = nPoints/ THREADS;
         int blks = (nPoints + THREADS - 1) / THREADS;
         printf("Issuing %d blocks with %d threads\n",blks, THREADS);
@@ -451,17 +492,13 @@ void kmeans(point3 *h_points, int *h_partition,
                         //printf(">>>>>First RUN on cluster [%d]\n",i );
                         recalcCentroidsInner<<<blks,THREADS>>>
                         (d_reduceArray,d_reduceArray,nPoints);
-                        //cudaDeviceSynchronize();
                         while (blks>THREADS) {
                                 //Si entra aquí los resutlados parciales dan 0 y
                                 //no tengo idea por que.
                                 //Pero solo despues de una iteración
                                 //Ni siquiera agarra todos los puntos
                                 int n = blks;
-                                //printf(">>>>>Another RUN\n" );
-                                // cudaMemcpy(d_partialReduce, d_reduceArray, nPointsSize, cudaMemcpyDeviceToDevice);
                                 blks = (blks + THREADS - 1) / THREADS;
-                                //printf("Blocks: %d Points: %d!!!\n",blks,n);
                                 recalcCentroidsInner<<<blks,THREADS>>>
                                 (d_reduceArray,d_reduceArray,n);
                                 //cudaDeviceSynchronize();
@@ -469,7 +506,7 @@ void kmeans(point3 *h_points, int *h_partition,
 
                         //Aqui acabaria el while
                         recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
-                        (d_reduceArray,d_codebook,d_histogram,i,blks);
+                        (d_reduceArray,d_codebook,d_histogram,i,blks,d_state);
                         if (cudaPeekAtLastError() != cudaSuccess) {
                                 printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
                         }
@@ -494,7 +531,7 @@ void kmeans(point3 *h_points, int *h_partition,
         printPoint3Array(h_codebook, clusters);
         cudaFree(d_points); cudaFree(d_distances); cudaFree(d_codebook);
         cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
-
+        cudaFree(d_state);
         free(h_distances);
         return;
 }

@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <cstdlib>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include <cmath>
 #include <cfloat>
 #include <time.h>
 #include <fstream>
+#include <cuda.h>
+#include <cuda_runtime.h>
+#include <curand.h>
+#include <curand_kernel.h>
 
 
 //PCL structures have to much overhead and complexity,
@@ -27,6 +29,9 @@ typedef struct _point3 {
 //         float z[];
 // } points3;
 
+__global__ void setup_kernel(curandState *state);
+__device__ point3 randomPoint3(curandState *randState);
+
 __device__ __host__ float euclideanDistance(point3 p1, point3 p2);
 __global__ void distanceKernel(point3 * points, point3 * centroids,
                                float * distances,
@@ -38,7 +43,8 @@ __global__ void recalcCentroids(point3 *points,
 __global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
                                      int *histogram,
-                                     int k, int n);
+                                     int k, int n,
+                                     curandState *crs);
 __global__ void recalcCentroidsInner(point3 * points,
                                      point3* partialResult,
                                      int n);

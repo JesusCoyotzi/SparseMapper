@@ -9,8 +9,9 @@
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
-    <param name="voxelSize" value="0.05" type="double"/>
+    <param name="voxelSize" value="0.04" type="double"/>
     <param name="voxEnable" value="true" type="bool"/>
+    <param name="baseFrame" value="map" type="string"/>
   </node>
 
   <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
@@ -53,7 +54,7 @@
 
   <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame 100"/> -->
 
-  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="-15 5 0 0 0 0 1 base_link head_rgbd_sensor_rgb_frame 100" />
+  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="-15 5 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
 
   <!-- head_rgbd_sensor_rgb_frame -->
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">

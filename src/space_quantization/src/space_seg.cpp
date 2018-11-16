@@ -95,9 +95,9 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         initializeCodebook(codebook,minP,maxP,nClusters);
         //initializeCodebook(space,codebook,nClusters,nValid);
         //Call quantizator
-        kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
+        //kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
         //LBG ON CPU
-        //LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
+        LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         std::cout << "Histogram:" << '\n';
         for (int i = 0; i < nClusters; i++) {

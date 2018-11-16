@@ -14,8 +14,12 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         nh_priv.param<float>("max_dist",maxDist,2);
         nh_priv.param<int>("k_neighboors",kNeighboors,6);
 
-        codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1);
-        graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1);
+        codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
+        graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1,true);
+
+        pathServer = nh_.advertiseService("make_plan",&sparseMapServer::getPlan,this);
+
+        pathPub=nh_.advertise<nav_msgs::Path>("sparse_plan",1);
 
         sparseMap = adjacencyMap(mapFileName);
         std_msgs::ColorRGBA freeColor = makeColor(0.5,1.0,0.50,1.0);
@@ -93,4 +97,28 @@ std_msgs::ColorRGBA sparseMapServer::makeColor(float r,float g, float b, float a
         color.b=b;
         color.a=a;
         return color;
+}
+
+bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
+                              sparse_map_msgs::MakePlan::Response &res)
+{
+        std::cout << "Calculating path" << '\n';
+        pointArray pth = sparseMap.Astar(req.goalPose,req.startPose);
+        res.path.header.frame_id = mapFrame;
+        res.path.header.stamp = ros::Time();
+        std::cout << "Nodes visited: " << '\n';
+        for (size_t i = 0; i < pth.size(); i++) {
+                geometry_msgs::PoseStamped local_pose;
+                local_pose.pose.position = pth[i];
+                local_pose.pose.orientation.x = 0;
+                local_pose.pose.orientation.y = 0;
+                local_pose.pose.orientation.z = 0;
+                local_pose.pose.orientation.w = 1;
+                res.path.poses.push_back(local_pose);
+                std::cout << pth[i].x << " "
+                          << pth[i].y << " "
+                          << pth[i].z << '\n';
+        }
+        pathPub.publish(res.path);
+        return true;
 }
