@@ -36,7 +36,7 @@ bool pubSegSpace;
 float freeThr;
 int nClusters, iterations;   //number of clusters and iterations to run
 
-std::string cloudFrame;
+std::string cloudFrame, method;
 ros::Time stamp;
 
 void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);

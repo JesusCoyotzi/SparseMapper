@@ -1,7 +1,7 @@
 <launch>
 	<arg name="name" default="takeshiBagPack1"/>
 	<node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-		<param name="resolution" value="0.10"/>
+		<param name="resolution" value="0.050"/>
 
 		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
 		<param name="frame_id" type="string" value="map"/>

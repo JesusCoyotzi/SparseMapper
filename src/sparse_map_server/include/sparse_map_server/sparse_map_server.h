@@ -4,22 +4,29 @@
 
 #include "ros/ros.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "std_msgs/Empty.h"
+#include "visualization_msgs/MarkerArray.h"
 
 
 class sparseMapServer {
 private:
 ros::NodeHandle nh_;
-ros::Publisher codebookMarkerPub, graphMarkerPub, pathPub;
+ros::Publisher codebookMarkerPub, graphMarkerPub, pathPub, labelPub, terminalPub;
+ros::Subscriber rebuildPub;
 ros::ServiceServer pathServer;
 std::string mapFileName,mapFrame;
-float safetyHeight,safetyRadius,connectionRadius, maxDist;
+float safetyHeight,safetyRadius,connectionRadius, maxDist, minDist;
 adjacencyMap sparseMap;
 int kNeighboors;
 void makeCentroidsMarkerAndPublish( pointArray &codebook,std_msgs::ColorRGBA color, int id);
 void makeVizGraphAndPublish(adjacencyList l, pointArray codebook);
+void makeLabelMsgAndPublish(pointArray &codebook,int id);
+void makeTerminalsAndPublish(pointGeom start, pointGeom goal);
 std_msgs::ColorRGBA makeColor(float r,float g, float b, float a);
+
 bool getPlan(sparse_map_msgs::MakePlan::Request &req,
              sparse_map_msgs::MakePlan::Response &res);
+void remakeGraph(const std_msgs::Empty &msg);
 public:
 sparseMapServer(ros::NodeHandle &nh);
 

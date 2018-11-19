@@ -7,6 +7,7 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         nh_priv.param<int>("iterations",iterations,16);
         nh_priv.param<bool>
                 ("publishSegmentation",pubSegSpace,true);
+        nh_priv.param<std::string>("method", method,"kmeans");
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>
                             ("cloud",10,
                             &spaceSegmenter::cloudCallback,
@@ -93,11 +94,21 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         point3 minP,maxP;
         getMinMax(space,maxP,minP,nValid);
         initializeCodebook(codebook,minP,maxP,nClusters);
+        if (!method.compare("kmeans")) {
+                kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
+        }
+        else if(!method.compare("LBG"))
+        {
+                LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
+        }
+        else
+        {
+                std::cout << "Unkown method: " <<method << '\n';
+                return;
+        }
         //initializeCodebook(space,codebook,nClusters,nValid);
         //Call quantizator
-        //kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
         //LBG ON CPU
-        LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         std::cout << "Histogram:" << '\n';
         for (int i = 0; i < nClusters; i++) {

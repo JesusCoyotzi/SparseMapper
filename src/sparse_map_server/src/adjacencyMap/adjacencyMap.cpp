@@ -13,6 +13,35 @@ adjacencyMap::adjacencyMap(std::string mapFileName)
         return;
 }
 
+adjacencyMap::adjacencyMap(std::string mapFile,
+                           float safeHeight,float safeRadius,
+                           float cRadius, float mxDist, float minDist, int kNeighboors)
+{
+        //Setter for params
+        this->safetyHeight = safeHeight;
+        this->safetyRadius = safeRadius;
+        this->connectionRadius = cRadius;
+        this->maxDist = mxDist;
+        this->minDist = minDist;
+        this->kNeighboors = kNeighboors;
+        loadMap(mapFile);
+        return;
+}
+
+
+void adjacencyMap::setParams(float safeHeight,float safeRadius,
+                             float cRadius, float mxDist, float minDist, int kNeighboors)
+{
+        //Setter for params
+        this->safetyHeight = safeHeight;
+        this->safetyRadius = safeRadius;
+        this->connectionRadius = cRadius;
+        this->maxDist = mxDist;
+        this->minDist = minDist;
+        this->kNeighboors = kNeighboors;
+        return;
+}
+
 bool adjacencyMap::loadMap(std::string filename)
 {
         std::cout << "Loading map from" << filename <<'\n';
@@ -65,16 +94,19 @@ bool adjacencyMap::loadMap(std::string filename)
                 pointGeom code;
                 std::getline(file,line);
                 code = parseCodeLine(line);
-                freeNodes.push_back(code);
+                if (!pruneNode(code)) {
+                        freeNodes.push_back(code);
+                }
+
         }
         //skip another header
-        std::getline(file,line);
-        while(std::getline(file,line))
-        {
-                adjGraph.push_back(parseGraphEntry(line));
-
-        }
-
+        // std::getline(file,line);
+        // while(std::getline(file,line))
+        // {
+        //         adjGraph.push_back(parseGraphEntry(line));
+        //
+        // }
+        file.close();
         return true;
 }
 
@@ -88,7 +120,6 @@ std::vector<int> adjacencyMap::parseGraphEntry(std::string line)
         while (std::getline(aiss,tmp,',')) {
                 entry.push_back(std::stoi(tmp));
         }
-
         // //Debug
         // std::cout << cnt << ": ";
         // for (size_t i = 0; i < entry.size(); i++) {
@@ -143,7 +174,7 @@ adjacencyList adjacencyMap::getGraph()
         return this->adjGraph;
 }
 
-pointArray adjacencyMap::Astar(pointGeom goal,pointGeom start)
+bool adjacencyMap::Astar(pointGeom goal,pointGeom start, pointArray & fullPath)
 {
 
         int closestNodeStrt = getClosestNode(start);
@@ -160,15 +191,22 @@ pointArray adjacencyMap::Astar(pointGeom goal,pointGeom start)
         //double cost = euclideanDistance()
         pq.push(graphNode(closestNodeStrt,0));
         accCost[closestNodeStrt]=0;
-
+        int nodesVisited =0;
         while (!pq.empty()) {
                 int current = pq.top().vertex;
                 pq.pop();
+                nodesVisited++;
                 //std::cout << "Current node" << current<<'\n';
+                if (nodesVisited>freeNodes.size())
+                {
+                        std::cout << "Error could not find path, check connectivity" << '\n';
+                        return false;
+                }
                 if (current == closestNodeGoal)
                 {
                         break;
                 }
+
                 for (int nxt = 0; nxt < adjGraph[current].size(); nxt++) {
                         int nxtNode = adjGraph[current][nxt];
                         pointGeom nxtPoint = freeNodes[nxtNode];
@@ -187,17 +225,22 @@ pointArray adjacencyMap::Astar(pointGeom goal,pointGeom start)
                 }
         }
 
-        pointArray fullPath;
         fullPath.push_back(goal);
         int nd = closestNodeGoal;
         while (nd != closestNodeStrt) {
+                printf("C[%d]\n",nd );
+                printPointGeom(freeNodes[nd]);
+                if (nd == -1) {
+                        std::cout << "Path creation is  failure" << '\n';
+                        return false;
+                }
                 fullPath.push_back(freeNodes[nd]);
                 nd = path[nd];
-                std::cout << nd << '\n';
+
         }
         fullPath.push_back(start);
         std::reverse(fullPath.begin(),fullPath.end());
-        return fullPath;
+        return true;
 }
 
 int adjacencyMap::getClosestNode(pointGeom p)
@@ -220,6 +263,36 @@ int adjacencyMap::getClosestNode(pointGeom p)
         return closestNode;
 }
 
+bool adjacencyMap::pruneNode(pointGeom p)
+{
+        //Check if the node is sufficiently far awya from others
+        if (freeNodes.empty()) {
+                //if grpah is empty add node
+                return false;
+        }
+        Eigen::Vector3d pointEigen(p.x,p.y,p.z);
+        Eigen::Vector3d node(freeNodes[0].x,freeNodes[0].y,freeNodes[0].z);
+        double minDistance = (pointEigen - node).norm();
+        int closestNode=0;
+        for (int i = 0; i < freeNodes.size(); i++)
+        {
+                node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
+                double distance = (pointEigen - node).norm();
+                if (distance<minDistance) {
+                        closestNode = i;
+                        minDistance = distance;
+                }
+        }
+        //If any node is closer to any other node by minDist then prune it
+        if (minDistance<minDist) {
+                return true;
+        }
+        else
+        {
+                return false;
+        }
+}
+
 double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
 {
         Eigen::Vector3d eigenA(a.x,a.y,a.z);
@@ -230,4 +303,184 @@ double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
 void adjacencyMap::printPointGeom(pointGeom p)
 {
         printf("[%f,%f,%f]\n",p.x,p.y,p.z );
+}
+
+void adjacencyMap::printAdjacencyList(adjacencyList l)
+{
+        //as the name implies  check it is alive!
+        //Mostly for debuggin
+        printf("\n");
+        for (size_t i = 0; i < l.size(); i++)
+        {
+                if (l[i].size()<1) {
+                        continue;
+                }
+                printf("%ld:\t", i );
+                for (size_t j = 0; j < l[i].size(); j++)
+                {
+                        printf("%d,",l[i][j]);
+                }
+                printf("\n");
+        }
+}
+
+
+void adjacencyMap::makeGraph()
+{
+        //Allocate an initialize adj matrix
+        std::cout << "Adj Map->Constructing adjacency graph" << '\n';
+        if (freeNodes.empty()) {
+                std::cout << "Adj Map-> Codebook is empty" << '\n';
+                return;
+        }
+        for (size_t i = 0; i < adjGraph.size(); i++) {
+                adjGraph[i].clear();
+        }
+        adjGraph.clear();
+        adjGraph = adjacencyList(freeNodes.size());
+        std::cout << "Suing Free nodes _"<<freeNodes.size() << '\n';
+        //
+
+        Knn(freeNodes,adjGraph);
+        //Save to disk as file
+        std::cout << "**********" <<  '\n';
+        printAdjacencyList(adjGraph);
+        std::cout << "**********" <<  '\n';
+        //saveAdjGraph(graphFile,adjGraph);
+        //makeVizMsgAndPublish(adjGraph);
+        return;
+}
+
+void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
+{
+        //calculate the k nearest neighborrs of the centroids
+        //And return the adjacency graph
+        int nCnt = centroids.size();
+        std::vector<distanceLabel> distances(nCnt);
+        std::cout << maxDist << '\n';
+        for (int i = 0; i <nCnt; i++)
+        {
+                for (int j = 0; j < nCnt; j++)
+                {
+                        distances[j].dist=euclideanDistance(centroids[i],centroids[j]);
+                        distances[j].label=j;
+                }
+                // std:: cout << "Checking code:" << '\n';
+                // printf("C[%d]",i ); printPointGeom(centroids[i]);
+                std::sort(distances.begin(),distances.end(),compareDistance);
+                //Fisrt element is always the node compared
+                //with itself, distance=0 by definition
+
+                for(int k=1; k<kNeighboors+1; k++)
+                {
+                        float localDist =distances[k].dist;
+                        if(localDist <= maxDist)
+                        {
+                                int label=distances[k].label; //wich centroid
+                                if (!validateConnection(centroids[label],centroids[i],
+                                                        connectionRadius))
+                                {
+                                        bool isPresent=(std::find(adjL[i].begin(),
+                                                                  adjL[i].end(), label) ==  adjL[i].end() );
+                                        if (isPresent) {
+
+                                                adjL[i].push_back(label);
+                                        }
+                                        isPresent=(std::find(adjL[label].begin(),
+                                                             adjL[label].end(), i) ==  adjL[label].end() );
+                                        if ( isPresent)
+                                        {
+
+                                                adjL[label].push_back(i);
+                                        }
+                                }
+                                // else
+                                // {
+                                //         std::cout << "Collision between" << '\n';
+                                //         printf("C[%d]",i ); printPointGeom(centroids[i]);
+                                //         printf("C[%d]",label ); printPointGeom(centroids[label  ]);
+                                // }
+                        }
+                }
+
+        }
+        return;
+}
+
+
+bool adjacencyMap::validateConnection(pointGeom p1, pointGeom p2, float radius)
+{
+        //Chceck if a connection between two free centroids is intersected by an occupied
+        //point
+        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z+radius);
+        Eigen::Vector3d p2Eigen(p2.x,p2.y,p2.z+radius);
+        //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
+        bool collision = false;
+        for (size_t i = 0; i < occupiedNodes.size(); i++) {
+                Eigen::Vector3d q(occupiedNodes[i].x,occupiedNodes[i].y,occupiedNodes[i].z);
+                collision = cylinderCollision(p1Eigen,p2Eigen,q,radius);
+                if (collision) {
+                        break;
+                }
+        }
+        return collision;
+}
+
+bool adjacencyMap::validateNode(pointGeom p1)
+{
+        //Chceck if a point is too close to occupied node
+        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z);
+        Eigen::Vector3d p2Eigen(p1.x,p1.y,p1.z+safetyHeight);
+        //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
+        bool collision = false;
+        for (size_t i = 0; i < occupiedNodes.size(); i++) {
+                Eigen::Vector3d q(occupiedNodes[i].x,occupiedNodes[i].y,occupiedNodes[i].z);
+                collision = cylinderCollision(p1Eigen,p2Eigen,q,safetyRadius);
+                if (collision) {
+                        break;
+                }
+        }
+        return collision;
+}
+
+
+
+bool adjacencyMap::cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q, float radius)
+{
+        Eigen::Vector3d p2_p1=p2-p1;
+        // std::cout << "Conecttions from " << '\n';
+        // std::cout << "p1: " <<  p1<<'\n';
+        // std::cout << "p2: " <<  p2<<'\n';
+        // std::cout << "q: " <<  q<<'\n';
+        if (p2_p1.norm()<0.001) {
+                std::cout << "Same point no cylinder " <<  p2_p1.norm() <<'\n';
+                return true;
+        }
+        float distanceLid1 = (q-p1).dot(p2_p1);
+        bool collision=false;
+        if (distanceLid1>=0)
+        {
+                float distanceLid2=(q-p2).dot(p1-p2);
+                if (distanceLid2>=0)
+                {
+                        //double num = (q-p1).cross(p2_p1).norm();
+                        double num = (q-p1).cross(q-p2).norm();
+                        double den = p2_p1.norm();
+                        float distanceSpine = num/den;
+
+                        if (distanceSpine<radius)
+                        {
+                                //printf("Connection collision distance = %f\n", distanceSpine  );
+                                collision=true;
+                        }
+                        //printf("Query distance = %f\n", distanceSpine  );
+                }
+
+        }
+        return collision;
+}
+
+bool adjacencyMap::compareDistance(distanceLabel i, distanceLabel j)
+{
+        return i.dist<j.dist;
 }

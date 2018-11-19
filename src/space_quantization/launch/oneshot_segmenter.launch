@@ -1,6 +1,6 @@
 <launch>
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
-  <arg name="name" default="wrs2018-2"/>
+  <arg name="name" default="bioroboticaIII"/>
   <arg name="crop" default="-2.0"/>
   <arg name="freeSpace" default="0.25"/>
 
@@ -20,7 +20,8 @@
     <remap from="quantized_space" to="/hsrb/quantized_space"/>
     <remap from="codebook" to="/hsrb/codebook"/>
     <param name="nClusters" value="1024" type="int"/>
-    <param name="iterations" value="7" type="int"/>
+    <param name="iterations" value="10" type="int"/>
+    <param name="method" value="kmeans" type="str"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
   </node>
 
@@ -40,7 +41,7 @@
     <param name="k_neighboors" value="6" type="int"/>
     <param name="max_dist" value="1.5" type="double"/>
     <param name="safety_height" value="1.5" type="double"/>
-    <param name="safety_radius" value="0.35" type="double"/>
+    <param name="safety_radius" value="0.30" type="double"/>
     <param name="connection_radius" value="0.3" type="double"/>
     <param name="free_thr" value="$(arg freeSpace)" type="double"/>
     <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
@@ -52,9 +53,9 @@
 
   <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_coyotzi" args="0.012, 0.022, 1.323 -0.085, 0.772, -0.627, 0.057 base_link head_rgbd_sensor_rgb_frame 100"/> -->
 
-  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame 100"/> -15 5-->
 
-  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="-15 5 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
+  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
 
   <!-- head_rgbd_sensor_rgb_frame -->
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">

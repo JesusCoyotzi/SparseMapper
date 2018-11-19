@@ -175,7 +175,7 @@ bool adjacencyGraph::validateFreeCentroid(pointGeom &freeCentroid, float height,
                 collision=cilynderCollision(freeCentroid,vz, occCodebook[i],height,radius);
                 if (collision)
                 {
-                        // printf("Collision with : ");
+                        // printf("Collision with :| ");
                         // printf("[%f,%f,%f] &",
                         //        freeCentroid.x,freeCentroid.y,freeCentroid.z );
                         // printf(" [%f,%f,%f]\n",

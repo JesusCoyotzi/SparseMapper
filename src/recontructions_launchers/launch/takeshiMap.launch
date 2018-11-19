@@ -1,6 +1,6 @@
 <launch>
   <group ns="rtabmap">
-    <node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen">
+    <node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="--delete_db_on_start">
       <param name="frame_id" type="string" value="base_link"/>
 
       <param name="subscribe_depth" type="bool" value="true"/>
@@ -32,9 +32,9 @@
       <param name="Rtabmap/TimeThr" type="string" value="700"/>
       <param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
 
-      <param name="cloud_max_depth" value="2.0" type="double"/>
       <param name="Grid/RangeMax" value="3.0" type="double"/>
-      <!-- <param name="Grid/NoiseFiltering_radius" value="0.05"/>
+      <!-- <param name="cloud_max_depth" value="2.0" type="double"/>
+      <param name="Grid/NoiseFiltering_radius" value="0.05"/>
       <param name="cloud_noise_filtering_min_neighbors" value="10"/> -->
     </node>
 
