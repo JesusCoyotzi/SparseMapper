@@ -18,7 +18,7 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         //                            ("free_space",2);
         // occCloudPub = nh.advertise<sensor_msgs::PointCloud2>
         //                            ("occ_space",2);
-        codebook_pub = nh.advertise<space_quantization::codebook>
+        codebook_pub = nh.advertise<sparse_map_msgs::codebook>
                                ("codebook",2);
 
         std::cout << "Starting ROS node for segmentation by Coyo-soft" << '\n';
@@ -364,7 +364,7 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         std::vector<geometry_msgs::Point> centroids;
         makeCodebookMsg(centroids,codebook,histogram,nClusters);
 
-        space_quantization::codebook cdbk;
+        sparse_map_msgs::codebook cdbk;
         cdbk.centroids = centroids;
         cdbk.header.frame_id =  cloudFrame;
         cdbk.header.stamp = stamp;

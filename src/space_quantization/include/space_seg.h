@@ -8,6 +8,7 @@
 
 #include "space_quantization/quantizedSpace.h"
 #include "space_quantization/codebook.h"
+#include "sparse_map_msgs/codebook.h"
 
 
 #include <iostream>

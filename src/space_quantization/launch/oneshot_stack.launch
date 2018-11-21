@@ -1,0 +1,51 @@
+<launch>
+  <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
+  <arg name="name" default="bioroboticaIII"/>
+  <arg name="crop" default="-2.0"/>
+  <arg name="freeSpace" default="0.10"/>
+
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
+    <remap from="/cloud" to="/hsrb/cloud"/>
+    <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
+    <param name="cropEnable" value="false" type="bool"/>
+    <param name="cropDistance" value="$(arg crop)" type="double"/>
+    <param name="voxelSize" value="0.04" type="double"/>
+    <param name="voxEnable" value="true" type="bool"/>
+    <param name="baseFrame" value="map" type="string"/>
+  </node>
+
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <remap from="cloud" to="/hsrb/processed_cloud"/>
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <remap from="quantized_space" to="/hsrb/quantized_space"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <param name="nClusters" value="1024" type="int"/>
+    <param name="iterations" value="10" type="int"/>
+    <param name="method" value="kmeans" type="str"/>
+    <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
+  </node>
+
+  <node name="sparseMap" pkg="sparse_mapper" type="sparse_mapper_node" output="screen">
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <remap from="graph_marker" to="/hsrb/graph_marker"/>
+  <param name="free_thr" value="$(arg freeSpace)" type="double"/>
+    <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
+  </node>
+
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_table" args="-0.005 1.115 0.802 -0.037 0.821 -0.569 -0.015 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_backpack" args="0.016 -0.073 0.979 -0.009, 0.887, -0.462, -0.004 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_coyotzi" args="0.012, 0.022, 1.323 -0.085, 0.772, -0.627, 0.057 base_link head_rgbd_sensor_rgb_frame 100"/> -->
+
+  <!-- <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_byron" args="0.020, -0.010, 1.326, -0.139, 0.810, -0.563, 0.086 base_link head_rgbd_sensor_rgb_frame 100"/> -15 5-->
+
+  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
+
+  <!-- head_rgbd_sensor_rgb_frame -->
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
+    <remap from="cloud_pcd" to="/hsrb/cloud"/>
+    <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+  </node>
+
+</launch>

@@ -89,16 +89,27 @@ bool adjacencyMap::loadMap(std::string filename)
         iss>>nFree;
         std::cout << "Found " <<nFree<< " free centroids" <<'\n';
         //Free nodes
+        pointArray tempFree;
         for (int i = 0; i < nFree; i++)
         {
                 pointGeom code;
                 std::getline(file,line);
                 code = parseCodeLine(line);
                 if (!pruneNode(code)) {
-                        freeNodes.push_back(code);
+                        tempFree.push_back(code);
                 }
 
         }
+        std::cout << "Pruned to: " << tempFree.size() <<" non redundant nodes\n";
+        for (size_t i = 0; i < tempFree.size(); i++) {
+                bool isValidNode = !validateNode(tempFree[i]);
+                if (isValidNode)
+                {
+                        freeNodes.push_back(tempFree[i]);
+                }
+        }
+
+        std::cout << "Only " << freeNodes.size() <<" valid nodes remain";
         //skip another header
         // std::getline(file,line);
         // while(std::getline(file,line))
@@ -266,32 +277,28 @@ int adjacencyMap::getClosestNode(pointGeom p)
 bool adjacencyMap::pruneNode(pointGeom p)
 {
         //Check if the node is sufficiently far awya from others
+        //sphere collision between free nodes
+        bool prune=false;
         if (freeNodes.empty()) {
                 //if grpah is empty add node
-                return false;
+                return prune;
         }
         Eigen::Vector3d pointEigen(p.x,p.y,p.z);
         Eigen::Vector3d node(freeNodes[0].x,freeNodes[0].y,freeNodes[0].z);
-        double minDistance = (pointEigen - node).norm();
-        int closestNode=0;
+        double distance = (pointEigen - node).norm();
         for (int i = 0; i < freeNodes.size(); i++)
         {
                 node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
-                double distance = (pointEigen - node).norm();
-                if (distance<minDistance) {
-                        closestNode = i;
-                        minDistance = distance;
+                distance = (pointEigen - node).norm();
+                if (distance<minDist) {
+                        prune = true;
+                        break;
                 }
         }
         //If any node is closer to any other node by minDist then prune it
-        if (minDistance<minDist) {
-                return true;
-        }
-        else
-        {
-                return false;
-        }
+        return prune;
 }
+
 
 double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
 {

@@ -73,4 +73,5 @@ pointArray getOccNodes();
 adjacencyList getGraph();
 bool validateNode(pointGeom p1);
 
+
 };
