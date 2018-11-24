@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find space_quantization)/maps/bioroboticaII.yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find space_quantization)/maps/bioroboticaIV.yaml"/>
   <node name="loc_amcl" pkg="amcl" type="amcl" output="screen" args="scan:=/hsrb/base_scan">
     <param name="odom_alpha1" value="0.4"/>
     <param name="odom_alpha2" value="0.4"/>

@@ -95,12 +95,6 @@ cuda_add_library(segmentationLib STATIC src/quantization.cu)
  add_executable(cloud_preprocessor src/preprocessing_node.cpp src/preprocessing.cpp)
  target_link_libraries(cloud_preprocessor ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
- add_executable(space_separation_node src/space_separation.cpp src/space_separation_node.cpp)
- target_link_libraries(space_separation_node ${catkin_LIBRARIES})
-
- add_executable(space_separation_voxel_node src/space_separation_voxel_node.cpp src/space_separation.cpp )
- target_link_libraries(space_separation_voxel_node ${catkin_LIBRARIES})
-
  add_executable(adjacency_graph_node src/adjacency_graph_node.cpp src/adjacency_graph.cpp)
  target_link_libraries(adjacency_graph_node ${catkin_LIBRARIES})
 

@@ -8,7 +8,8 @@ poseChck::poseChck(ros::NodeHandle &nh)
         angularUpdate *=(M_PI/180.0);
         nh_priv.param<float>("linear_update",linearUpdate,0.50);
 
-        locSubs= nh_.subscribe("/localization_pose",1,&poseChck::checkAdvance,this);
+        locSub= nh_.subscribe("/localization_pose",1,&poseChck::checkAdvanceCov,this);
+        slamSub= nh_.subscribe("/slam_pose",1,&poseChck::checkAdvance,this);
         cloudSub = nh_.subscribe("/cloud_in",1,&poseChck::cloudCallback,this);
         cloudPub = nh_.advertise<sensor_msgs::PointCloud2>("/cloud_out",1);
         previousPose.header.stamp = ros::Time::now();
@@ -26,13 +27,39 @@ poseChck::poseChck(ros::NodeHandle &nh)
 
 }
 
-void poseChck::checkAdvance(const geometry_msgs::PoseWithCovarianceStamped &msg)
+void poseChck::checkAdvanceCov(const geometry_msgs::PoseWithCovarianceStamped &msg)
 {
         geometry_msgs::Pose currentPose = msg.pose.pose;
         std_msgs::Header head =msg.header;
         double dis = linearDistance(currentPose, previousPose.pose);
-        std::cout << "Current pose :" << '\n';
-        std::cout << currentPose << '\n';
+        // std::cout << "Current pose :" << '\n';
+        // std::cout << currentPose << '\n';
+        // std::cout << "previousPose" << '\n';
+        // std::cout << previousPose << '\n';
+        if (dis > linearUpdate) {
+                std::cout << "Distance threshold exceeded: " << dis<<'\n';
+                previousPose.pose = currentPose;
+                previousPose.header = head;
+                publishCloud = true;
+                return;
+        }
+        double angle = angularDistance(currentPose, previousPose.pose);
+        if (angle > angularUpdate) {
+                std::cout << "Angular threshold exceeded: " << angle*180/M_PI<<'\n';
+                previousPose.pose = currentPose;
+                previousPose.header = head;
+                publishCloud = true;
+        }
+        return;
+}
+
+void poseChck::checkAdvance(const geometry_msgs::PoseStamped &msg)
+{
+        geometry_msgs::Pose currentPose = msg.pose;
+        std_msgs::Header head =msg.header;
+        double dis = linearDistance(currentPose, previousPose.pose);
+        // std::cout << "Current pose :" << '\n';
+        // std::cout << currentPose << '\n';
         // std::cout << "previousPose" << '\n';
         // std::cout << previousPose << '\n';
         if (dis > linearUpdate) {
@@ -55,8 +82,10 @@ void poseChck::checkAdvance(const geometry_msgs::PoseWithCovarianceStamped &msg)
 void poseChck::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
 {
         if (publishCloud) {
-                std::cout << "Publish Cloud!!" << '\n';
                 sensor_msgs::PointCloud2 cloud = *msg;
+                cloud.header.frame_id = msg->header.frame_id;
+                cloud.header.stamp = msg->header.stamp;
+                std::cout << "Publish Cloud!! @ frame" <<  cloud.header.frame_id<<'\n';
                 cloudPub.publish(cloud);
                 publishCloud=false;
         }

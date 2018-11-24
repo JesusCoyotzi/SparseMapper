@@ -1,0 +1,14 @@
+<launch>
+
+  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find space_quantization)/maps/bioroboticaII.yaml"/>
+  <node name="loc_amcl" pkg="amcl" type="amcl" output="screen" args="scan:=/hsrb/base_scan">
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam file="$(find hsrb_nav_pkg)/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find hsrb_nav_pkg)/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find hsrb_nav_pkg)/local_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find hsrb_nav_pkg)/global_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find hsrb_nav_pkg)/base_local_planner_params.yaml" command="load"/>
+  </node>
+
+</launch>

@@ -10,10 +10,12 @@ private:
 float angularUpdate,linearUpdate;
 bool publishCloud, checkPose;
 geometry_msgs::PoseStamped previousPose;
-ros::Subscriber locSubs, cloudSub;
+ros::Subscriber locSub, slamSub, cloudSub;
 ros::Publisher cloudPub;
 ros::NodeHandle nh_;
-void checkAdvance(const geometry_msgs::PoseWithCovarianceStamped &msg);
+void checkAdvanceCov(const geometry_msgs::PoseWithCovarianceStamped &msg);
+void checkAdvance(const geometry_msgs::PoseStamped &msg);
+
 double linearDistance(geometry_msgs::Pose p1, geometry_msgs::Pose p2);
 double angularDistance(geometry_msgs::Pose p1, geometry_msgs::Pose p2);
 void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);

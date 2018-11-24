@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="crop" default="2.0"/>
+  <arg name="freeSpace" default="0.2  "/>
+  <arg name="name" default="sparse_map"/>
+
+  <node name="hector_mapping" pkg="hector_mapping" type="hector_mapping" output="screen">
+    <param name="map_size" value="2048"/>
+    <param name="map_resolution" value="0.05"/>
+    <param name="pub_map_odom_transform" value="true"/>
+    <param name="scan_topic" value="/hsrb/base_scan"/>
+    <param name="use_tf_scan_transformation" value="false"/>
+    <param name="map_update_angle_thresh" value="2.0"/>
+    <param name="map_update_distance_thresh" value="0.10"/>
+    <param name="scan_subscriber_queue_size" value="1"/>
+    <param name="update_factor_free" value="0.39"/>
+    <param name="update_factor_occupied" value="0.85"/>
+    <param name="base_frame" value="base_link"/>
+  </node>
+
+  <node name="pose_chk" pkg="space_quantization" type="pose_chck" output="screen">
+    <!-- <remap from="/localization_pose" to="/poseupdate"/> -->
+    <remap from="/slam_pose" to="/slam_out_pose"/>
+    <remap from="/cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
+    <remap from="/cloud_out" to="/hsrb/cloud"/>
+    <param name="angular_update" value="45"/>
+    <param name="linear_update" value="0.50"/>
+  </node>
+
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
+    <remap from="/cloud" to="/hsrb/cloud"/>
+    <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
+    <param name="cropEnable" value="false" type="bool"/>
+    <param name="cropDistance" value="$(arg crop)" type="double"/>
+    <param name="voxelSize" value="0.01" type="double"/>
+    <param name="voxEnable" value="true" type="bool"/>
+    <param name="baseFrame" value="map" type="string"/>
+  </node>
+
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+    <param name="resolution" value="0.05"/>
+
+    <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <param name="frame_id" type="string" value="map"/>
+
+    <!-- maximum range to integrate (speedup!) -->
+    <param name="sensor_model/max_range" value="15.0"/>
+    <param name="filter_ground " value="true" type="bool"/>
+    <param name="base_frame_id " value="map" type="str"/>
+
+    <!-- data source to integrate (PointCloud2) -->
+    <remap from="cloud_in" to="/hsrb/processed_cloud"/>
+
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="-0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100"/>
+
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <remap from="cloud" to="/hsrb/processed_cloud"/>
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <param name="nClusters" value="32" type="int"/>
+    <param name="iterations" value="10" type="int"/>
+  </node>
+
+  <node name="sparseMap" pkg="sparse_mapper" type="sparse_mapper_node" output="screen">
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <remap from="graph_marker" to="/hsrb/graph_marker"/>
+    <param name="free_thr" value="$(arg freeSpace)" type="double"/>
+    <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
+  </node>
+
+</launch>
