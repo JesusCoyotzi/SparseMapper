@@ -92,10 +92,12 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         //initializa codebook
         //Find max and min point for initialization
         point3 minP,maxP;
-        getMinMax(space,maxP,minP,nValid);
+        //getMinMax(space,maxP,minP,nValid);
+        getAOBB(space,maxP,minP,nValid);
         initializeCodebook(codebook,minP,maxP,nClusters);
+        bool segSuccess = true;
         if (!method.compare("kmeans")) {
-                kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
+                segSuccess =kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
         }
         else if(!method.compare("LBG"))
         {
@@ -106,9 +108,9 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
                 std::cout << "Unkown method: " <<method << '\n';
                 return;
         }
-        //initializeCodebook(space,codebook,nClusters,nValid);
-        //Call quantizator
-        //LBG ON CPU
+        if (!segSuccess) {
+                std::cout << "[[ERROR]] method failed probably ran out of memory, try subsampling cloud or using less clusters\n";
+        }
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         std::cout << "Histogram:" << '\n';
         for (int i = 0; i < nClusters; i++) {
@@ -143,6 +145,52 @@ void spaceSegmenter::getMinMax(point3 * points,
                         maxDist =tmp;
                 }
         }
+}
+
+void spaceSegmenter::getAOBB(point3 * points,
+                             point3 &max, point3 &min,
+                             int nPoints)
+{
+        // gets the axis oriented bounding box or similar
+        float minDist = 10, maxDist = 0;
+        min.x =100; max.x=0;
+        min.y =100; max.y=0;
+        min.z =100; max.z=0;
+        for (size_t i = 0; i < nPoints; i++)
+        {
+                float localX = points[i].x;
+                float localY = points[i].y;
+                float localZ = points[i].z;
+                //Find max
+                if (localX > max.x)
+                {
+                        max.x = localX;
+                }
+                if (localY > max.y)
+                {
+                        max.y = localY;
+                }
+                if (localZ > max.z)
+                {
+                        max.z = localZ;
+                }
+                //find minimun
+                if (localX < min.x)
+                {
+                        min.x = localX;
+                }
+                if (localY < min.y)
+                {
+                        min.y = localY;
+                }
+                if (localZ < min.z)
+                {
+                        min.z = localZ;
+                }
+
+        }
+
+        return;
 }
 
 int spaceSegmenter::toPoint3(sensor_msgs::PointCloud2 tfCloud,

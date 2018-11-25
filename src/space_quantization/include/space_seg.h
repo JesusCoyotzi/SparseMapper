@@ -47,6 +47,9 @@ int toPoint3(sensor_msgs::PointCloud2 tfCloud,
 void getMinMax(point3 * points,
                point3 &max, point3 &min,
                int nPoints);
+void getAOBB(point3 * points,
+             point3 &max, point3 &min,
+             int nPoints);
 float norm(point3 p);
 void labelSpaceAndPublish(point3* space, point3* codebook,
                           int * partition, int *histogram,

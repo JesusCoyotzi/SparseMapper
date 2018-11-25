@@ -55,7 +55,7 @@ __global__ void prepareReduceArray(point3 *points,
                                    int *partition,
                                    point3 *reduceArrray,
                                    int centroid, int n);
-void kmeans(point3 *h_points, int *h_partition,
+bool kmeans(point3 *h_points, int *h_partition,
             point3* h_codebook, int *h_histogram,
             int iterations, int clusters, int nPoints);
 void printVec(int vec[], int n);

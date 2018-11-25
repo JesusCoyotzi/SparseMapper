@@ -430,7 +430,7 @@ void initializeCentroids(point3 *points, point3 aleatorios)
 //points todos los puntos
 //aleatorios vectores aleatorios para perturbar el centroide
 
-void kmeans(point3 *h_points, int *h_partition,
+bool kmeans(point3 *h_points, int *h_partition,
             point3* h_codebook, int *h_histogram,
             int iterations, int clusters, int nPoints)
 {
@@ -480,6 +480,10 @@ void kmeans(point3 *h_points, int *h_partition,
                 blks = (nPoints + THREADS - 1) / THREADS;
                 distanceKernel<<<blks,THREADS>>>
                 (d_points,d_codebook,d_distances,clusters,nPoints);
+                if (cudaPeekAtLastError() != cudaSuccess) {
+                        printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
+                        break;
+                }
                 //cudaDeviceSynchronize();
                 cudaMemset(d_histogram, 0, histogramSize);
                 makePartition<<<blks,THREADS>>>
@@ -507,9 +511,7 @@ void kmeans(point3 *h_points, int *h_partition,
                         //Aqui acabaria el while
                         recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
                         (d_reduceArray,d_codebook,d_histogram,i,blks,d_state);
-                        if (cudaPeekAtLastError() != cudaSuccess) {
-                                printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
-                        }
+
 
                 }
         }
@@ -533,7 +535,7 @@ void kmeans(point3 *h_points, int *h_partition,
         cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
         cudaFree(d_state);
         free(h_distances);
-        return;
+        return true;
 }
 
 
