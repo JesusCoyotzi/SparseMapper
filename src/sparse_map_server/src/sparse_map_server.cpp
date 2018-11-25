@@ -26,9 +26,10 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
 
         rebuildPub = nh_.subscribe("remake_graph",1,&sparseMapServer::remakeGraph,this);
 
-        sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,connectionRadius,
-                                 maxDist,minDist,kNeighboors);
 
+        sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,
+                                 connectionRadius,
+                                 maxDist,minDist,kNeighboors);
         sparseMap.makeGraph();
         std_msgs::ColorRGBA freeColor = makeColor(0.5,1.0,0.50,1.0);
         std_msgs::ColorRGBA occColor  = makeColor(1,0.0,0.5,1.0);

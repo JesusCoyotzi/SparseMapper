@@ -95,8 +95,8 @@ cuda_add_library(segmentationLib STATIC src/quantization.cu)
  add_executable(cloud_preprocessor src/preprocessing_node.cpp src/preprocessing.cpp)
  target_link_libraries(cloud_preprocessor ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
- add_executable(adjacency_graph_node src/adjacency_graph_node.cpp src/adjacency_graph.cpp)
- target_link_libraries(adjacency_graph_node ${catkin_LIBRARIES})
+# add_executable(adjacency_graph_node src/adjacency_graph_node.cpp src/adjacency_graph.cpp)
+ #target_link_libraries(adjacency_graph_node ${catkin_LIBRARIES})
 
 
 #add_executable(testColor src/space_seg.cpp include/space_seg.h test/colortest.cpp)

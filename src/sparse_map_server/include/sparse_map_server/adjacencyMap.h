@@ -49,7 +49,7 @@ std_msgs::ColorRGBA makeColor(float r,float g, float b, float a);
 std::vector<int> parseGraphEntry(std::string line);
 double euclideanDistance(pointGeom a, pointGeom b);
 int getClosestNode(pointGeom p);
-bool pruneNode(pointGeom p);
+bool pruneNode(pointGeom p,pointArray &tmpNodes);
 void printPointGeom(pointGeom p);
 void Knn(pointArray &centroids, adjacencyList & adjL);
 bool validateConnection(pointGeom p1, pointGeom p2, float radius);

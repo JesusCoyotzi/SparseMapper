@@ -24,6 +24,14 @@ adjacencyMap::adjacencyMap(std::string mapFile,
         this->maxDist = mxDist;
         this->minDist = minDist;
         this->kNeighboors = kNeighboors;
+        std::cout << "Parameters set for adj map:" << '\n';
+        std::cout << "Safety Heigth: " << safetyHeight  << '\n';
+        std::cout << "Safety Radius: " << safetyRadius  << '\n';
+        std::cout << "Connection Radius: " << connectionRadius  << '\n';
+        std::cout << "Max distance: " << maxDist  << '\n';
+        std::cout << "Min distance: " << minDist  << '\n';
+        std::cout << "K neighbors: " << this->kNeighboors  << '\n';
+
         loadMap(mapFile);
         return;
 }
@@ -95,7 +103,7 @@ bool adjacencyMap::loadMap(std::string filename)
                 pointGeom code;
                 std::getline(file,line);
                 code = parseCodeLine(line);
-                if (!pruneNode(code)) {
+                if (!pruneNode(code,tempFree)) {
                         tempFree.push_back(code);
                 }
 
@@ -159,6 +167,33 @@ pointGeom adjacencyMap::parseCodeLine(std::string line)
         //printf("%f,%f,%f,%d\n",x,y,z,label );
         pointGeom g = makePointGeom(x,y,z);
         return g;
+}
+
+bool adjacencyMap::pruneNode(pointGeom p, pointArray& tmpNodes)
+{
+        //Check if the node is sufficiently far awya from others
+        //sphere collision between free nodes
+        bool prune=false;
+        if (tmpNodes.empty()) {
+                //if grpah is empty add node
+                std::cout << "Grpah is empty" << '\n';
+                return prune;
+        }
+        Eigen::Vector3d pointEigen(p.x,p.y,p.z);
+        Eigen::Vector3d node(tmpNodes[0].x,tmpNodes[0].y,tmpNodes[0].z);
+
+        for (int i = 0; i < tmpNodes.size(); i++)
+        {
+                double distance = (pointEigen - node).norm();
+                //std::cout << "Distance: " << distance << '\n';
+                if (distance<minDist) {
+                        prune = true;
+                        break;
+                }
+                node << tmpNodes[i].x,tmpNodes[i].y,tmpNodes[i].z;
+        }
+        //If any node is closer to any other node by minDist then prune it
+        return prune;
 }
 
 pointGeom adjacencyMap::makePointGeom(float x, float y, float z)
@@ -274,30 +309,6 @@ int adjacencyMap::getClosestNode(pointGeom p)
         return closestNode;
 }
 
-bool adjacencyMap::pruneNode(pointGeom p)
-{
-        //Check if the node is sufficiently far awya from others
-        //sphere collision between free nodes
-        bool prune=false;
-        if (freeNodes.empty()) {
-                //if grpah is empty add node
-                return prune;
-        }
-        Eigen::Vector3d pointEigen(p.x,p.y,p.z);
-        Eigen::Vector3d node(freeNodes[0].x,freeNodes[0].y,freeNodes[0].z);
-        double distance = (pointEigen - node).norm();
-        for (int i = 0; i < freeNodes.size(); i++)
-        {
-                node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
-                distance = (pointEigen - node).norm();
-                if (distance<minDist) {
-                        prune = true;
-                        break;
-                }
-        }
-        //If any node is closer to any other node by minDist then prune it
-        return prune;
-}
 
 
 double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
@@ -345,7 +356,7 @@ void adjacencyMap::makeGraph()
         }
         adjGraph.clear();
         adjGraph = adjacencyList(freeNodes.size());
-        std::cout << "Suing Free nodes _"<<freeNodes.size() << '\n';
+        std::cout << "Using Free nodes "<<freeNodes.size() << '\n';
         //
 
         Knn(freeNodes,adjGraph);
