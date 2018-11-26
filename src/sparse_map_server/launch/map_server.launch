@@ -7,7 +7,7 @@
     <param name="map_file" value="$(find space_quantization)/graphs/$(arg map_name).txt" type="str"/>
     <param name="k_neighboors" value="6" type="int"/>
     <param name="max_dist" value="1.2" type="double"/>
-    <param name="min_dist" value="0.50" type="double"/>
+    <param name="min_dist" value="0.250" type="double"/>
     <param name="safety_height" value="1.0" type="double"/>
     <param name="safety_radius" value="0.3" type="double"/>
     <param name="connection_radius" value="0.3" type="double"/>

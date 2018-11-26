@@ -482,7 +482,7 @@ bool kmeans(point3 *h_points, int *h_partition,
                 (d_points,d_codebook,d_distances,clusters,nPoints);
                 if (cudaPeekAtLastError() != cudaSuccess) {
                         printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
-                        break;
+                        return false;
                 }
                 //cudaDeviceSynchronize();
                 cudaMemset(d_histogram, 0, histogramSize);
