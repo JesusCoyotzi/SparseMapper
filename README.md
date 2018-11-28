@@ -1,3 +1,4 @@
 # SpaceQuantization
 
-La ma<estrÃ­a papu
+SparseMapper stack for ROS.
+Master Thesis Jesús Hernández Coyotzi
