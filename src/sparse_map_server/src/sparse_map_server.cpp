@@ -57,8 +57,8 @@ void sparseMapServer::makeTerminalsAndPublish(pointGeom start, pointGeom goal)
         startMarker.type = visualization_msgs::Marker::CYLINDER;
         startMarker.pose.orientation.w = 1.0;
         startMarker.scale.z = safetyHeight;
-        startMarker.scale.x = safetyRadius;
-        startMarker.scale.y = safetyRadius;
+        startMarker.scale.x = safetyRadius*2;
+        startMarker.scale.y = safetyRadius*2;
         startMarker.id =0;
         startMarker.pose.position = start;
         startMarker.pose.position.z += safetyHeight/2;
@@ -76,8 +76,8 @@ void sparseMapServer::makeTerminalsAndPublish(pointGeom start, pointGeom goal)
         goalMarker.type = visualization_msgs::Marker::CYLINDER;
         goalMarker.pose.orientation.w = 1.0;
         goalMarker.scale.z = safetyHeight;
-        goalMarker.scale.x = safetyRadius;
-        goalMarker.scale.y = safetyRadius;
+        goalMarker.scale.x = safetyRadius*2;
+        goalMarker.scale.y = safetyRadius*2;
         goalMarker.id = 1;
         goalMarker.pose.position = goal;
         goalMarker.pose.position.z += safetyHeight/2;
