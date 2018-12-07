@@ -4,14 +4,14 @@
 
 int main(int argc, char  *argv[]) {
         if (argc<5) {
-          std::cout << "Error: Usage: program filename points" << '\n';
+          std::cout << "Error: Usage: program filename points min max" << '\n';
           return -1;
         }
 
         std::string filename(argv[1]);
         int cloudSize = atoi(argv[2]);
-        int minVal = atoi(argv[3]);
-        int maxVal = atoi(argv[4]);
+        float minVal = atof(argv[3]);
+        float maxVal = atof(argv[4]);
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr uniformCloud (new pcl::PointCloud<pcl::PointXYZ>);
         uniformCloud->width = cloudSize;

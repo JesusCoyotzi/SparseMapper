@@ -7,8 +7,7 @@ cloudPreprocessor::cloudPreprocessor(ros::NodeHandle &nh)
         nh_priv.param<std::string>("baseFrame",baseFrame,"base_link");
         nh_priv.param<float>("cropDistance",cropDistance,10);
         nh_priv.param<float>("voxelSize",voxelSize,0.01); //in meters
-        nh_priv.param<bool>("cropEnable",cropEnable,false);
-        nh_priv.param<bool>("voxEnable",voxEnable,true);
+
         inCloudSub = nh_.subscribe<sensor_msgs::PointCloud2>("/cloud",10,&cloudPreprocessor::processCallback,this);
         processedCloudPub=nh_.advertise<sensor_msgs::PointCloud2>
                                    ("/processed_cloud",2);

@@ -89,15 +89,30 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         //And the histogram
         int * histogram =
                 (int*)malloc(nClusters*sizeof(int));
-        //initializa codebook
-        //Find max and min point for initialization
-        point3 minP,maxP;
-        //getMinMax(space,maxP,minP,nValid);
-        getAOBB(space,maxP,minP,nValid);
-        initializeCodebook(codebook,minP,maxP,nClusters);
         bool segSuccess = true;
-        if (!method.compare("kmeans")) {
-                segSuccess =kmeans(space,partition,codebook,histogram,iterations,nClusters,nValid);
+        if (!method.compare("uniform"))
+        {
+                //Uniformly sample acoors the AOBB of the cloud
+                point3 minP,maxP;
+                getMinMax(space,maxP,minP,nValid);
+                getAOBB(space,maxP,minP,nValid);
+                initializeCodebook(codebook,minP,maxP,nClusters);
+                segSuccess =kmeans(space,partition,codebook,histogram,iterations,
+                                   nClusters,nValid,maxP,minP);
+        }
+        else if (!method.compare("inner"))
+        {
+                //Sample Uniformly one of the points as centroids
+                initializeCodebook(codebook,space,nClusters,nValid);
+                //printPoint3Array(codebook,nClusters);
+                segSuccess = kmeans(space,partition,codebook,histogram,iterations,
+                                    nClusters,nValid);
+        }
+        else if(!method.compare("kpp"))
+        {
+                kppInitCPU(space,codebook,nClusters,nValid);
+                segSuccess = kmeans(space,partition,codebook,histogram,iterations,
+                                    nClusters,nValid);
         }
         else if(!method.compare("LBG"))
         {
@@ -108,8 +123,10 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
                 std::cout << "Unkown method: " <<method << '\n';
                 return;
         }
+
         if (!segSuccess) {
                 std::cout << "[[ERROR]] method failed probably ran out of memory, try subsampling cloud or using less clusters\n";
+                return;
         }
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         std::cout << "Histogram:" << '\n';

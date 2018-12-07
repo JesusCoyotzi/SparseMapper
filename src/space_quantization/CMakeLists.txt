@@ -41,7 +41,9 @@ set(
  )
  SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-set(CUDA_VERBOSE_BUILD ON)
+ SET(CUDA_SEPARABLE_COMPILATION ON)
+
+set(CUDA_VERBOSE_BUILD OFF)
 
  # Declare the message files to be built
 add_message_files(FILES
@@ -78,7 +80,7 @@ add_message_files(FILES
  )
 
  #Cuda stuff
-cuda_add_library(segmentationLib STATIC src/quantization.cu)
+cuda_add_library(segmentationLib STATIC src/operations.cu src/quantization.cu  src/cpuQuantization.cu)
 
  # define executable using MyMessage1 etc.
  #add_executable(message_program src/main.cpp)

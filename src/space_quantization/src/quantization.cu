@@ -2,64 +2,6 @@
 #define THREADS 1024
 #define MAX_CENTROIDS 1024
 
-void printVec(float vec[], int n)
-{
-        printf("[");
-        printf("%f",vec[0]);
-        for(int i= 1; i<n; i++)
-        {
-                printf(",%f",vec[i]);
-        }
-        printf("]\n");
-        return;
-}
-
-
-void printVec(int vec[], int n)
-{
-        printf("[");
-        printf("%d",vec[0]);
-        for(int i= 1; i<n; i++)
-        {
-                printf(",%d",vec[i]);
-        }
-        printf("]\n");
-        return;
-}
-
-void printPoint3(point3 p)
-{
-        printf("[%f,%f,%f]\n",p.x,p.y,p.z);
-        return;
-}
-
-void printPoint3Array(point3 *p, int n)
-{
-        for(int i=0; i<n; i++)
-        {
-                printPoint3(p[i]);
-        }
-}
-
-__device__ __host__ point3 addPoint3(point3 p1,point3 p2)
-{
-        point3 sum;
-        sum.x=p1.x+p2.x;
-        sum.y=p1.y+p2.y;
-        sum.z=p1.z+p2.z;
-
-        return sum;
-}
-
-__device__ __host__ point3 mulPoint3(point3 p, float s)
-{
-        point3 mul;
-        mul.x=s*p.x;
-        mul.y=s*p.y;
-        mul.z=s*p.z;
-
-        return mul;
-}
 
 point3 randomPoint3()
 {
@@ -101,76 +43,50 @@ __global__ void setup_kernel(curandState *state)
         curand_init(1234, idx, 0, &state[idx]);
 }
 
-__device__ point3 randomPoint3(curandState *randState)
+__device__ point3 randomPoint3(curandState *randState,point3 maxP,point3 minP)
 {
         //REturn a random number from 0-1 meters in every direction
         point3 ranP3;
-        ranP3.x=curand_uniform(randState);
-        ranP3.y=curand_uniform(randState);
-        ranP3.z=curand_uniform(randState);
+        ranP3.x=(maxP.x-minP.x)*curand_uniform(randState)+minP.x;
+        ranP3.y=(maxP.y-minP.y)*curand_uniform(randState)+minP.y;
+        ranP3.z=(maxP.z-minP.z)*curand_uniform(randState)+minP.z;
         return ranP3;
 }
 
 void initializeCodebook(point3 * codebook, point3 minPoint,
                         point3 maxPoint,int nClusters)
 {
-        //loop over all clusters
+        //Initialize centroids bya bounding box uniform sampling.
         printf("Initializing centroids\n");
         printf("Max point:\t"); printPoint3(maxPoint);
         printf("\nMin point:\t"); printPoint3(minPoint);
         printf("\n");
         srand(time(NULL));
-
+      //  printf("--Initial centroids--\n" );
         for (unsigned int i = 0; i < nClusters; i++)
         {
                 codebook[i] = randomPoint3(minPoint,maxPoint);
-                //printPoint3(codebook[i]);
+        //        printPoint3(codebook[i]);
         }
         return;
 }
 
-point3 getCentroid(point3 * points, int n)
+void initializeCodebook(point3 * codebook, point3* points,
+                        int pointSize, int nClusters)
 {
-        point3 acc;
-        acc.x=0.0; acc.y=0.0; acc.z=0.0;
-        for (int i = 0; i < n; i++) {
-                acc.x+=points[i].x;
-                acc.y+=points[i].y;
-                acc.z+=points[i].z;
-        }
-        point3 centroid = mulPoint3(acc,1.0/n);
-        printf("The centroid is [%f,%f,%f] \n",centroid.x,centroid.y,centroid.z);
-        return centroid;
-}
-
-
-void initializeCodebook(point3* points,point3 * codebook, int nClusters, int n)
-{
-        //loop over all clusters
+        //Initilaize centroids in codebook by sampling points in the dataset.
         printf("Initializing centroids\n");
-        point3 centroid = getCentroid(points,n);
+        srand(time(NULL));
 
-        float offset = 2.0/n;
-        float inc = M_PI*(3.0-sqrtf(5.0));
         for (unsigned int i = 0; i < nClusters; i++)
         {
-                float y = (i*offset-1)+offset/2;
-                float r = sqrtf(1- pow(y,2));
-                float phi = ((i+1)%n)*inc;
-                float x = cos(phi)*r;
-                float z = cos(phi)*r;
-                codebook[i].x = x+centroid.x;
-                codebook[i].y = y+centroid.y;
-                codebook[i].z = z+centroid.z;
+                int rndIdx = rand() % pointSize;
+                codebook[i]= points[rndIdx];
                 //printPoint3(codebook[i]);
         }
         return;
 }
 
-__device__ __host__ float euclideanDistance(point3 p1, point3 p2)
-{
-        return ( (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)+(p1.z-p2.z)*(p1.z-p2.z));
-}
 
 __device__ void setZerosDevice(point3 *p,int n)
 {
@@ -337,7 +253,54 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                      point3* centroids,
                                      int *histogram,
                                      int k, int n,
-                                     curandState *crs)
+                                     curandState *crs,
+                                     point3 maxP,point3 minP
+                                     )
+{
+        //histogram is a count of how many elements belong to each centroid
+        __shared__ point3 pointsShared[THREADS];
+        int idx = blockIdx.x*blockDim.x+threadIdx.x;
+        int tid = threadIdx.x;
+        point3 zero;
+        zero.x=0; zero.y=0; zero.z=0;
+        pointsShared[tid]=zero;
+        __syncthreads();
+        if(idx < n)
+        {
+                pointsShared[tid]=points[idx];
+                __syncthreads();
+                for (int s = blockDim.x/2; s>0; s>>=1)
+                {
+                        if(tid<s)
+                        {
+                                {
+                                        pointsShared[tid]=addPoint3(
+                                                pointsShared[tid],
+                                                pointsShared[tid+s]);
+                                }
+                        }
+                        __syncthreads();
+                }
+                if(tid==0)
+                {
+                        if(histogram[k]>0) {
+                                centroids[k] = mulPoint3(pointsShared[0],1.0/histogram[k]);
+                        }
+                        else
+                        {
+                                point3 rp3=randomPoint3(crs,maxP,minP);
+                                centroids[k]= addPoint3(centroids[k],rp3);
+                        }
+                }
+        }
+
+}
+
+__global__ void recalcCentroidsOuter(point3 * points,
+                                     point3* centroids,
+                                     int *histogram,
+                                     int k, int n
+                                     )
 {
         //histogram is a count of how many elements belong to each centroid
         __shared__ point3 pointsShared[THREADS];
@@ -381,11 +344,11 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                 //        k,centroids[k].x,centroids[k].y,centroids[k].z);
                                 centroids[k] = mulPoint3(pointsShared[0],1.0/histogram[k]);
                         }
-                        else
-                        {
-                                point3 rp3=randomPoint3(crs);
-                                centroids[k]= addPoint3(centroids[k],rp3);
-                        }
+                        // else
+                        // {
+                        //         //point3 rp3=randomPoint3(crs);
+                        //         centroids[k]= addPoint3(centroids[k],rp3);
+                        // }
                 }
         }
         //__syncthreads();
@@ -423,11 +386,7 @@ __global__ void partitionToLocal(point3 *points,
         }
 }
 
-void initializeCentroids(point3 *points, point3 aleatorios)
-{
-        return;
-}
-//points todos los puntos
+
 //aleatorios vectores aleatorios para perturbar el centroide
 
 bool kmeans(point3 *h_points, int *h_partition,
@@ -510,7 +469,7 @@ bool kmeans(point3 *h_points, int *h_partition,
 
                         //Aqui acabaria el while
                         recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
-                        (d_reduceArray,d_codebook,d_histogram,i,blks,d_state);
+                        (d_reduceArray,d_codebook,d_histogram,i,blks);
 
 
                 }
@@ -538,6 +497,104 @@ bool kmeans(point3 *h_points, int *h_partition,
         return true;
 }
 
+
+bool kmeans(point3 *h_points, int *h_partition,
+            point3* h_codebook, int *h_histogram,
+            int iterations, int clusters, int nPoints,
+            point3 maxP, point3 minP)
+{
+
+        printf("Received: %d\n",nPoints);
+
+        //Pointers
+        point3 *d_points, *d_codebook;
+        float *d_distances,*h_distances;
+        int *d_partition,  *d_histogram;
+        point3 *d_reduceArray, *d_partialReduce;
+        //sizes
+        int nPointsSize   = nPoints*sizeof(point3);
+        int clustersSize  = clusters*sizeof(point3);
+        int distanceSize  = nPoints*clusters*sizeof(float);
+        int partitionSize = nPoints*sizeof(int);
+        int histogramSize = clusters*sizeof(int);
+
+        h_distances = (float *) malloc(distanceSize);
+        //h_partition = (int *) malloc(partitionSize);
+
+        cudaMalloc((void**)&d_points,nPointsSize);
+        cudaMalloc((void**)&d_codebook,clustersSize);
+        cudaMalloc((void**)&d_distances,distanceSize);
+        cudaMalloc((void**)&d_partition,partitionSize);
+
+        cudaMalloc((void**)&d_reduceArray,nPointsSize);
+        cudaMalloc((void**)&d_partialReduce,nPointsSize);
+        cudaMalloc((void**)&d_histogram,histogramSize);
+
+        cudaMemcpy(d_points,h_points,nPointsSize,cudaMemcpyHostToDevice);
+        cudaMemcpy(d_codebook,h_codebook,clustersSize,cudaMemcpyHostToDevice);
+
+        //curand stuff
+        curandState *d_state;
+        cudaMalloc(&d_state, sizeof(curandState));
+        setup_kernel<<<1,1>>>(d_state);
+
+        //int blks = nPoints/ THREADS;
+        int blks = (nPoints + THREADS - 1) / THREADS;
+        printf("Issuing %d blocks with %d threads\n",blks, THREADS);
+        for (int m = 0; m <iterations; m++) {
+                ///if blks > THREADS return error not enough kenerls
+                blks = (nPoints + THREADS - 1) / THREADS;
+                distanceKernel<<<blks,THREADS>>>
+                (d_points,d_codebook,d_distances,clusters,nPoints);
+                if (cudaPeekAtLastError() != cudaSuccess) {
+                        printf("kernel launch error: %s\n", cudaGetErrorString(cudaGetLastError()));
+                        return false;
+                }
+                //cudaDeviceSynchronize();
+                cudaMemset(d_histogram, 0, histogramSize);
+                makePartition<<<blks,THREADS>>>
+                (d_partition,d_distances,d_histogram,clusters,nPoints);
+                for(int i= 0; i<clusters; i++)
+                {
+                        blks = (nPoints + THREADS - 1) / THREADS;
+                        prepareReduceArray<<<blks,THREADS>>>
+                        (d_points,d_partition,d_reduceArray,i,nPoints);
+                        //printf(">>>>>First RUN on cluster [%d]\n",i );
+                        recalcCentroidsInner<<<blks,THREADS>>>
+                        (d_reduceArray,d_reduceArray,nPoints);
+                        while (blks>THREADS) {
+                                int n = blks;
+                                blks = (blks + THREADS - 1) / THREADS;
+                                recalcCentroidsInner<<<blks,THREADS>>>
+                                (d_reduceArray,d_reduceArray,n);
+
+                        }
+                        recalcCentroidsOuter<<<1,THREADS>>>
+                        (d_reduceArray,d_codebook,d_histogram,i,blks,d_state,maxP,minP);
+                }
+        }
+        cudaDeviceSynchronize();
+        cudaMemcpy(h_distances,d_distances,
+                   distanceSize,cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_partition,d_partition,
+                   partitionSize,cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_codebook,d_codebook,
+                   clustersSize,cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_partition,d_partition,
+                   partitionSize,cudaMemcpyDeviceToHost);
+        cudaMemcpy(h_histogram,d_histogram,
+                   histogramSize,cudaMemcpyDeviceToHost);
+
+        //printVec(h_distances,nPoints*clusters);
+        //printVec(h_partition,nPoints);
+        printf("---Optimized centroids---\n");
+        printPoint3Array(h_codebook, clusters);
+        cudaFree(d_points); cudaFree(d_distances); cudaFree(d_codebook);
+        cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
+        cudaFree(d_state);
+        free(h_distances);
+        return true;
+}
 
 void serializeQuantization(point3* points, point3* codebook,
                            int * partition, int n, int k, char *filename)
@@ -604,87 +661,6 @@ int getFreeMem()
         return *libre;
 }
 
-
-void LBGCPU(point3 *points,  point3 *codebook,
-            int *histogram, int *partition,
-            int iterations, int clusters, int nPoints)
-{
-        //CPu code to run LBG
-        point3 * prevCodebook;
-        prevCodebook = (point3 *) malloc(sizeof(point3)*clusters);
-        prevCodebook[0]=getCentroid(points,nPoints);
-        for (int i = 1; i < clusters; i=i<<1)
-        {
-                printf("Working with %d clusters\n",i*2 );
-                perturbate(codebook,prevCodebook,i);
-                printf("Codebook\n");
-                printPoint3Array(prevCodebook,i);
-                for (int j = 0; j < iterations; j++)
-                {
-                        //  printf("\tIteration [%d]\n",j );
-                        getPartition(codebook,points, partition, histogram, nPoints,i*2);
-                        recalcCentroids(codebook, points, partition, histogram,nPoints,i*2);
-                }
-                //copy centroids to prevCodebook
-                copyCodebook(prevCodebook,codebook,clusters);
-        }
-        free(prevCodebook);
-
-        return;
-
-}
-
-void copyCodebook(point3 * prev, point3 * cdbk, int nClusters)
-{
-        //Copy codebook prev into cdbk
-        for (size_t i = 0; i < nClusters; i++) {
-                prev[i]=cdbk[i];
-        }
-        return;
-}
-
-
-void perturbate(point3 *codes,point3 *prev,int n)
-{
-        const float e = 0.01;
-        point3 epsilon_plus; epsilon_plus.x=e; epsilon_plus.y=e; epsilon_plus.z=e;
-        point3 epsilon_min; epsilon_min.x=-e; epsilon_min.y=-e; epsilon_min.z=-e;
-        //int nextN = n<<1;
-        for (int i = 0; i < n; i+=2) {
-                codes[i] = addPoint3(prev[i],epsilon_plus);
-                codes[i+1] = addPoint3(prev[i],epsilon_min);
-        }
-        return;
-}
-
-void getPartition(point3 *codebook, point3 *points,
-                  int* partition, int * histogram,
-                  int nPoints, int clusters)
-{
-        //Get the points partition
-        for (size_t i = 0; i < clusters; i++) {
-                histogram[i]=0;
-        }
-        for (int j = 0; j < nPoints; j++)
-        {
-                partition[j] = 0;
-                float minDist = euclideanDistance(codebook[0],points[j]);
-                for (int k = 1; k < clusters; k++)
-                {
-                        float dist = euclideanDistance(codebook[k],points[j]);
-                        if (minDist>dist)
-                        {
-                                minDist=dist;
-                                partition[j]=k;
-                        }
-                }
-                histogram[partition[j]]++;
-        }
-        // for (int i = 0; i < clusters; i++) {
-        //         printf("Cluster[%d]: %d\n",i,histogram[i] );
-        // }
-        return;
-}
 
 void recalcCentroids(point3 *codebook, point3 *points,
                      int* partition, int* histogram,

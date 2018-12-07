@@ -52,7 +52,7 @@
     <remap from="codebook" to="/hsrb/codebook"/>
     <remap from="graph_marker" to="/hsrb/graph_marker"/>
     <param name="free_thr" value="$(arg freeSpace)" type="double"/>
-    <param name="graph_file" value="$(find space_quantization)/graphs/$(arg name).txt" type="str"/>
+    <param name="graph_file" value="$(find sparse_map_server)/graphs/$(arg name).txt" type="str"/>
   </node>
 
 </launch>
