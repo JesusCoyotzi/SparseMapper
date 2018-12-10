@@ -110,12 +110,14 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         }
         else if(!method.compare("kpp"))
         {
+                //kmeasn ++ initialization
                 kppInitCPU(space,codebook,nClusters,nValid);
                 segSuccess = kmeans(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
         else if(!method.compare("LBG"))
         {
+                //Linde Gray Buzo.
                 LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
         }
         else
@@ -286,95 +288,6 @@ void spaceSegmenter::makeCloudHeader(sensor_msgs::PointCloud2 &cloud, int points
         return;
 }
 
-void
-spaceSegmenter::separateSpaceAndPublish(point3* space,
-                                        point3* codebook,
-                                        int * partition,
-                                        int * histogram,
-                                        int nPoints)
-{
-        // Ensemble pointcloud for free & occupied space.
-        // and vomit them on to a fancy cloud2 msg.
-        //Count free points and occupied points
-        int nFreePoints=0, nOccPoints =0;
-        for (unsigned int i = 0; i < nPoints; i++)
-        {
-                if (codebook[partition[i]].z<=freeThr) {
-                        nFreePoints++;
-                }
-        }
-        nOccPoints =nPoints-nFreePoints;
-        // set info for Cloud.
-        sensor_msgs::PointCloud2 freeCloud,occCloud;
-        makeCloudHeader(freeCloud,nFreePoints);
-        makeCloudHeader(occCloud,nOccPoints);
-
-        //Now ensemble the byteBlob
-        //4 float of 4 bytes of nFreePoints 4*4*nFreePoints
-        std::vector<unsigned char> byteBlobFree(nFreePoints);
-        std::vector<unsigned char> byteBlobOcc(nOccPoints);
-        charToFloat changer;
-        //This could be ewasily the most complex for in my
-        //whoole life
-        for (int i=0, j = 0, w=0; j< nPoints; j++)
-        {
-                std::vector<unsigned char> tmp(4*4);
-
-                changer.assembledFloat = space[j].x;
-                int u,k;
-                for (u = 0,k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                changer.assembledFloat = space[j].y;
-                for (k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                changer.assembledFloat = space[j].z;
-                for (k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                changer.assembledInt = partition[j];
-                for (k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                // for (unsigned int v = 0; v < 4*4; v++) {
-                //
-                //         byteBlobLabel[i+v]=tmp[v];
-                // }
-                // i+=labeledCloud.point_step;
-                if (codebook[partition[j]].z<=freeThr)
-                {
-                        for (int v = 0; v < 16; v++) {
-                                byteBlobFree[i+v]=tmp[v];
-                        }
-                        i+=freeCloud.point_step;
-                }
-                else
-                {
-                        for (int v = 0; v < 16; v++) {
-                                byteBlobOcc[w+v]=tmp[v];
-                        }
-                        w+=occCloud.point_step;
-                }
-        }
-        freeCloud.data = byteBlobFree;
-        occCloud.data = byteBlobOcc;
-
-        std::vector<geometry_msgs::Point> centroids(nClusters);
-        makeCodebookMsg(centroids,codebook, histogram,nClusters);
-        //make quantizedSpace obj
-        space_quantization::quantizedSpace qs;
-        qs.space = occCloud;
-        qs.codebook = centroids;
-        //Allows for publish only segmented cloud
-        // if (pubSegSpace)
-        // {
-        //         freeCloudPub.publish(freeCloud);
-        //         occCloudPub.publish(occCloud);
-        // }
-        quantizedSpace_pub.publish(qs);
-        return;
-}
 
 void
 spaceSegmenter::labelSpaceAndPublish(point3* space,
@@ -383,49 +296,50 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
                                      int * histogram,
                                      int nPoints)
 {
-        // Ensemble pointcloud for free & occupied space.
-        // and vomit them on to a fancy cloud2 msg.
-
-        // set info for Cloud.
-        sensor_msgs::PointCloud2 labeledCloud;
-        makeCloudHeader(labeledCloud,nPoints);
-
-        //Now ensemble the byteBlob
-        //4 float of 4 bytes of nFreePoints 4*4*nFreePoints
-        std::vector<unsigned char> byteBlobLabel(labeledCloud.row_step);
-        charToFloat changer;
-        //This could be ewasily the most complex for in my
-        //whoole life
-        for (int i=0, j = 0, w=0; j< nPoints; j++)
+        if (pubSegSpace)
         {
-                std::vector<unsigned char> tmp(4*4);
+                //Enable visualization:
+                // Ensemble pointcloud for free & occupied space.
+                // and vomit them on to a fancy cloud2 msg.
+                sensor_msgs::PointCloud2 labeledCloud;
+                makeCloudHeader(labeledCloud,nPoints);
 
-                changer.assembledFloat = space[j].x;
-                int u,k;
-                for (u = 0,k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                changer.assembledFloat = space[j].y;
-                for (k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                changer.assembledFloat = space[j].z;
-                for (k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                changer.assembledInt = partition[j];
-                for (k = 0; k < 4; k++, u++) {
-                        tmp[u]=changer.byteStream[k];
-                }
-                for (unsigned int v = 0; v < 4*4; v++) {
+                //Now ensemble the byteBlob
+                //4 float of 4 bytes of nFreePoints 4*4*nFreePoints
+                std::vector<unsigned char> byteBlobLabel(labeledCloud.row_step);
+                charToFloat changer;
+                //This could be ewasily the most complex for in my
+                //whoole life
+                for (int i=0, j = 0, w=0; j< nPoints; j++)
+                {
+                        std::vector<unsigned char> tmp(4*4);
 
-                        byteBlobLabel[i+v]=tmp[v];
-                }
-                i+=labeledCloud.point_step;
+                        changer.assembledFloat = space[j].x;
+                        int u,k;
+                        for (u = 0,k = 0; k < 4; k++, u++) {
+                                tmp[u]=changer.byteStream[k];
+                        }
+                        changer.assembledFloat = space[j].y;
+                        for (k = 0; k < 4; k++, u++) {
+                                tmp[u]=changer.byteStream[k];
+                        }
+                        changer.assembledFloat = space[j].z;
+                        for (k = 0; k < 4; k++, u++) {
+                                tmp[u]=changer.byteStream[k];
+                        }
+                        changer.assembledInt = partition[j];
+                        for (k = 0; k < 4; k++, u++) {
+                                tmp[u]=changer.byteStream[k];
+                        }
+                        for (unsigned int v = 0; v < 4*4; v++) {
 
+                                byteBlobLabel[i+v]=tmp[v];
+                        }
+                        i+=labeledCloud.point_step;
+                }
+                labeledCloud.data = byteBlobLabel;
+                labeledCloudPub.publish(labeledCloud);
         }
-        labeledCloud.data = byteBlobLabel;
-
         std::vector<geometry_msgs::Point> centroids;
         makeCodebookMsg(centroids,codebook,histogram,nClusters);
 
@@ -435,13 +349,6 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         cdbk.header.stamp = stamp;
         codebook_pub.publish(cdbk);
         //Allows for publish only segmented cloud
-        if (pubSegSpace)
-        {
-                //Enable visualization:
-                //labeledCloud
-                labeledCloudPub.publish(labeledCloud);
 
-
-        }
         return;
 }
