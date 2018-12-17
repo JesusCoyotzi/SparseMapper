@@ -2,8 +2,32 @@
 <launch>
   <arg name="pcdName" default="gauss"/>
   <arg name="csvName" default="results"/>
+
+  <arg name="simClusters" default="256"/>
+  <arg name="simIterations" default="10"/>
+  <arg name="simMethod" default="kpp"/>
+  <arg name="simTimes" default="5"/>
+
   <node name="montecarlo" pkg="sparse_map_utils" type="cloudSimulation_node" args="" output="screen">
     <param name="pcd_file" value="$(find space_quantization)/cloud/$(arg pcdName).pcd " type="str"/>
-      <param name="csv_file" value="$(find sparse_map_utils)/results/$(arg csvName).csv " type="str"/>
+    <param name="csv_file" value="$(find sparse_map_utils)/results/$(arg csvName).csv " type="str"/>
+    <param name="simulations" value="$(arg simTimes) " type="int"/>
+    <param name="clusters" value="$(arg simClusters)" type="int"/>
+    <param name="iterations" value="$(arg simIterations)" type="int"/>
+    <param name="method" value="$(arg simMethod)" type="str"/>
+
+    <remap from="out_cloud" to="/hsrb/cloud"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+  </node>
+
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <remap from="cloud" to="/hsrb/cloud"/>
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <param name="nClusters" value="$(arg simClusters)" type="int"/>
+    <param name="iterations" value="$(arg simIterations)" type="int"/>
+    <param name="method" value="$(arg simMethod)" type="str"/>
+    <param name="publish_label_space" value="False" type="bool"/>
+    <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
   </node>
 </launch>

@@ -82,7 +82,7 @@ void initializeCodebook(point3 * codebook, point3* points,
         {
                 int rndIdx = rand() % pointSize;
                 codebook[i]= points[rndIdx];
-                //printPoint3(codebook[i]);
+                printPoint3(codebook[i]);
         }
         return;
 }

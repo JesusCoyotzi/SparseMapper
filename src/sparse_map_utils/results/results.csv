@@ -1,2 +1,8 @@
-/home/jesus/thesis_ws/src/space_quantization/cloud/gauss.pcd,kmeans ,1,1
+/home/jesus/thesis_ws/src/space_quantization/cloud/gauss.pcd,kpp,256,10
 simulation,time,distorsion,codebook
+0,2.60738,79706.1,256
+1,6.70904,78931.9,256
+2,6.70414,79268.7,256
+3,3.72247,79397.7,256
+4,3.71062,78406.1,256
+5,3.72354,79513.2,256

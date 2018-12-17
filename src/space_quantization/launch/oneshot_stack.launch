@@ -9,7 +9,7 @@
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
-    <param name="voxelSize" value="0.01" type="double"/>
+    <param name="voxelSize" value="0.04" type="double"/>
     <param name="voxEnable" value="true" type="bool"/>
     <param name="baseFrame" value="map" type="string"/>
   </node>
@@ -19,9 +19,9 @@
     <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
     <remap from="quantized_space" to="/hsrb/quantized_space"/>
     <remap from="codebook" to="/hsrb/codebook"/>
-    <param name="nClusters" value="256" type="int"/>
+    <param name="nClusters" value="16" type="int"/>
     <param name="iterations" value="10" type="int"/>
-    <param name="method" value="uniform" type="str"/>
+    <param name="method" value="LBG" type="str"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
   </node>
 

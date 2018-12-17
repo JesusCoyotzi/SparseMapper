@@ -26,14 +26,15 @@ private:
   ros::Subscriber codebookSub;
   ros::Time startTime;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
-  std::string pcdFile,csvFile,method;
+  std::string pcdFile,csvFile,method, frame;
   int simulations,clusters,iterations;
+  int simCounter;
   void sendCloud();
   void codebookCallback(const sparse_map_msgs::codebook &msg);
   double L1Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
   double L2Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
   bool writeFileHeader();
-  bool writeResult(int sim,double secs,double distorsion,unsigned int codes);  
+  bool writeResult(int sim,double secs,double distorsion,unsigned long codes);
   double getDistorsion(pointArray cdbk);
 
 public:

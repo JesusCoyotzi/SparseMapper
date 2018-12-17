@@ -7,6 +7,7 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         ros::NodeHandle nh_priv("~");
         nh_priv.param<std::string>("pcd_file",pcdFile,"cloud.pcd");
         nh_priv.param<std::string>("csv_file",csvFile,"results.csv");
+        nh_priv.param<std::string>("frame",frame,"map");
         nh_priv.param<int>("simulations",simulations,1);
         nh_priv.param<int>("clusters",clusters,1);
         nh_priv.param<int>("iterations",iterations,1);
@@ -16,6 +17,7 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
                            ("out_cloud",1);
         codebookSub = nh_.subscribe
                               ("codebook",1,&cloudSimulation::codebookCallback,this);
+
         return;
 }
 
@@ -48,7 +50,7 @@ bool cloudSimulation::writeFileHeader()
         return true;
 }
 
-bool cloudSimulation::writeResult(int sim,double secs,double distorsion,unsigned int codes)
+bool cloudSimulation::writeResult(int sim,double secs,double distorsion,unsigned long codes)
 {
         std::ofstream resultsFile;
         resultsFile.open (csvFile,std::ofstream::app);
@@ -71,20 +73,23 @@ void cloudSimulation::startMonteCarlo()
         std::cout << "Starting simulation with " << cloudSize<< " points";
         writeFileHeader();
         sendCloud();
-        startTime = ros::Time::now();
+        simCounter=0;
 }
 
 void cloudSimulation::codebookCallback(const sparse_map_msgs::codebook &msg)
 {
         ros::Duration execTime(ros::Time::now()-startTime);
 
+
         std::cout << "Simulation: " << simulations <<'\n';
         std::cout << "Executed in: " << execTime << '\n';
-        std::cout << "Received a codebook of: " << msg.centroids.size()<< '\n';
+        unsigned long codes =msg.centroids.size();
+        std::cout << "Received a codebook of: " << codes<< '\n';
         double distorsion=getDistorsion(msg.centroids);
         std::cout << "With overall distorsion of: " << distorsion<<'\n';
-        if (simulations>0) {
-                simulations--;
+        writeResult(simCounter,execTime.toSec(),distorsion,codes);
+        if (simCounter<simulations) {
+                simCounter++;
                 sendCloud();
         }
         return;
@@ -95,6 +100,9 @@ void cloudSimulation::sendCloud()
         //send loaded cloud to pipeline
         sensor_msgs::PointCloud2 cloud_msg;
         pcl::toROSMsg(*cloud,cloud_msg);
+        cloud_msg.header.frame_id = frame;
+        cloud_msg.header.stamp = ros::Time::now();
+        startTime = ros::Time::now();
         cloudPub.publish(cloud_msg);
         return;
 }

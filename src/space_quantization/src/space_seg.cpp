@@ -6,7 +6,7 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         nh_priv.param<int>("nClusters",nClusters,8);
         nh_priv.param<int>("iterations",iterations,16);
         nh_priv.param<bool>
-                ("publishSegmentation",pubSegSpace,true);
+                ("publish_label_space",pubSegSpace,true);
         nh_priv.param<std::string>("method", method,"kmeans");
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>
                             ("cloud",10,
@@ -103,8 +103,8 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         else if (!method.compare("inner"))
         {
                 //Sample Uniformly one of the points as centroids
-                initializeCodebook(codebook,space,nClusters,nValid);
-                //printPoint3Array(codebook,nClusters);
+                initializeCodebook(codebook,space,nValid,nClusters);
+                printPoint3Array(codebook,nClusters);
                 segSuccess = kmeans(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
