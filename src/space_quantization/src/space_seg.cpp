@@ -8,19 +8,18 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
         nh_priv.param<bool>
                 ("publish_label_space",pubSegSpace,true);
         nh_priv.param<std::string>("method", method,"kmeans");
+
         sub_cloud = nh.subscribe<sensor_msgs::PointCloud2>
                             ("cloud",10,
                             &spaceSegmenter::cloudCallback,
                             this);
         labeledCloudPub = nh.advertise<sensor_msgs::PointCloud2>
                                   ("labeled_cloud",2);
-        // freeCloudPub = nh.advertise<sensor_msgs::PointCloud2>
-        //                            ("free_space",2);
-        // occCloudPub = nh.advertise<sensor_msgs::PointCloud2>
-        //                            ("occ_space",2);
         codebook_pub = nh.advertise<sparse_map_msgs::codebook>
                                ("codebook",2);
 
+        reconfigureService = nh.advertiseService("segmentation_reconfigure",
+                                                 &spaceSegmenter::reconfigureCallback,this);
         std::cout << "Starting ROS node for segmentation by Coyo-soft" << '\n';
         return;
 }
@@ -37,6 +36,20 @@ float spaceSegmenter::makeFloat(unsigned char * byteArray)
                 S.byteStream[i]=byteArray[i];
         }
         return S.assembledFloat;
+}
+
+bool spaceSegmenter::reconfigureCallback(sparse_map_msgs::Reconfigure::Request & req,
+                                         sparse_map_msgs::Reconfigure::Response &res)
+{
+        //Updates values of iterations and clusters  asyncronously
+        if (req.clusters.data>1) {
+                nClusters = req.clusters.data;
+        }
+        if (req.iterations.data>0) {
+                iterations = req.iterations.data;
+        }
+        return true;
+
 }
 
 void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)

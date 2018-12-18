@@ -6,17 +6,23 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         nh_=nh;
         ros::NodeHandle nh_priv("~");
         nh_priv.param<std::string>("pcd_file",pcdFile,"cloud.pcd");
-        nh_priv.param<std::string>("csv_file",csvFile,"results.csv");
+        nh_priv.param<std::string>("csv_file",csvFile,"results");
         nh_priv.param<std::string>("frame",frame,"map");
         nh_priv.param<int>("simulations",simulations,1);
+        //Clusters to start
         nh_priv.param<int>("clusters",clusters,1);
-        nh_priv.param<int>("iterations",iterations,1);
+        //Max clusters to use
+        nh_priv.param<int>("max_clusters",maxClusters,32);
+        nh_priv.param<int>("clusters_step",clustersStep,5);
+        nh_priv.param<int>("iterations",iterations,6);
         nh_priv.param<std::string>("method",method,"kmeans ");
 
         cloudPub = nh_.advertise<sensor_msgs::PointCloud2>
                            ("out_cloud",1);
         codebookSub = nh_.subscribe
                               ("codebook",1,&cloudSimulation::codebookCallback,this);
+        reconfigureClient = nh_.serviceClient<sparse_map_msgs::Reconfigure>
+                                    ("segmentation_reconfigure");
 
         return;
 }
@@ -38,7 +44,7 @@ bool cloudSimulation::loadCloud()
 bool cloudSimulation::writeFileHeader()
 {
         std::ofstream resultsFile;
-        resultsFile.open (csvFile,std::ofstream::out);
+        resultsFile.open (fullResultsPath,std::ofstream::out);
         if(!resultsFile.is_open())
         {
                 std::cout << "Error with file" << '\n';
@@ -53,7 +59,7 @@ bool cloudSimulation::writeFileHeader()
 bool cloudSimulation::writeResult(int sim,double secs,double distorsion,unsigned long codes)
 {
         std::ofstream resultsFile;
-        resultsFile.open (csvFile,std::ofstream::app);
+        resultsFile.open(fullResultsPath,std::ofstream::app);
         if(!resultsFile.is_open())
         {
                 std::cout << "Error with file" << '\n';
@@ -69,8 +75,15 @@ void cloudSimulation::startMonteCarlo()
 {
         //Push the point cloud into the pipeline.
         //convert to msg and publish
+        if(!reconfigureClient.waitForExistence(ros::Duration(2.0)))
+        {
+            std::cout << "Error reconfigure service not available" << '\n';
+            return;
+        }
         int cloudSize = cloud->width*cloud->height;
+        fullResultsPath = csvFile + method + std::to_string(clusters) +".csv";
         std::cout << "Starting simulation with " << cloudSize<< " points";
+        std::cout << "Saving results at" << fullResultsPath <<'\n';
         writeFileHeader();
         sendCloud();
         simCounter=0;
@@ -78,9 +91,8 @@ void cloudSimulation::startMonteCarlo()
 
 void cloudSimulation::codebookCallback(const sparse_map_msgs::codebook &msg)
 {
+        //Check the metrics: execution time, distorsion and missed codebooks
         ros::Duration execTime(ros::Time::now()-startTime);
-
-
         std::cout << "Simulation: " << simulations <<'\n';
         std::cout << "Executed in: " << execTime << '\n';
         unsigned long codes =msg.centroids.size();
@@ -91,6 +103,24 @@ void cloudSimulation::codebookCallback(const sparse_map_msgs::codebook &msg)
         if (simCounter<simulations) {
                 simCounter++;
                 sendCloud();
+        }
+        else
+        {
+                if (clusters<maxClusters) {
+                        //Reconfigure parameters and try again with more clusters
+                        //Also creates new file
+                        sparse_map_msgs::Reconfigure reconf;
+                        reconf.request.clusters.data = clusters+clustersStep;
+                        reconf.request.iterations.data = -1;
+                        if (reconfigureClient.call(reconf)) {
+                                fullResultsPath = csvFile + method
+                                                  + std::to_string(clusters) +".csv";
+                                writeFileHeader();
+                                simCounter = 0;
+                                sendCloud();
+                        }
+
+                }
         }
         return;
 }

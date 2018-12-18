@@ -9,6 +9,7 @@
 #include "space_quantization/quantizedSpace.h"
 #include "space_quantization/codebook.h"
 #include "sparse_map_msgs/codebook.h"
+#include "sparse_map_msgs/Reconfigure.h"
 
 
 #include <iostream>
@@ -33,6 +34,7 @@ ros::NodeHandle nh_;
 ros::Subscriber sub_cloud;
 ros::Publisher labeledCloudPub, quantizedSpace_pub, codebook_pub;
 ros::Publisher freeCloud, occCloud;
+ros::ServiceServer reconfigureService;
 bool pubSegSpace;
 float freeThr;
 int nClusters, iterations;   //number of clusters and iterations to run
@@ -41,6 +43,8 @@ std::string cloudFrame, method;
 ros::Time stamp;
 
 void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg);
+bool reconfigureCallback(sparse_map_msgs::Reconfigure::Request & req,
+                         sparse_map_msgs::Reconfigure::Response &res);
 float makeFloat(unsigned char * byteArray);
 int toPoint3(sensor_msgs::PointCloud2 tfCloud,
              point3 * points);

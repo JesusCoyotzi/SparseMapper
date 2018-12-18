@@ -10,6 +10,7 @@
 #include "pcl_ros/transforms.h"
 //Sparse map messages
 #include "sparse_map_msgs/codebook.h"
+#include "sparse_map_msgs/Reconfigure.h"
 //STL
 #include <iostream>
 
@@ -24,10 +25,13 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher cloudPub;
   ros::Subscriber codebookSub;
+  ros::ServiceClient reconfigureClient;
   ros::Time startTime;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
   std::string pcdFile,csvFile,method, frame;
+  std::string fullResultsPath;
   int simulations,clusters,iterations;
+  int maxClusters, clustersStep;
   int simCounter;
   void sendCloud();
   void codebookCallback(const sparse_map_msgs::codebook &msg);
