@@ -1,4 +1,4 @@
-#include "space_seg.h"
+  #include "space_seg.h"
 
 spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
 {
@@ -48,6 +48,9 @@ bool spaceSegmenter::reconfigureCallback(sparse_map_msgs::Reconfigure::Request &
         if (req.iterations.data>0) {
                 iterations = req.iterations.data;
         }
+        std::cout << "Node reconfigure: " << '\n';
+        std::cout << "Clusters: " << nClusters<< '\n';
+        std::cout << "Iterations: " << iterations<< '\n';
         return true;
 
 }

@@ -8,7 +8,8 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         nh_priv.param<std::string>("pcd_file",pcdFile,"cloud.pcd");
         nh_priv.param<std::string>("csv_file",csvFile,"results");
         nh_priv.param<std::string>("frame",frame,"map");
-        nh_priv.param<int>("simulations",simulations,1);
+        nh_priv.param<int>("simulations_times",simTimes,1);
+
         //Clusters to start
         nh_priv.param<int>("clusters",clusters,1);
         //Max clusters to use
@@ -27,22 +28,68 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         return;
 }
 
+void cloudSimulation::startMonteCarlo()
+{
+        //Push the point cloud into the pipeline.
+        //convert to msg and publish
+        if(!reconfigureClient.waitForExistence(ros::Duration(5.0)))
+        {
+                std::cout << "Error reconfigure service not available" << '\n';
+                return;
+        }
+        cloudSize = cloud->width*cloud->height;
+        std::cout << "Starting simulation with " << cloudSize << " points\n";
+        writeFileHeader();
+        sendCloud();
+        simCounter=0;
+        totalSimulations=0;
+        return;
+}
+
 bool cloudSimulation::loadCloud()
 {
         // pcl::PointCloud<pcl::PointXYZ>::Ptr readCloud ( new pcl::PointCloud<pcl::PointXYZ>);
         //Load cloud into memory.
         std::cout << "Reading file " << pcdFile<<'\n';
-        if (pcl::io::loadPCDFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
-        {
-                PCL_ERROR ("Couldn't read file\n");
-                return false;
+        boost::filesystem::path p(pcdFile);
+        std::string fileType(p.extension().string());
+
+        if (!fileType.compare(".pcd")) {
+                if (pcl::io::loadPCDFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
+                {
+                        PCL_ERROR ("Couldn't read file  as PCD\n");
+                        return false;
+                }
         }
+        else if(!fileType.compare(".ply")) {
+                if(pcl::io::loadPLYFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
+                {
+                        PCL_ERROR("Could not read file as PLY");
+                        return false;
+                }
+        }
+        else if(!fileType.compare(".obj")) {
+                if(pcl::io::loadOBJFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
+                {
+                        PCL_ERROR("Could not read file as OBJ");
+                        return false;
+                }
+        }
+
 
         return true;
 }
 
 bool cloudSimulation::writeFileHeader()
 {
+        boost::filesystem::path p(csvFile);
+        std::string stemName(p.stem().string());
+        std::string parenName(p.parent_path().string());
+        fullResultsPath = parenName+"/"+stemName + method
+                          + std::to_string(cloudSize) +".csv";
+        // std::cout << parenName << '\n';
+        // std::cout << stemName << '\n';
+        std::cout << "Saving results at" << fullResultsPath <<'\n';
         std::ofstream resultsFile;
         resultsFile.open (fullResultsPath,std::ofstream::out);
         if(!resultsFile.is_open())
@@ -50,13 +97,18 @@ bool cloudSimulation::writeFileHeader()
                 std::cout << "Error with file" << '\n';
                 return false;
         }
-        resultsFile << pcdFile << ","<<method <<"," << clusters<<"," << iterations <<"\n";
-        resultsFile << "simulation,time,distorsion,codebook\n";
+        resultsFile << "# Meta-Data\n";
+        resultsFile << "filename,method,iterations,points\n";
+        resultsFile << pcdFile << ","<< method <<","
+                    << iterations <<","<<cloudSize <<"\n";
+        resultsFile << "# Data\n";
+        resultsFile << "simulation,time,distorsion,clusters\n";
         resultsFile.close();
         return true;
 }
 
-bool cloudSimulation::writeResult(int sim,double secs,double distorsion,unsigned long codes)
+bool cloudSimulation::writeResult(int sim,double secs,double distorsion,
+                                  unsigned long codesReceived, unsigned long requestedCodes)
 {
         std::ofstream resultsFile;
         resultsFile.open(fullResultsPath,std::ofstream::app);
@@ -65,61 +117,50 @@ bool cloudSimulation::writeResult(int sim,double secs,double distorsion,unsigned
                 std::cout << "Error with file" << '\n';
                 return false;
         }
-        resultsFile << sim<<","<< secs<<","<< distorsion<<","<< codes<<"\n";
+        resultsFile << sim<<","<< secs<<","<< distorsion<<","
+                    << codesReceived<< "," <<requestedCodes <<"\n";
         resultsFile.close();
         return true;
 
 }
 
-void cloudSimulation::startMonteCarlo()
-{
-        //Push the point cloud into the pipeline.
-        //convert to msg and publish
-        if(!reconfigureClient.waitForExistence(ros::Duration(2.0)))
-        {
-            std::cout << "Error reconfigure service not available" << '\n';
-            return;
-        }
-        int cloudSize = cloud->width*cloud->height;
-        fullResultsPath = csvFile + method + std::to_string(clusters) +".csv";
-        std::cout << "Starting simulation with " << cloudSize<< " points";
-        std::cout << "Saving results at" << fullResultsPath <<'\n';
-        writeFileHeader();
-        sendCloud();
-        simCounter=0;
-}
 
 void cloudSimulation::codebookCallback(const sparse_map_msgs::codebook &msg)
 {
         //Check the metrics: execution time, distorsion and missed codebooks
         ros::Duration execTime(ros::Time::now()-startTime);
-        std::cout << "Simulation: " << simulations <<'\n';
+        std::cout << "Simulation: " << totalSimulations <<'\n';
         std::cout << "Executed in: " << execTime << '\n';
         unsigned long codes =msg.centroids.size();
         std::cout << "Received a codebook of: " << codes<< '\n';
         double distorsion=getDistorsion(msg.centroids);
         std::cout << "With overall distorsion of: " << distorsion<<'\n';
-        writeResult(simCounter,execTime.toSec(),distorsion,codes);
-        if (simCounter<simulations) {
+        writeResult(totalSimulations,execTime.toSec(),distorsion,codes,clusters);
+        if (simCounter<simTimes) {
                 simCounter++;
+                totalSimulations++;
                 sendCloud();
         }
         else
         {
                 if (clusters<maxClusters) {
+                        std::cout << "Reconfiguring" << '\n';
                         //Reconfigure parameters and try again with more clusters
                         //Also creates new file
                         sparse_map_msgs::Reconfigure reconf;
-                        reconf.request.clusters.data = clusters+clustersStep;
+                        clusters+=clustersStep;
+                        reconf.request.clusters.data = clusters;
                         reconf.request.iterations.data = -1;
                         if (reconfigureClient.call(reconf)) {
-                                fullResultsPath = csvFile + method
-                                                  + std::to_string(clusters) +".csv";
-                                writeFileHeader();
+                                //writeFileHeader();
                                 simCounter = 0;
+                                totalSimulations++;
                                 sendCloud();
                         }
-
+                        else
+                        {
+                                std::cout << "Error could not reconfigure" << '\n';
+                        }
                 }
         }
         return;

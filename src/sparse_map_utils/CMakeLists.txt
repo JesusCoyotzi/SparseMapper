@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+FIND_PACKAGE( Boost  REQUIRED COMPONENTS system filesystem )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -68,7 +68,8 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIR}
 )
 
 add_executable(cloudSimulation_node src/cloudSimulation.cpp  src/cloudSimulation_node.cpp)
-target_link_libraries(cloudSimulation_node  ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(cloudSimulation_node  ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Boost_LIBRARIES})
