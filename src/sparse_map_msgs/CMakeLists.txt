@@ -62,6 +62,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    MakePlan.srv
    GetSparseMap.srv
+   Reconfigure.srv
  )
 
 ## Generate actions in the 'action' folder
