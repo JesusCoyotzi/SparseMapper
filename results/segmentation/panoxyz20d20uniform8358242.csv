@@ -1,0 +1,11 @@
+# Meta-Data
+filename,method,iterations,points
+/home/pumas/coyo/panoxyz20d20.exr,uniform,7,8358242
+# Data
+simulation,time,distorsion,clusters
+0,4.6025,9.51554e+06,8,8
+1,4.40869,1.43664e+07,7,8
+2,4.42601,1.44022e+07,6,8
+3,5.22523,9.21902e+06,18,24
+4,5.20961,8.10819e+06,19,24
+5,5.24228,7.71116e+06,18,24

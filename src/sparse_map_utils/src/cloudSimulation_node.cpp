@@ -7,8 +7,10 @@ int main(int argc, char  *argv[]) {
         cloudSimulation cS(nh);
         if (!cS.loadCloud())
         {
+                std::cout << "FAILED" << '\n';
                 return -1;
         }
+        ros::Duration(2.0).sleep();
         cS.startMonteCarlo();
         ros::spin();
         return 0;

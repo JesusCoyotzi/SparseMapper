@@ -17,10 +17,15 @@
 #include <iostream>
 //Boost
 #include "boost/filesystem.hpp"
+//opencv
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 
 typedef std::vector<geometry_msgs::Point> pointArray;
 typedef pcl::PointCloud<pcl::PointXYZ>::Ptr cloudXYZptr;
+
+//std::array<std::string, 6> validFileType ={".obj",".ply",".pcd",".png",".pgm",".exr"};
 
 class cloudSimulation {
 //Small class that generates/reads a pointcloud and
@@ -39,7 +44,10 @@ int clusters,iterations;
 int maxClusters, clustersStep;
 int cloudSize;
 int simCounter,simTimes,totalSimulations;
+float conversionFactor;
 void sendCloud();
+bool makeCloudFromCloudImage(cv::Mat & pcdImg);
+bool makeCloudFromDepthImage(cv::Mat & depthImg);
 void codebookCallback(const sparse_map_msgs::codebook &msg);
 double L1Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
 double L2Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
@@ -48,8 +56,8 @@ bool writeResult(int sim,double secs,double distorsion,
                  unsigned long codesReceived, unsigned long requestedCodes);
 double getDistorsion(pointArray cdbk);
 
-public :
-        cloudSimulation(ros::NodeHandle &nh);
+public:
+cloudSimulation(ros::NodeHandle &nh);
 bool loadCloud();
 void startMonteCarlo();
 };

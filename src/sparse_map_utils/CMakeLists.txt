@@ -22,36 +22,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 FIND_PACKAGE( Boost  REQUIRED COMPONENTS system filesystem )
+find_package(OpenCV REQUIRED)
 
-################################################
-## Declare ROS dynamic reconfigure parameters ##
-################################################
 
-## To declare and build dynamic reconfigure parameters within this
-## package, follow these steps:
-## * In the file package.xml:
-##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
-## * In this file (CMakeLists.txt):
-##   * add "dynamic_reconfigure" to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * uncomment the "generate_dynamic_reconfigure_options" section below
-##     and list every .cfg file to be processed
-
-## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
-
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if your package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES sparse_map_utils
@@ -69,7 +42,8 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 add_executable(cloudSimulation_node src/cloudSimulation.cpp  src/cloudSimulation_node.cpp)
-target_link_libraries(cloudSimulation_node  ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(cloudSimulation_node  ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBRARIES})

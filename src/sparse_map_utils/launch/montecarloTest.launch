@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="pcdName" default="nyuCaffe.pgm"/>
+  <arg name="csvName" default="results"/>
+
+  <arg name="simClusters" default="8"/>
+  <arg name="maxClusters" default="530"/>
+  <arg name="simIterations" default="7"/>
+  <arg name="simMethod" default="LBG"/>
+  <arg name="simTimes" default="10"/>
+  <arg name="clusterStep" default="16"/>
+  <arg name="cloudFolder" default="/home/pumas/coyo/"/>
+  <arg name="resultsFolder" default="/home/pumas/coyo/spacequantization/results/segmentation/"/>
+
+
+  <node name="montecarlo" pkg="sparse_map_utils" type="cloudSimulation_node" args="" output="screen">
+    <param name="pcd_file" value="$(arg cloudFolder)$(arg pcdName) " type="str"/>
+    <param name="csv_file" value="$(arg resultsFolder)$(arg pcdName)" type="str"/>
+    <param name="simulations_times" value="$(arg simTimes) " type="int"/>
+    <param name="clusters" value="$(arg simClusters)" type="int"/>
+    <param name="clusters_step" value="$(arg clusterStep)" type="int"/>
+    <param name="max_clusters" value="$(arg maxClusters)" type="int"/>
+    <param name="iterations" value="$(arg simIterations)" type="int"/>
+    <param name="method" value="$(arg simMethod)" type="str"/>
+    <remap from="out_cloud" to="/hsrb/cloud"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <remap from="segmentation_reconfigure" to="/hsrb/segmentation_reconfigure"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
+
+</launch>

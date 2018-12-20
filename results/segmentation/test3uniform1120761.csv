@@ -1,0 +1,11 @@
+# Meta-Data
+filename,method,iterations,points
+/home/pumas/coyo/test3.exr,uniform,7,1120761
+# Data
+simulation,time,distorsion,clusters
+0,0.760788,542501,8,8
+1,0.581258,586756,7,8
+2,0.580767,533216,8,8
+3,0.653268,358801,18,24
+4,0.660968,363856,19,24
+5,0.654616,396964,18,24
