@@ -15,8 +15,6 @@ void kppInitCPU(point3 *points,  point3 *codebook,
         float * dist   =  (float *) malloc(nPoints*sizeof(float));
 
         //Compute dist to all points
-
-
         for (size_t j = 1; j < clusters; j++)
         {
                 float acc = 0.0;
@@ -34,12 +32,18 @@ void kppInitCPU(point3 *points,  point3 *codebook,
                 int k = 0;
                 while (r>0.0)
                 {
+                        if (k>=nPoints) {
+                              k = nPoints-1;
+                              printf("%d--",k);
+                              break;
+                        }
                         r = r - dist[k];
                         k++;
                 }
                 codebook[j]=points[k-1];
-                // printf("Cluster %d is point[%d] ",j,k );
-                // printPoint3(codebook[j]);
+                //printf("%d\n",k-1 );
+                printf("Cluster %d is point[%d] ",j,k );
+                printPoint3(codebook[j]);
 
         }
 
@@ -47,7 +51,7 @@ void kppInitCPU(point3 *points,  point3 *codebook,
         return;
 }
 
-void LBGCPU(point3 *points,  point3 *codebook,
+bool LBGCPU(point3 *points,  point3 *codebook,
             int *histogram, int *partition,
             int iterations, int clusters, int nPoints)
 {
@@ -55,17 +59,17 @@ void LBGCPU(point3 *points,  point3 *codebook,
         bool isPowerOfTwo = (clusters & (clusters - 1)) == 0;
         if (!isPowerOfTwo) {
                 printf("Error clusters must be power of 2 2,4,8,16..\n" );
-                return;
+                return false;
         }
         point3 * prevCodebook;
         prevCodebook = (point3 *) malloc(sizeof(point3)*clusters);
         prevCodebook[0]=getCentroid(points,nPoints);
         for (int i = 1; i < clusters; i=i<<1)
         {
-                printf("Working with %d clusters\n",i);
+                //printf("Working with %d clusters\n",i);
                 perturbate(codebook,prevCodebook,i);
-                printf("Codebook\n");
-                printPoint3Array(prevCodebook,i);
+                // printf("Codebook\n");
+                // printPoint3Array(prevCodebook,i);
                 for (int j = 0; j < iterations; j++)
                 {
                         //  printf("\tIteration [%d]\n",j );
@@ -77,7 +81,7 @@ void LBGCPU(point3 *points,  point3 *codebook,
         }
         free(prevCodebook);
 
-        return;
+        return true;
 
 }
 

@@ -13,8 +13,10 @@
 //Sparse map messages
 #include "sparse_map_msgs/codebook.h"
 #include "sparse_map_msgs/Reconfigure.h"
+#include "sparse_map_msgs/QuantizeCloud.h"
 //STL
 #include <iostream>
+#include <stack>
 //Boost
 #include "boost/filesystem.hpp"
 //opencv
@@ -25,26 +27,29 @@
 typedef std::vector<geometry_msgs::Point> pointArray;
 typedef pcl::PointCloud<pcl::PointXYZ>::Ptr cloudXYZptr;
 
-//std::array<std::string, 6> validFileType ={".obj",".ply",".pcd",".png",".pgm",".exr"};
+
 
 class cloudSimulation {
 //Small class that generates/reads a pointcloud and
 //Publish to a topic to test the sparse map stack
 //Also lets save and write simulation results.
 private:
+static const std::array<std::string, 6> validFileType;
 ros::NodeHandle nh_;
 ros::Publisher cloudPub;
 ros::Subscriber codebookSub;
-ros::ServiceClient reconfigureClient;
+ros::ServiceClient reconfigureClient, segmentationClient;
 ros::Time startTime;
 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
-std::string pcdFile,csvFile,method, frame;
+std::string pcdFile,pcdFolder,csvFile,csvFolder,method, frame;
 std::string fullResultsPath;
+std::stack<std::string> cloudFiles;
 int clusters,iterations;
-int maxClusters, clustersStep;
+int maxClusters, minClusters, clustersStep;
 int cloudSize;
 int simCounter,simTimes,totalSimulations;
 float conversionFactor;
+
 void sendCloud();
 bool makeCloudFromCloudImage(cv::Mat & pcdImg);
 bool makeCloudFromDepthImage(cv::Mat & depthImg);
@@ -55,9 +60,15 @@ bool writeFileHeader();
 bool writeResult(int sim,double secs,double distorsion,
                  unsigned long codesReceived, unsigned long requestedCodes);
 double getDistorsion(pointArray cdbk);
+double getDistorsion(sparse_map_msgs::codebook cdbk,
+                     std::vector<int> histogram);
+void printHist( std::vector<int> histogram);
 
 public:
 cloudSimulation(ros::NodeHandle &nh);
+unsigned int getCloudFiles();
 bool loadCloud();
+bool loadNextCloud();
 void startMonteCarlo();
+void monteCarlo();
 };

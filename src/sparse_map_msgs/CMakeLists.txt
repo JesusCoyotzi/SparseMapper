@@ -8,13 +8,14 @@ project(sparse_map_msgs)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
-  nav_msgs
   roscpp
   rospy
-  std_msgs
-  visualization_msgs
   message_generation
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  visualization_msgs
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -63,6 +64,7 @@ find_package(catkin REQUIRED COMPONENTS
    MakePlan.srv
    GetSparseMap.srv
    Reconfigure.srv
+   QuantizeCloud.srv
  )
 
 ## Generate actions in the 'action' folder
@@ -79,6 +81,7 @@ find_package(catkin REQUIRED COMPONENTS
    nav_msgs
    std_msgs
    visualization_msgs
+   sensor_msgs
  )
 
 ################################################

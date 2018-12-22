@@ -20,6 +20,10 @@ spaceSegmenter::spaceSegmenter(ros::NodeHandle nh)
 
         reconfigureService = nh.advertiseService("segmentation_reconfigure",
                                                  &spaceSegmenter::reconfigureCallback,this);
+
+        quantizeService = nh.advertiseService("quantize_space",
+                                              &spaceSegmenter::segmenterServer,this);
+
         std::cout << "Starting ROS node for segmentation by Coyo-soft" << '\n';
         return;
 }
@@ -38,63 +42,19 @@ float spaceSegmenter::makeFloat(unsigned char * byteArray)
         return S.assembledFloat;
 }
 
-bool spaceSegmenter::reconfigureCallback(sparse_map_msgs::Reconfigure::Request & req,
-                                         sparse_map_msgs::Reconfigure::Response &res)
+bool spaceSegmenter::segmenterServer(sparse_map_msgs::QuantizeCloud::Request &req,
+                                     sparse_map_msgs::QuantizeCloud::Response &res)
 {
-        //Updates values of iterations and clusters  asyncronously
-        if (req.clusters.data>1) {
-                nClusters = req.clusters.data;
-        }
-        if (req.iterations.data>0) {
-                iterations = req.iterations.data;
-        }
-        std::cout << "Node reconfigure: " << '\n';
-        std::cout << "Clusters: " << nClusters<< '\n';
-        std::cout << "Iterations: " << iterations<< '\n';
-        return true;
-
-}
-
-void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
-{
-        // pcl::PCLPointCloud2* cloud = new pcl::PCLPointCloud2;
-        // pcl_conversions::toPCL(*msg, *cloud);
-        // For this
-        cloudFrame = msg->header.frame_id;
-        stamp = msg->header.stamp;
-        int n=msg->height*msg->width;
-        std::cout << "Got a point cloud! of  " << msg->height << "x" <<msg->width << " = "<< n <<'\n';
-        std::cout << "Endianess: " << msg->is_bigendian <<'\n';
-        std::cout << "Point step: " << msg->point_step<<'\n';
-        std::cout << "Row step: " << msg->row_step<<'\n';
-        std::cout << "Frame id: " << cloudFrame << '\n';
-        std::cout << "Point Fields \n";
-        //Check if pointcloud is compatible.
-        //Currently only pointcloud2 with at least 3 xyz coordinates in float work
-        if (msg->fields.size()<3) {
-                std::cout << "This pointcloud does not have enough dimensions" << '\n';
-                return;
-        }
-        for (int i = 0; i < 3; i++)
+        sensor_msgs::PointCloud2 cloud = req.cloud;
+        if(!validateCloudMsg(cloud))
         {
-                if ((short)msg->fields[i].datatype!=7)
-                {
-                        std::cout << "Field: "<<  msg->fields[i].name << " is not float can't process"<< '\n';
-                        return;
-                }
+                return false;
         }
-
-        for (int i = 0; i < msg->fields.size(); i++) {
-                std::cout << "Name " << msg->fields[i].name<<",";
-                std::cout << "offset " << msg->fields[i].offset<<',';
-                std::cout << "DataType " << (short)msg->fields[i].datatype<<',';
-                std::cout << "Count " << msg->fields[i].count<<'\n';
-        }
-
+        int n = cloud.width*cloud.height;
         //allocate memory for points in a simpler way
         point3 *space =
                 (point3 *)malloc(n*sizeof(point3));
-        int nValid = toPoint3(*msg,space);
+        int nValid = toPoint3(cloud,space);
 
         //allocate memory for codebook on host
         point3 *codebook =
@@ -105,6 +65,7 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         //And the histogram
         int * histogram =
                 (int*)malloc(nClusters*sizeof(int));
+
         bool segSuccess = true;
         if (!method.compare("uniform"))
         {
@@ -134,7 +95,109 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         else if(!method.compare("LBG"))
         {
                 //Linde Gray Buzo.
-                LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
+                segSuccess=LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
+        }
+        else
+        {
+                std::cout << "Unkown method: " <<method << '\n';
+                segSuccess=false;
+        }
+
+        if (!segSuccess) {
+                std::cout << "[[ERROR]] method failed probably ran out of memory, try subsampling cloud or using less clusters\n";
+                return false;
+        }
+        //std::cout << "Succes!!!!!!" << '\n';
+        std::vector<geometry_msgs::Point> centroids;
+        std::vector<int> histogramMsg, partitionMsg;
+        makeCodebookMsg(centroids,codebook,histogram,nClusters);
+        makeHistogramMsg(histogramMsg,histogram,nClusters);
+        makePartitionMsg(partitionMsg,partition,nValid);
+        sparse_map_msgs::codebook cdbk;
+        cdbk.centroids = centroids;
+        cdbk.header.frame_id =  cloudFrame;
+        cdbk.header.stamp = stamp;
+        res.codebook = cdbk;
+        res.histogram = histogramMsg;
+        res.partition = partitionMsg;
+        // std::cout << "Histogram:" << '\n';
+        // for (int i = 0; i < nClusters; i++) {
+        //         printf("Cluster[%d]: %d\n",i,histogram[i] );
+        // }
+        // //free host memory
+        free(space); free(codebook); free(partition); free(histogram);
+        return true;
+}
+
+bool spaceSegmenter::reconfigureCallback(sparse_map_msgs::Reconfigure::Request & req,
+                                         sparse_map_msgs::Reconfigure::Response &res)
+{
+        //Updates values of iterations and clusters  asyncronously
+        if (req.clusters.data>1) {
+                nClusters = req.clusters.data;
+        }
+        if (req.iterations.data>0) {
+                iterations = req.iterations.data;
+        }
+        std::cout << "Node reconfigure: " << '\n';
+        std::cout << "Clusters: " << nClusters<< '\n';
+        std::cout << "Iterations: " << iterations<< '\n';
+        return true;
+
+}
+
+void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
+{
+        if(!validateCloudMsg(*msg))
+        {
+                return;
+        }
+        int n = msg->width*msg->height;
+        //allocate memory for points in a simpler way
+        point3 *space =
+                (point3 *)malloc(n*sizeof(point3));
+        int nValid = toPoint3(*msg,space);
+
+        //allocate memory for codebook on host
+        point3 *codebook =
+                (point3 *)malloc(nClusters*sizeof(point3));
+        //don't forget to allocate memory for partition
+        int * partition =
+                (int *)malloc(n*sizeof(int));
+        //And the histogram
+        int * histogram =
+                (int*)malloc(nClusters*sizeof(int));
+
+        bool segSuccess = true;
+        if (!method.compare("uniform"))
+        {
+                //Uniformly sample acoors the AOBB of the cloud
+                point3 minP,maxP;
+                getMinMax(space,maxP,minP,nValid);
+                getAOBB(space,maxP,minP,nValid);
+                initializeCodebook(codebook,minP,maxP,nClusters);
+                segSuccess =kmeans(space,partition,codebook,histogram,iterations,
+                                   nClusters,nValid,maxP,minP);
+        }
+        else if (!method.compare("inner"))
+        {
+                //Sample Uniformly one of the points as centroids
+                initializeCodebook(codebook,space,nValid,nClusters);
+                printPoint3Array(codebook,nClusters);
+                segSuccess = kmeans(space,partition,codebook,histogram,iterations,
+                                    nClusters,nValid);
+        }
+        else if(!method.compare("kpp"))
+        {
+                //kmeasn ++ initialization
+                kppInitCPU(space,codebook,nClusters,nValid);
+                segSuccess = kmeans(space,partition,codebook,histogram,iterations,
+                                    nClusters,nValid);
+        }
+        else if(!method.compare("LBG"))
+        {
+                //Linde Gray Buzo.
+                segSuccess =LBGCPU(space,codebook,histogram,partition,iterations,nClusters,nValid);
         }
         else
         {
@@ -146,6 +209,7 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
                 std::cout << "[[ERROR]] method failed probably ran out of memory, try subsampling cloud or using less clusters\n";
                 return;
         }
+
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
         std::cout << "Histogram:" << '\n';
         for (int i = 0; i < nClusters; i++) {
@@ -153,6 +217,49 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         }
         //free host memory
         free(space); free(codebook); free(partition); free(histogram);
+}
+
+
+bool spaceSegmenter::validateCloudMsg(sensor_msgs::PointCloud2 msg)
+{
+        cloudFrame = msg.header.frame_id;
+        stamp = msg.header.stamp;
+        int n=msg.height*msg.width;
+        std::cout << "Got a point cloud! of  " << msg.height << "x" <<msg.width << " = "<< n <<'\n';
+        std::cout << "Frame id: " << cloudFrame << '\n';
+        //std::cout << "Endianess: " << msg->is_bigendian <<'\n';
+        //std::cout << "Point step: " << msg->point_step<<'\n';
+        //std::cout << "Row step: " << msg->row_step<<'\n';
+        //std::cout << "Point Fields \n";
+        //Check if pointcloud is compatible.
+        //Currently only pointcloud2 with at least 3 xyz coordinates in float work
+        bool cloudValid = true;
+        if (msg.fields.size()<3) {
+                std::cout << "This pointcloud does not have enough dimensions" << '\n';
+                cloudValid = false;
+        }
+        else {
+                for (int i = 0; i < 3; i++)
+                {
+                        //Checks if point type is float
+                        if ((short)msg.fields[i].datatype!=7)
+                        {
+                                std::cout << "Field: "<<  msg.fields[i].name << " is not float can't process"<< '\n';
+                                cloudValid=false;
+                                break;
+                        }
+                }
+        }
+
+        //TODO add Ifdeine debug her:e
+        for (int i = 0; i < msg.fields.size(); i++) {
+                std::cout << "Name " << msg.fields[i].name<<",";
+                std::cout << "offset " << msg.fields[i].offset<<',';
+                std::cout << "DataType " << (short)msg.fields[i].datatype<<',';
+                std::cout << "Count " << msg.fields[i].count<<'\n';
+        }
+
+        return cloudValid;
 }
 
 float spaceSegmenter::norm(point3 p)
@@ -254,6 +361,26 @@ int spaceSegmenter::toPoint3(sensor_msgs::PointCloud2 tfCloud,
         }
         std::cout << "Got "<< j <<" non NaN points\n";
         return j;
+}
+
+void spaceSegmenter::makeHistogramMsg(std::vector<int> &histMsg,
+                                      int* histogram, unsigned int nClusters )
+{
+        histMsg.resize(nClusters);
+        for (size_t i = 0; i < nClusters; i++) {
+                histMsg[i]=histogram[i];
+        }
+        return;
+}
+
+void spaceSegmenter::makePartitionMsg(std::vector<int> &partMsg,
+                                      int* partition, unsigned int nPoints )
+{
+        partMsg.resize(nPoints);
+        for (size_t i = 0; i < nPoints; i++) {
+                partMsg[i]=partition[i];
+        }
+        return;
 }
 
 void spaceSegmenter::makeCodebookMsg(std::vector<geometry_msgs::Point> &msg,

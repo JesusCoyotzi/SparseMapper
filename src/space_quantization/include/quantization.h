@@ -85,7 +85,7 @@ void initializeCodebook(point3 * codebook, point3* points,
 void kppInitCPU(point3 *points,  point3 *codebook,
                 int clusters, int nPoints);
 //cosas lbgosas
-void LBGCPU(point3 *points,  point3 *codebook,
+bool LBGCPU(point3 *points,  point3 *codebook,
             int *histogram, int *partition,
             int iterations, int clusters, int nPoints);
 void perturbate(point3 *codes,point3 *prev,int n);

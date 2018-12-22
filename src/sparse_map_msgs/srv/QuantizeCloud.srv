@@ -1,0 +1,5 @@
+sensor_msgs/PointCloud2 cloud
+---
+sparse_map_msgs/codebook codebook
+int32[] histogram
+int32[] partition

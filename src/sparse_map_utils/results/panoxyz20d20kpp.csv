@@ -1,0 +1,15 @@
+# Meta-Data
+filename,method,iterations,points
+/home/jesus/thesis_ws/src/sparse_map_utils/clouds/test/separator/panoxyz20d20.exr,kpp,7,8358242
+# Data
+simulation,time,distorsion,clusters,requested
+0,7.02958,3.33591e+06,48,48
+1,12.1712,3.28546e+06,48,48
+2,17.1819,3.32457e+06,48,48
+3,22.1529,3.35597e+06,48,48
+4,27.1686,3.2788e+06,48,48
+5,32.3366,3.23724e+06,50,50
+6,37.4915,3.2742e+06,50,50
+7,42.6496,3.19748e+06,50,50
+8,47.8037,3.18065e+06,50,50
+9,53.0195,3.25294e+06,50,50

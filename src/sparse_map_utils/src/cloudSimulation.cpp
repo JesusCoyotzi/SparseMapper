@@ -1,20 +1,26 @@
 #include "sparse_map_utils/cloudSimulation.h"
 
+const std::array<std::string,6> cloudSimulation::validFileType ={".obj",".ply",".pcd",".png",".pgm",".exr"};
+
 cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         cloud(new pcl::PointCloud<pcl::PointXYZ>)
 {
         nh_=nh;
         ros::NodeHandle nh_priv("~");
-        nh_priv.param<std::string>("pcd_file",pcdFile,"cloud.pcd");
-        nh_priv.param<std::string>("csv_file",csvFile,"results");
+        nh_priv.param<std::string>("pcd_folder",pcdFolder,".");
+        //nh_priv.param<std::string>("pcd_file",pcdFile,"cloud.pcd");
+        nh_priv.param<std::string>("csv_folder",csvFolder,pcdFolder);
+        //nh_priv.param<std::string>("csv_file",csvFile,"results");
         nh_priv.param<std::string>("frame",frame,"map");
         nh_priv.param<int>("simulations_times",simTimes,1);
         nh_priv.param<float>("conversion_factor",conversionFactor,0.001);
 
         //Clusters to start
-        nh_priv.param<int>("clusters",clusters,1);
+        //nh_priv.param<int>("clusters",clusters,1);
         //Max clusters to use
         nh_priv.param<int>("max_clusters",maxClusters,32);
+        //minicul clusters per use
+        nh_priv.param<int>("min_clusters",minClusters,16);
         nh_priv.param<int>("clusters_step",clustersStep,5);
         nh_priv.param<int>("iterations",iterations,6);
         nh_priv.param<std::string>("method",method,"kmeans ");
@@ -25,8 +31,116 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
                               ("codebook",1,&cloudSimulation::codebookCallback,this);
         reconfigureClient = nh_.serviceClient<sparse_map_msgs::Reconfigure>
                                     ("segmentation_reconfigure");
-
+        segmentationClient = nh_.serviceClient<sparse_map_msgs::QuantizeCloud>
+                                     ("quantize_space");
         //cv::namedWindow( "cloudImg", cv::WINDOW_NORMAL );
+        return;
+}
+
+unsigned int cloudSimulation::getCloudFiles()
+{
+        std::cout << "Finding all cloud files on" << pcdFolder<<'\n';
+        boost::filesystem::path p(pcdFolder);
+        boost::filesystem::directory_iterator end_itr;
+
+        // cycle through the directory
+        for (boost::filesystem::directory_iterator itr(p); itr != end_itr; ++itr)
+        {
+                // If it's not a directory, list it. If you want to list directories too, just remove this check.
+                if (boost::filesystem::is_regular_file(itr->path()))
+                {
+                        // assign current file name to current_file and echo it out to the console.
+                        std::string fileExtension = itr->path().extension().string();
+                        //  std::cout << fileExtension<< '\n';
+                        for (size_t i = 0; i < 6; i++)
+                        {
+                                if(!fileExtension.compare(validFileType[i]))
+                                {
+                                        std::string currentFile(itr->path().string());
+                                        std::cout << currentFile << std::endl;
+                                        cloudFiles.push(currentFile);
+                                }
+                        }
+                }
+        }
+
+        return cloudFiles.size();
+}
+
+bool cloudSimulation::loadNextCloud()
+{
+        if (cloudFiles.empty()) {
+                return false;
+        }
+
+        pcdFile = cloudFiles.top();
+        cloudFiles.pop();
+        return loadCloud();
+}
+
+void cloudSimulation::monteCarlo()
+{
+        if(!reconfigureClient.waitForExistence(ros::Duration(5.0)))
+        {
+                std::cout << "Error reconfigure service not available" << '\n';
+                return;
+        }
+        if (!segmentationClient.waitForExistence(ros::Duration(5.0)))
+        {
+                std::cout << "Error qunatization service not available" << '\n';
+                return;
+        }
+        simCounter=0;
+        totalSimulations=0;
+
+        startTime = ros::Time::now();
+        clusters = minClusters;
+        writeFileHeader();
+        while (clusters<maxClusters)
+        {
+                sparse_map_msgs::Reconfigure reconf;
+                reconf.request.clusters.data = clusters;
+                reconf.request.iterations.data = -1;
+
+                if (reconfigureClient.call(reconf)) {
+                        //writeFileHeader();
+                        simCounter = 0;
+                }
+                else
+                {
+                        std::cout << "Error could not reconfigure" << '\n';
+                        break;
+
+                }
+                while (simCounter<simTimes)
+                {
+                        sparse_map_msgs::QuantizeCloud qs;
+                        sensor_msgs::PointCloud2 cloud_msg;
+                        pcl::toROSMsg(*cloud,cloud_msg);
+                        qs.request.cloud = cloud_msg;
+                        if (segmentationClient.call(qs))
+                        {
+                                ros::Duration execTime(ros::Time::now()-startTime);
+                                std::cout << "Simulation: " << totalSimulations <<'\n';
+                                std::cout << "Executed in: " << execTime << '\n';
+                                unsigned long codes = qs.response.codebook.centroids.size();
+                                std::cout << "Received a codebook of: " << codes<< '\n';
+                                //printHist(qs.response.pa);
+                                double distorsion = getDistorsion(qs.response.codebook, qs.response.partition);
+                                std::cout << "With overall distorsion of: " << distorsion<<'\n';
+                                writeResult(totalSimulations,execTime.toSec(),distorsion,codes,clusters);
+
+                                totalSimulations++;
+                                simCounter++;
+                        }
+                        else {
+                                std::cout << "Cloud segment ommiting experiment" << '\n';
+                                simCounter++;
+
+                        }
+                }
+                clusters+=clustersStep;
+        }
         return;
 }
 
@@ -56,7 +170,7 @@ bool cloudSimulation::loadCloud()
         boost::filesystem::path p(pcdFile);
         std::string fileType(p.extension().string());
         bool succes = true;
-
+        cloud.reset(new pcl::PointCloud<pcl::PointXYZ> );
         if (!fileType.compare(".pcd")) {
                 if (pcl::io::loadPCDFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
                 {
@@ -116,6 +230,8 @@ bool cloudSimulation::loadCloud()
         }
         cloud->header.stamp = ros::Time::now().toNSec()/1000;
         cloud->header.frame_id = frame;
+        cloudSize = cloud->points.size();
+        std::cout << "Read cloud of " << cloudSize<< '\n';
         return succes;
 }
 
@@ -176,7 +292,7 @@ bool cloudSimulation::makeCloudFromDepthImage(cv::Mat & depthImg)
         int height = 1;
         cloud->height = height;
         cloud->width = width;
-        std::cout << "Generating point cloud of: " << pixels <<" points \n";
+        //std::cout << "Generating point cloud of: " << pixels <<" points \n";
 
         return true;
 }
@@ -207,7 +323,7 @@ bool cloudSimulation::makeCloudFromCloudImage(cv::Mat & pcdImg)
         int height = 1;
         cloud->height = height;
         cloud->width = width;
-        std::cout << "Generating point cloud of: " << pixels <<" points \n";
+        //std::cout << "Generating point cloud of: " << pixels <<" points \n";
 
         return true;
 
@@ -215,11 +331,10 @@ bool cloudSimulation::makeCloudFromCloudImage(cv::Mat & pcdImg)
 
 bool cloudSimulation::writeFileHeader()
 {
-        boost::filesystem::path p(csvFile);
+        boost::filesystem::path p(pcdFile);
         std::string stemName(p.stem().string());
         std::string parenName(p.parent_path().string());
-        fullResultsPath =parenName+"/"+stemName+".csv";
-
+        fullResultsPath =csvFolder+stemName+method+".csv";
         // std::cout << parenName << '\n';
         // std::cout << stemName << '\n';
         std::cout << "Saving results at" << fullResultsPath <<'\n';
@@ -235,7 +350,7 @@ bool cloudSimulation::writeFileHeader()
         resultsFile << pcdFile << ","<< method <<","
                     << iterations <<","<<cloudSize <<"\n";
         resultsFile << "# Data\n";
-        resultsFile << "simulation,time,distorsion,clusters\n";
+        resultsFile << "simulation,time,distorsion,clusters,requested\n";
         resultsFile.close();
         return true;
 }
@@ -316,6 +431,29 @@ void cloudSimulation::sendCloud()
         std::cout << "Cloud sent of: " << cloud->points.size()<<'\n';
         std::cout << cloud->points[0] << '\n';
         return;
+}
+
+void cloudSimulation::printHist(  std::vector<int> histogram)
+{
+        for (size_t i = 0; i < histogram.size(); i++) {
+                printf("[%ld]:%d\n",i,histogram[i] );
+        }
+        return;
+}
+
+double cloudSimulation::getDistorsion(sparse_map_msgs::codebook cdbk,
+                                      std::vector<int> histogram)
+{
+        double totalDistorsion=0;
+        pointArray centroids = cdbk.centroids;
+        for (unsigned int i = 0; i < cloud->points.size(); i++)
+        {
+                pcl::PointXYZ cloudPoint(cloud->points[i]);
+                int pointLabel = histogram[i];
+                double minDis = L2Norm(cloudPoint,centroids[pointLabel]);
+                totalDistorsion+=minDis;
+        }
+        return totalDistorsion;
 }
 
 double cloudSimulation::getDistorsion(pointArray cdbk)

@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <arg name="pcdName" default="xyzTake1.exr"/>
+  <arg name="pcdName" default="nyuCaffe.pgm"/>
   <arg name="csvName" default="results"/>
 
-  <arg name="simClusters" default="8"/>
-  <arg name="maxClusters" default="20"/>
+  <arg name="minClusters" default="48"/>
+  <arg name="maxClusters" default="51"/>
   <arg name="simIterations" default="7"/>
-  <arg name="simMethod" default="uniform"/>
-  <arg name="simTimes" default="2"/>
-  <arg name="clusterStep" default="16"/>
-  <arg name="cloudFolder" default="/home/pumas/coyo/"/>
-  <arg name="resultsFolder" default="/home/pumas/coyo/spacequantization/results/segmentation/"/>
+  <arg name="simMethod" default="kpp"/>
+  <arg name="experiments" default="5"/>
+  <arg name="clusterStep" default="2"/>
+  <arg name="cloudFolder" default="$(find sparse_map_utils)/clouds/test/separator/"/>
+  <arg name="resultsFolder" default="$(find sparse_map_utils)/results/"/>
 
 
   <node name="montecarlo" pkg="sparse_map_utils" type="cloudSimulation_node" args="" output="screen">
-    <param name="pcd_file" value="$(arg cloudFolder)$(arg pcdName) " type="str"/>
-    <param name="csv_file" value="$(arg resultsFolder)$(arg pcdName)" type="str"/>
-    <param name="simulations_times" value="$(arg simTimes) " type="int"/>
-    <param name="clusters" value="$(arg simClusters)" type="int"/>
+    <!-- <param name="pcd_file" value="$(arg cloudFolder)$(arg pcdName) " type="str"/> -->
+    <param name="pcd_folder" value="$(arg cloudFolder)" type="str"/>
+    <param name="csv_folder" value="$(arg resultsFolder)" type="str"/>
+    <param name="simulations_times" value="$(arg experiments) " type="int"/>
+    <param name="min_clusters" value="$(arg minClusters)" type="int"/>
     <param name="clusters_step" value="$(arg clusterStep)" type="int"/>
     <param name="max_clusters" value="$(arg maxClusters)" type="int"/>
     <param name="iterations" value="$(arg simIterations)" type="int"/>
     <param name="method" value="$(arg simMethod)" type="str"/>
-    <param name="conversion_factor" value="0.0005" type="double"/>
     <remap from="out_cloud" to="/hsrb/cloud"/>
     <remap from="codebook" to="/hsrb/codebook"/>
     <remap from="segmentation_reconfigure" to="/hsrb/segmentation_reconfigure"/>
   </node>
 
-  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="">
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
     <remap from="cloud" to="/hsrb/cloud"/>
     <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
     <remap from="codebook" to="/hsrb/codebook"/>
-    <param name="nClusters" value="$(arg simClusters)" type="int"/>
+    <param name="nClusters" value="$(arg minClusters)" type="int"/>
     <param name="iterations" value="$(arg simIterations)" type="int"/>
     <param name="method" value="$(arg simMethod)" type="str"/>
     <param name="publish_label_space" value="true" type="bool"/>

@@ -1,0 +1,15 @@
+# Meta-Data
+filename,method,iterations,points
+/home/jesus/thesis_ws/src/sparse_map_utils/clouds/test/rgbd.png,kpp,7,238583
+# Data
+simulation,time,distorsion,clusters,requested
+0,0.0958642,213331,32,48
+1,0.198047,213331,32,48
+2,0.296113,225201,32,48
+3,0.39456,225201,32,48
+4,0.492127,225201,32,48
+5,0.635169,192516,48,64
+6,0.775922,192516,48,64
+7,0.916798,192516,48,64
+8,1.05785,192516,48,64
+9,1.20057,192516,48,64

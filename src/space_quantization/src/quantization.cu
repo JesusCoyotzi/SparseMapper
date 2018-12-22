@@ -62,11 +62,11 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
         printf("\nMin point:\t"); printPoint3(minPoint);
         printf("\n");
         srand(time(NULL));
-      //  printf("--Initial centroids--\n" );
+        //  printf("--Initial centroids--\n" );
         for (unsigned int i = 0; i < nClusters; i++)
         {
                 codebook[i] = randomPoint3(minPoint,maxPoint);
-        //        printPoint3(codebook[i]);
+                //        printPoint3(codebook[i]);
         }
         return;
 }
@@ -410,10 +410,15 @@ bool kmeans(point3 *h_points, int *h_partition,
 
         h_distances = (float *) malloc(distanceSize);
         //h_partition = (int *) malloc(partitionSize);
-
         cudaMalloc((void**)&d_points,nPointsSize);
+
+        if(cudaMalloc((void**)&d_distances,distanceSize)!=cudaSuccess)
+        {
+          //Check if points were allocatted
+                printf("Cuda allocation error\n");
+                return false;
+        }
         cudaMalloc((void**)&d_codebook,clustersSize);
-        cudaMalloc((void**)&d_distances,distanceSize);
         cudaMalloc((void**)&d_partition,partitionSize);
 
         cudaMalloc((void**)&d_reduceArray,nPointsSize);

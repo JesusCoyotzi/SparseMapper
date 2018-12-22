@@ -88,7 +88,7 @@ cuda_add_library(segmentationLib STATIC src/operations.cu src/quantization.cu  s
 
  # define executable not using any messages/services provided by this package
  add_executable(segmentation_node src/space_seg.cpp include/space_seg.h src/seg_node.cpp)
- add_dependencies(segmentation_node segmentationLib)
+ add_dependencies(segmentation_node segmentationLib ${catkin_EXPORTED_TARGETS})
  target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})# segmentationLib)
 
  add_executable(pose_chck src/pose_chck_node.cpp src/pose_chck.cpp)
