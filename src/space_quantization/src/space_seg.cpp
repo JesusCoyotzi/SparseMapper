@@ -79,9 +79,8 @@ bool spaceSegmenter::segmenterServer(sparse_map_msgs::QuantizeCloud::Request &re
         }
         else if (!method.compare("inner"))
         {
-                //Sample Uniformly one of the points as centroids
+                //Sample Uniformly across dataset as centroids
                 initializeCodebook(codebook,space,nValid,nClusters);
-                printPoint3Array(codebook,nClusters);
                 segSuccess = kmeans(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
@@ -183,7 +182,6 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         {
                 //Sample Uniformly one of the points as centroids
                 initializeCodebook(codebook,space,nValid,nClusters);
-                printPoint3Array(codebook,nClusters);
                 segSuccess = kmeans(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }

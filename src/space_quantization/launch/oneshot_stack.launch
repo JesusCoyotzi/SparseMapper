@@ -1,6 +1,6 @@
 <launch>
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
-  <arg name="name" default="bioroboticaIII"/>
+  <arg name="name" default="wrs2018"/>
   <arg name="crop" default="-2.0"/>
   <arg name="freeSpace" default="0.10"/>
 
@@ -43,7 +43,7 @@
   <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
 
   <!-- head_rgbd_sensor_rgb_frame -->
-  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find sparse_map_utils)/clouds/test/separator/$(arg name).pcd " output="screen">
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
   </node>

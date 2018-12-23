@@ -7,7 +7,7 @@
 #include <pcl/io/obj_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/filters/passthrough.h>
+//#include <pcl/filters/passthrough.h>
 #include <pcl/filters/voxel_grid.h>
 #include "pcl_ros/transforms.h"
 //Sparse map messages
@@ -48,20 +48,27 @@ int clusters,iterations;
 int maxClusters, minClusters, clustersStep;
 int cloudSize;
 int simCounter,simTimes,totalSimulations;
-float conversionFactor;
+float conversionFactor,voxSize;
 
 void sendCloud();
 bool makeCloudFromCloudImage(cv::Mat & pcdImg);
 bool makeCloudFromDepthImage(cv::Mat & depthImg);
+void subsampleCloud();
 void codebookCallback(const sparse_map_msgs::codebook &msg);
 double L1Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
 double L2Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
 bool writeFileHeader();
 bool writeResult(int sim,double secs,double distorsion,
+                 double histMean, double histStdDev,
                  unsigned long codesReceived, unsigned long requestedCodes);
-double getDistorsion(pointArray cdbk);
+bool writeResult(int sim,double secs,double distorsion,
+                 unsigned long codesReceived,
+                 unsigned long requestedCodes);
 double getDistorsion(sparse_map_msgs::codebook cdbk,
-                     std::vector<int> histogram);
+                     std::vector<int> partition);
+double getDistorsion(pointArray cdbk);
+void getHistStats(std::vector<int> &hist,double &mean,double &stdDev);
+
 void printHist( std::vector<int> histogram);
 
 public:

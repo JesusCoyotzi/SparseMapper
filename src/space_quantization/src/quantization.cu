@@ -74,7 +74,7 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
 void initializeCodebook(point3 * codebook, point3* points,
                         int pointSize, int nClusters)
 {
-        //Initilaize centroids in codebook by sampling points in the dataset.
+        //Initilaize centroids in codebook by sampling points in the dataset. named as inner methos
         printf("Initializing centroids\n");
         srand(time(NULL));
 
@@ -82,7 +82,7 @@ void initializeCodebook(point3 * codebook, point3* points,
         {
                 int rndIdx = rand() % pointSize;
                 codebook[i]= points[rndIdx];
-                printPoint3(codebook[i]);
+                //printPoint3(codebook[i]);
         }
         return;
 }
@@ -414,7 +414,7 @@ bool kmeans(point3 *h_points, int *h_partition,
 
         if(cudaMalloc((void**)&d_distances,distanceSize)!=cudaSuccess)
         {
-          //Check if points were allocatted
+                //Check if points were allocatted
                 printf("Cuda allocation error\n");
                 return false;
         }

@@ -11,10 +11,8 @@ void kppInitCPU(point3 *points,  point3 *codebook,
         printf("Cluster  0 is point[%d] ",rndIdx );
         printPoint3(codebook[0]);
 
-
         float * dist   =  (float *) malloc(nPoints*sizeof(float));
-
-        //Compute dist to all points
+        //Compute dist to all points to closest codebook
         for (size_t j = 1; j < clusters; j++)
         {
                 float acc = 0.0;
@@ -23,33 +21,43 @@ void kppInitCPU(point3 *points,  point3 *codebook,
                 for (size_t i = 0; i < nPoints; i++)
                 {
                         //printf("[%d]\n",i);
-                        dist[i]=euclideanDistance(codebook[j-1],points[i]);
+                        float minDist =euclideanDistance(codebook[0],points[i]);
+                        for (size_t k = 1; k < j; k++)
+                        {
+                                float distance = euclideanDistance(codebook[k],points[i]);
+                                if (distance<minDist) {
+                                        minDist=distance;
+                                }
+                        }
+                        dist[i]=minDist;
                         acc+=dist[i];
 
                 }
                 //Sampling wheel
-                float r = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/acc));
-                int k = 0;
-                while (r>0.0)
+                float beta = static_cast <float> (rand()) /
+                             (static_cast <float> (RAND_MAX/acc));
+                int index = rand() % nPoints;
+                //printf("Accumulated value %f > randomValue %f\n",acc,r );
+                while (beta>dist[index])
                 {
-                        if (k>=nPoints) {
-                              k = nPoints-1;
-                              printf("%d--",k);
-                              break;
-                        }
-                        r = r - dist[k];
-                        k++;
+                        beta = beta - dist[index];
+                        index = (index+1)%nPoints;
                 }
-                codebook[j]=points[k-1];
+                codebook[j]=points[index];
                 //printf("%d\n",k-1 );
-                printf("Cluster %d is point[%d] ",j,k );
+                printf("Cluster %ld is point[%d] ",j,index );
                 printPoint3(codebook[j]);
-
         }
 
         free(dist);
         return;
 }
+
+// while w[index] < beta:
+//     beta = beta - w[index]
+//     index = index + 1
+//
+// select p[index]
 
 bool LBGCPU(point3 *points,  point3 *codebook,
             int *histogram, int *partition,

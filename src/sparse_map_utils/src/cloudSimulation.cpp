@@ -14,6 +14,7 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         nh_priv.param<std::string>("frame",frame,"map");
         nh_priv.param<int>("simulations_times",simTimes,1);
         nh_priv.param<float>("conversion_factor",conversionFactor,0.001);
+        nh_priv.param<float>("voxel_size",voxSize,0.01);
 
         //Clusters to start
         //nh_priv.param<int>("clusters",clusters,1);
@@ -93,10 +94,10 @@ void cloudSimulation::monteCarlo()
         simCounter=0;
         totalSimulations=0;
 
-        startTime = ros::Time::now();
+
         clusters = minClusters;
         writeFileHeader();
-        while (clusters<maxClusters)
+        while (clusters<=maxClusters)
         {
                 sparse_map_msgs::Reconfigure reconf;
                 reconf.request.clusters.data = clusters;
@@ -118,6 +119,7 @@ void cloudSimulation::monteCarlo()
                         sensor_msgs::PointCloud2 cloud_msg;
                         pcl::toROSMsg(*cloud,cloud_msg);
                         qs.request.cloud = cloud_msg;
+                        startTime = ros::Time::now();
                         if (segmentationClient.call(qs))
                         {
                                 ros::Duration execTime(ros::Time::now()-startTime);
@@ -127,17 +129,27 @@ void cloudSimulation::monteCarlo()
                                 std::cout << "Received a codebook of: " << codes<< '\n';
                                 //printHist(qs.response.pa);
                                 double distorsion = getDistorsion(qs.response.codebook, qs.response.partition);
+                                double histMean,histStdDev;
+                                getHistStats(qs.response.histogram,histMean,histStdDev);
                                 std::cout << "With overall distorsion of: " << distorsion<<'\n';
-                                writeResult(totalSimulations,execTime.toSec(),distorsion,codes,clusters);
+                                writeResult(totalSimulations,execTime.toSec(),
+                                            distorsion,histMean,histStdDev,
+                                            codes,clusters);
 
                                 totalSimulations++;
                                 simCounter++;
+                                if(execTime.toSec()<1.0)
+                                {
+                                        //If the function is called twice during the same second rand will return same number
+                                        ros::Duration(1.0).sleep();
+                                }
                         }
                         else {
                                 std::cout << "Cloud segment ommiting experiment" << '\n';
                                 simCounter++;
 
                         }
+
                 }
                 clusters+=clustersStep;
         }
@@ -228,11 +240,24 @@ bool cloudSimulation::loadCloud()
                 std::cout << "Unkown/Unsupported file format" << '\n';
                 succes = false;
         }
+        if (voxSize) {
+                subsampleCloud();
+        }
         cloud->header.stamp = ros::Time::now().toNSec()/1000;
         cloud->header.frame_id = frame;
         cloudSize = cloud->points.size();
         std::cout << "Read cloud of " << cloudSize<< '\n';
+
         return succes;
+}
+
+void cloudSimulation::subsampleCloud()
+{
+        pcl::VoxelGrid<pcl::PointXYZ> sor;
+        sor.setInputCloud (cloud);
+        sor.setLeafSize (voxSize, voxSize, voxSize);
+        sor.filter (*cloud);
+        return;
 }
 
 bool cloudSimulation::makeCloudFromDepthImage(cv::Mat & depthImg)
@@ -350,13 +375,36 @@ bool cloudSimulation::writeFileHeader()
         resultsFile << pcdFile << ","<< method <<","
                     << iterations <<","<<cloudSize <<"\n";
         resultsFile << "# Data\n";
-        resultsFile << "simulation,time,distorsion,clusters,requested\n";
+        resultsFile << "simulation,time,distorsion,mean,stddev,clusters,requested\n";
         resultsFile.close();
         return true;
 }
 
 bool cloudSimulation::writeResult(int sim,double secs,double distorsion,
-                                  unsigned long codesReceived, unsigned long requestedCodes)
+                                  double histMean, double histStdDev,
+                                  unsigned long codesReceived, unsigned long requestedCodes
+                                  )
+{
+        std::ofstream resultsFile;
+        resultsFile.open(fullResultsPath,std::ofstream::app);
+        if(!resultsFile.is_open())
+        {
+                std::cout << "Error with file" << '\n';
+                return false;
+        }
+        resultsFile << std::fixed << std::setprecision(3);
+        resultsFile << sim<<","<< secs<<","<< distorsion<<","
+                    <<histMean<<","<<histStdDev<<","
+                    << codesReceived<< "," <<requestedCodes <<"\n";
+        resultsFile.close();
+        return true;
+
+}
+
+bool cloudSimulation::writeResult(int sim,double secs,double distorsion,
+                                  unsigned long codesReceived,
+                                  unsigned long requestedCodes
+                                  )
 {
         std::ofstream resultsFile;
         resultsFile.open(fullResultsPath,std::ofstream::app);
@@ -391,7 +439,7 @@ void cloudSimulation::codebookCallback(const sparse_map_msgs::codebook &msg)
         }
         else
         {
-                if (clusters<maxClusters) {
+                if (clusters<=maxClusters) {
                         std::cout << "Reconfiguring" << '\n';
                         //Reconfigure parameters and try again with more clusters
                         //Also creates new file
@@ -438,6 +486,23 @@ void cloudSimulation::printHist(  std::vector<int> histogram)
         for (size_t i = 0; i < histogram.size(); i++) {
                 printf("[%ld]:%d\n",i,histogram[i] );
         }
+        return;
+}
+
+void cloudSimulation::getHistStats(std::vector<int> &hist,double &mean, double &stdDev)
+{
+        mean = 0.0;
+        for (size_t i = 0; i < hist.size(); i++) {
+                mean += hist[i];
+        }
+        mean /=hist.size();
+
+        stdDev = 0.0;
+        for (size_t i = 0; i < hist.size(); i++) {
+                stdDev += (hist[i]-mean)*(hist[i]-mean);
+        }
+        stdDev /= hist.size();
+        stdDev = sqrt(stdDev);
         return;
 }
 
