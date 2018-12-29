@@ -53,6 +53,56 @@ void kppInitCPU(point3 *points,  point3 *codebook,
         return;
 }
 
+bool kmeansCPU(point3 *points, int *partition,
+               point3 *codebook, int *histogram,
+               int iterations, int clusters, int nPoints)
+{
+
+        printf("Received %d pouints\n", nPoints );
+        for (int t = 0; t < iterations; t++) {
+                printf("Iteration: %d\n",t );
+                //zero histogram
+                for (int p = 0; p < clusters; p++) {
+                        histogram[p]=0;
+                }
+                //Get partion
+                for (int i = 0; i < nPoints; i++) {
+                        //printf("Point %d\n",i );
+                        float minDist = euclideanDistance(points[i],codebook[0]);
+                        int minIxd = 0;
+                        for (int k =1; k < clusters; k++)
+                        {
+                                float dist = euclideanDistance(points[i],codebook[k]);
+                                if (dist < minDist) {
+                                        minDist = dist;
+                                        minIxd = k;
+                                }
+                        }
+                        partition[i]= minIxd;
+                        histogram[minIxd]++;
+                }
+
+                //Set zero centroids
+                for (int i = 0; i < clusters; i++) {
+                        codebook[i].x=0;
+                        codebook[i].y=0;
+                        codebook[i].z=0;
+                }
+                //serial reduction
+
+                for (int i = 0; i < nPoints; i++) {
+                        int partIdx = partition[i];
+                        codebook[partIdx]= addPoint3(codebook[partIdx],points[i]);
+                }
+              
+                //Compute average
+                for (int i = 0; i < clusters; i++) {
+                        codebook[i] = mulPoint3(codebook[i],1.0/histogram[i]);
+                }
+        }
+        return true;
+}
+
 // while w[index] < beta:
 //     beta = beta - w[index]
 //     index = index + 1

@@ -74,6 +74,10 @@ bool kmeans(point3 *h_points, int *h_partition,
             point3* h_codebook, int *h_histogram,
             int iterations, int clusters, int nPoints,
             point3 maxP, point3 minP);
+bool kmeansCPU(point3 *points, int *partition,
+               point3 *codebook, int *histogram,
+               int iterations, int clusters, int nPoints);
+
 void printVec(int vec[], int n);
 void randomInts(int arr[],int n);
 point3 randomPoint3();

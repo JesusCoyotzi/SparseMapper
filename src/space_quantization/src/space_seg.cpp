@@ -91,6 +91,13 @@ bool spaceSegmenter::segmenterServer(sparse_map_msgs::QuantizeCloud::Request &re
                 segSuccess = kmeans(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
+        else if(!method.compare("kmeansCPU"))
+        {
+                //Sample Uniformly across dataset as centroids
+                initializeCodebook(codebook,space,nValid,nClusters);
+                segSuccess = kmeansCPU(space,partition,codebook,histogram,iterations,
+                                       nClusters,nValid);
+        }
         else if(!method.compare("LBG"))
         {
                 //Linde Gray Buzo.
@@ -162,7 +169,7 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
                 (point3 *)malloc(nClusters*sizeof(point3));
         //don't forget to allocate memory for partition
         int * partition =
-                (int *)malloc(n*sizeof(int));
+                (int *)malloc(nValid*sizeof(int));
         //And the histogram
         int * histogram =
                 (int*)malloc(nClusters*sizeof(int));
@@ -192,6 +199,14 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
                 segSuccess = kmeans(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
+        else if(!method.compare("kmeansCPU"))
+        {
+                //Sample Uniformly across dataset as centroids
+                initializeCodebook(codebook,space,nValid,nClusters);
+                segSuccess = kmeansCPU(space,partition,codebook,histogram,iterations,
+                                       nClusters,nValid);
+        }
+
         else if(!method.compare("LBG"))
         {
                 //Linde Gray Buzo.

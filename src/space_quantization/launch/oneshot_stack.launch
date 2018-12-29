@@ -9,7 +9,7 @@
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
-    <param name="voxelSize" value="0.04" type="double"/>
+    <param name="voxelSize" value="-0.04" type="double"/>
     <param name="voxEnable" value="true" type="bool"/>
     <param name="baseFrame" value="map" type="string"/>
   </node>
@@ -21,7 +21,7 @@
     <remap from="codebook" to="/hsrb/codebook"/>
     <param name="nClusters" value="32" type="int"/>
     <param name="iterations" value="10" type="int"/>
-    <param name="method" value="kpp" type="str"/>
+    <param name="method" value="inner" type="str"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
   </node>
 
@@ -43,7 +43,7 @@
   <node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
 
   <!-- head_rgbd_sensor_rgb_frame -->
-  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find sparse_map_utils)/clouds/test/separator/$(arg name).pcd " output="screen">
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
   </node>
