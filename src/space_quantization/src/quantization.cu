@@ -134,6 +134,28 @@ __global__ void distanceKernel(point3 * points, point3 * centroids,float * dista
         return;
 }
 
+__global__ void separationKernel(point3 * points, point3 * centroids,
+                                 int *histogram, int *partition,
+                                 int k, int n)
+{
+        int idx = threadIdx.x + blockIdx.x * blockDim.x;
+        if (idx<n)
+        {
+                float minDist = euclideanDistance(points[idx],centroids[0]);
+                int minIxd = 0;
+                for (int i =1; i < k; i++) {
+                        float dist = euclideanDistance(points[idx],centroids[i]);
+                        if (dist < minDist) {
+                                minDist = dist;
+                                minIxd = i;
+                        }
+                }
+                partition[idx]= minIxd;
+                atomicAdd(&histogram[minIxd],1);
+        }
+        return;
+}
+
 __global__ void makePartition(int *partition,
                               float *distances, int *histogram,
                               int k, int n)
@@ -388,7 +410,6 @@ __global__ void partitionToLocal(point3 *points,
 
 
 //aleatorios vectores aleatorios para perturbar el centroide
-
 bool kmeans(point3 *h_points, int *h_partition,
             point3* h_codebook, int *h_histogram,
             int iterations, int clusters, int nPoints)
@@ -428,11 +449,6 @@ bool kmeans(point3 *h_points, int *h_partition,
         cudaMemcpy(d_points,h_points,nPointsSize,cudaMemcpyHostToDevice);
         cudaMemcpy(d_codebook,h_codebook,clustersSize,cudaMemcpyHostToDevice);
 
-        //curand stuff
-        curandState *d_state;
-        cudaMalloc(&d_state, sizeof(curandState));
-        setup_kernel<<<1,1>>>(d_state);
-
         //int blks = nPoints/ THREADS;
         int blks = (nPoints + THREADS - 1) / THREADS;
         printf("Issuing %d blocks with %d threads\n",blks, THREADS);
@@ -440,7 +456,7 @@ bool kmeans(point3 *h_points, int *h_partition,
         // recalcCentroids<<<(nPoints + THREADS - 1) / THREADS,THREADS>>>
         // (d_points,d_codebook,d_partition,clusters,nPoints);
         for (int m = 0; m <iterations; m++) {
-                ///if blks > THREADS return error not enough kenerls
+                ///if blks > THREADS return error not enough memory
                 blks = (nPoints + THREADS - 1) / THREADS;
                 distanceKernel<<<blks,THREADS>>>
                 (d_points,d_codebook,d_distances,clusters,nPoints);
@@ -471,12 +487,9 @@ bool kmeans(point3 *h_points, int *h_partition,
                                 (d_reduceArray,d_reduceArray,n);
                                 //cudaDeviceSynchronize();
                         }
-
                         //Aqui acabaria el while
-                        recalcCentroidsOuter<<<1,THREADS>>> //accccesing ilegal meory ?
+                        recalcCentroidsOuter<<<1,THREADS>>>
                         (d_reduceArray,d_codebook,d_histogram,i,blks);
-
-
                 }
         }
         cudaDeviceSynchronize();
@@ -497,7 +510,7 @@ bool kmeans(point3 *h_points, int *h_partition,
         printPoint3Array(h_codebook, clusters);
         cudaFree(d_points); cudaFree(d_distances); cudaFree(d_codebook);
         cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
-        cudaFree(d_state);
+
         free(h_distances);
         return true;
 }

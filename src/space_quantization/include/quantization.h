@@ -37,6 +37,9 @@ __global__ void setup_kernel(curandState *state);
 __device__ point3 randomPoint3(curandState *randState);
 
 __device__ __host__ float euclideanDistance(point3 p1, point3 p2);
+__global__ void separationKernel(point3 * points, point3 * centroids,
+                                 int *histogram, int *partition,
+                                 int k, int n);
 __global__ void distanceKernel(point3 * points, point3 * centroids,
                                float * distances,
                                int k, int n );
