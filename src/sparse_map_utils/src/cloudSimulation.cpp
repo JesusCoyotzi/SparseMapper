@@ -90,6 +90,7 @@ bool cloudSimulation::loadNextCloud()
 
 void cloudSimulation::monteCarlo()
 {
+
         if(!reconfigureClient.waitForExistence(ros::Duration(5.0)))
         {
                 std::cout << "Error reconfigure service not available" << '\n';
@@ -97,7 +98,7 @@ void cloudSimulation::monteCarlo()
         }
         if (!segmentationClient.waitForExistence(ros::Duration(5.0)))
         {
-                std::cout << "Error qunatization service not available" << '\n';
+                std::cout << "Error quantization service not available" << '\n';
                 return;
         }
         simCounter=0;
@@ -119,6 +120,7 @@ void cloudSimulation::monteCarlo()
                 else
                 {
                         std::cout << "Error could not reconfigure" << '\n';
+
                         break;
 
                 }
@@ -138,11 +140,12 @@ void cloudSimulation::monteCarlo()
                                 std::cout << "Received a codebook of: " << codes<< '\n';
                                 //printHist(qs.response.pa);
                                 double distorsion = getDistorsion(qs.response.codebook, qs.response.partition);
-                                double histMean,histStdDev;
-                                getHistStats(qs.response.histogram,histMean,histStdDev);
+                                //Means is always points / clusters
+                                double histStdDev;
+                                getHistStats(qs.response.histogram,histStdDev);
                                 std::cout << "With overall distorsion of: " << distorsion<<'\n';
                                 writeResult(totalSimulations,execTime.toSec(),
-                                            distorsion,histMean,histStdDev,
+                                            distorsion,histStdDev,
                                             codes,clusters);
 
                                 totalSimulations++;
@@ -390,7 +393,7 @@ bool cloudSimulation::writeFileHeader()
 }
 
 bool cloudSimulation::writeResult(int sim,double secs,double distorsion,
-                                  double histMean, double histStdDev,
+                                   double histStdDev,
                                   unsigned long codesReceived, unsigned long requestedCodes
                                   )
 {
@@ -403,7 +406,7 @@ bool cloudSimulation::writeResult(int sim,double secs,double distorsion,
         }
         resultsFile << std::fixed << std::setprecision(3);
         resultsFile << sim<<","<< secs<<","<< distorsion<<","
-                    <<histMean<<","<<histStdDev<<","
+                    <<histStdDev<<","
                     << codesReceived<< "," <<requestedCodes <<"\n";
         resultsFile.close();
         return true;
@@ -498,9 +501,9 @@ void cloudSimulation::printHist(  std::vector<int> histogram)
         return;
 }
 
-void cloudSimulation::getHistStats(std::vector<int> &hist,double &mean, double &stdDev)
+void cloudSimulation::getHistStats(std::vector<int> &hist,double &stdDev)
 {
-        mean = 0.0;
+        double mean = 0.0;
         for (size_t i = 0; i < hist.size(); i++) {
                 mean += hist[i];
         }

@@ -59,7 +59,7 @@ double L1Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
 double L2Norm(pcl::PointXYZ cloudPoint, geometry_msgs::Point cdbkPoint );
 bool writeFileHeader();
 bool writeResult(int sim,double secs,double distorsion,
-                 double histMean, double histStdDev,
+                 double histStdDev,
                  unsigned long codesReceived, unsigned long requestedCodes);
 bool writeResult(int sim,double secs,double distorsion,
                  unsigned long codesReceived,
@@ -67,7 +67,7 @@ bool writeResult(int sim,double secs,double distorsion,
 double getDistorsion(sparse_map_msgs::codebook cdbk,
                      std::vector<int> partition);
 double getDistorsion(pointArray cdbk);
-void getHistStats(std::vector<int> &hist,double &mean,double &stdDev);
+void getHistStats(std::vector<int> &hist,double &stdDev);
 
 void printHist( std::vector<int> histogram);
 

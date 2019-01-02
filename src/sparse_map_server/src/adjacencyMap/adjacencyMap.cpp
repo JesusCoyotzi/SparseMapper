@@ -14,6 +14,8 @@ bool adjacencyMap::graphNode::operator<(const graphNode &a) const
 adjacencyMap::adjacencyMap()
 {
         //default empty constructor
+        //default empty constructor
+        //Nedded do not erase
         return;
 }
 
@@ -31,7 +33,8 @@ adjacencyMap::adjacencyMap(std::string mapFileName)
 
 adjacencyMap::adjacencyMap(std::string mapFile,
                            float safeHeight,float safeRadius,
-                           float cRadius, float mxDist, float minDist, int kNeighboors)
+                           float cRadius, float mxDist, float minDist,
+                           int kNeighboors)
 {
         //Setter for params
         this->safetyHeight = safeHeight;
