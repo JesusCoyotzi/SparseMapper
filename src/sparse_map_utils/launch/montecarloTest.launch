@@ -9,8 +9,8 @@
   <arg name="simMethod" default="inner"/>
   <arg name="experiments" default="5"/>
   <arg name="clusterStep" default="16"/>
-  <arg name="cloudFolder" default="$(find sparse_map_utils)/clouds/test/"/>
-  <arg name="resultsFolder" default="$(find sparse_map_utils/results/"/>
+  <arg name="cloudFolder" default="$(find sparse_map_utils)/clouds/test"/>
+  <arg name="resultsFolder" default="$(find sparse_map_utils)/results"/>
 
   <node name="montecarlo" pkg="sparse_map_utils" type="cloudSimulation_node" args="" output="screen">
     <!-- <param name="pcd_file" value="$(arg cloudFolder)$(arg pcdName) " type="str"/> -->
@@ -23,6 +23,7 @@
     <param name="max_clusters" value="$(arg maxClusters)" type="int"/>
     <param name="min_clusters" value="$(arg maxClusters)" type="int"/>
     <param name="iterations" value="$(arg simIterations)" type="int"/>
+    <param name="voxel_size" value="-0.1" type="double"/>
     <param name="method" value="$(arg simMethod)" type="str"/>
     <remap from="out_cloud" to="/hsrb/cloud"/>
     <remap from="codebook" to="/hsrb/codebook"/>

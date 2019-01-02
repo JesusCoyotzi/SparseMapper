@@ -35,6 +35,15 @@ cloudSimulation::cloudSimulation(ros::NodeHandle &nh) :
         segmentationClient = nh_.serviceClient<sparse_map_msgs::QuantizeCloud>
                                      ("quantize_space");
         //cv::namedWindow( "cloudImg", cv::WINDOW_NORMAL );
+
+        //Add trailins / to paths. If already present still works
+        boost::filesystem::path p;
+        p = pcdFolder;
+        p += boost::filesystem::path::preferred_separator;
+        pcdFolder = p.string();
+        p = csvFolder;
+        p += boost::filesystem::path::preferred_separator;
+        csvFolder = p.string();
         return;
 }
 
@@ -359,7 +368,7 @@ bool cloudSimulation::writeFileHeader()
         boost::filesystem::path p(pcdFile);
         std::string stemName(p.stem().string());
         std::string parenName(p.parent_path().string());
-        fullResultsPath =csvFolder+stemName+method+".csv";
+        fullResultsPath =csvFolder+stemName+"-"+method+".csv";
         // std::cout << parenName << '\n';
         // std::cout << stemName << '\n';
         std::cout << "Saving results at" << fullResultsPath <<'\n';

@@ -1,9 +1,25 @@
 #include "sparse_map_server/adjacencyMap.h"
 
+adjacencyMap::graphNode::graphNode(int vertex, double cost)
+{
+        this->vertex = vertex;
+        this->cost = cost;
+}
+
+bool adjacencyMap::graphNode::operator<(const graphNode &a) const
+{
+        return a.cost < this->cost;
+}
+
 adjacencyMap::adjacencyMap()
 {
         //default empty constructor
         return;
+}
+
+bool adjacencyMap::distanceLabel::operator<(const distanceLabel& a) const
+{
+        return this->dist < a.dist;
 }
 
 
@@ -385,7 +401,7 @@ void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
                 }
                 // std:: cout << "Checking code:" << '\n';
                 // printf("C[%d]",i ); printPointGeom(centroids[i]);
-                std::sort(distances.begin(),distances.end(),compareDistance);
+                std::sort(distances.begin(),distances.end());
                 //Fisrt element is always the node compared
                 //with itself, distance=0 by definition
 
@@ -419,6 +435,10 @@ void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
                                 //         printf("C[%d]",label ); printPointGeom(centroids[label  ]);
                                 // }
                         }
+                        else
+                        {
+                                break;
+                        }
                 }
 
         }
@@ -430,7 +450,7 @@ bool adjacencyMap::validateConnection(pointGeom p1, pointGeom p2, float radius)
 {
         //Chceck if a connection between two free centroids is intersected by an occupied
         //point
-        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z+radius);
+        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z+radius); //why radiuus?
         Eigen::Vector3d p2Eigen(p2.x,p2.y,p2.z+radius);
         //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
         bool collision = false;

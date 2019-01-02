@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <arg name="map_name" default="wrs2018-2"/>
+  <arg name="map_name" default="bioroboticaIV"/>
     <arg name="grid_name" default="bioroboticaIV"/>
   <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find space_quantization)/maps/$(arg map_name).yaml"/>
   <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">

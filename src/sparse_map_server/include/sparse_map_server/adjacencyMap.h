@@ -13,30 +13,27 @@
 #include <algorithm>
 #include <queue>
 
-struct graphNode {
-        int vertex;
-        double cost;
 
-        graphNode(int vertex, double cost)
-        {
-                this->vertex = vertex;
-                this->cost = cost;
-        }
-        bool operator<(const graphNode& a) const
-        {
-                return a.cost < this->cost;
-        }
-};
-
-struct distanceLabel {
-        float dist;
-        int label;
-};
 class adjacencyMap {
 //This class implements an adjacency graph on nodes.
 //Pretty much the same as the space_quantization package
 //But hopefully more generic.
 private:
+
+struct graphNode {
+        int vertex;
+        double cost;
+
+        graphNode(int vertex, double cost);
+        bool operator<(const graphNode& a) const;
+
+};
+
+struct distanceLabel {
+        float dist;
+        int label;
+        bool operator<(const distanceLabel& a) const;
+};
 
 pointArray occupiedNodes,freeNodes;
 adjacencyList adjGraph;
