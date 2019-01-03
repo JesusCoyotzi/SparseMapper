@@ -62,11 +62,11 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
         printf("\nMin point:\t"); printPoint3(minPoint);
         printf("\n");
         srand(time(NULL));
-        //  printf("--Initial centroids--\n" );
+        printf("--Initial centroids--\n" );
         for (unsigned int i = 0; i < nClusters; i++)
         {
                 codebook[i] = randomPoint3(minPoint,maxPoint);
-                //        printPoint3(codebook[i]);
+                printPoint3(codebook[i]);
         }
         return;
 }
@@ -80,7 +80,7 @@ void initializeCodebook(point3 * codebook, point3* points,
 
         for (unsigned int i = 0; i < nClusters; i++)
         {
-                int rndIdx = rand() % pointSize;
+                int rndIdx = rand() % (pointSize-1);
                 codebook[i]= points[rndIdx];
                 //printPoint3(codebook[i]);
         }
@@ -310,8 +310,9 @@ __global__ void recalcCentroidsOuter(point3 * points,
                         }
                         else
                         {
-                                point3 rp3=randomPoint3(crs,maxP,minP);
-                                centroids[k]= addPoint3(centroids[k],rp3);
+                                point3 rp3 = randomPoint3(crs,maxP,minP);
+                                centroids[k] = rp3;
+                                //addPoint3(centroids[k],rp3);
                         }
                 }
         }
@@ -486,7 +487,7 @@ bool kmeans(point3 *h_points, int *h_partition,
         cudaMemcpy(h_histogram,d_histogram,
                    histogramSize,cudaMemcpyDeviceToHost);
 
-          //printVec(h_partition,nPoints);
+        //printVec(h_partition,nPoints);
         printf("---Optimized centroids---\n");
         printPoint3Array(h_codebook, clusters);
         cudaFree(d_points); cudaFree(d_codebook);
@@ -580,7 +581,7 @@ bool kmeans(point3 *h_points, int *h_partition,
         cudaFree(d_points);  cudaFree(d_codebook);
         cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
         cudaFree(d_state);
-        
+
         return true;
 }
 

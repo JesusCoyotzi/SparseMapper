@@ -1,0 +1,6 @@
+# Meta-Data
+filename,method,iterations,points
+/home/jesus/thesis_ws/src/sparse_map_utils/clouds/test/separator/wrs2018.pcd,uniform,7,47306
+# Data
+simulation,time,distorsion,stddev,clusters,requested
+0,0.123,60588.982,1875.888,16,16

@@ -8,8 +8,8 @@ void kppInitCPU(point3 *points,  point3 *codebook,
         srand(time(NULL));
         int rndIdx = rand() % nPoints;
         codebook[0]= points[rndIdx];
-        printf("Cluster  0 is point[%d] ",rndIdx );
-        printPoint3(codebook[0]);
+        // printf("Cluster  0 is point[%d] ",rndIdx );
+        // printPoint3(codebook[0]);
 
         float * dist   =  (float *) malloc(nPoints*sizeof(float));
         //Compute dist to all points to closest codebook
@@ -45,13 +45,19 @@ void kppInitCPU(point3 *points,  point3 *codebook,
                 }
                 codebook[j]=points[index];
                 //printf("%d\n",k-1 );
-                printf("Cluster %ld is point[%d] ",j,index );
-                printPoint3(codebook[j]);
+                // printf("Cluster %ld is point[%d] ",j,index );
+                // printPoint3(codebook[j]);
         }
 
         free(dist);
         return;
 }
+
+// while w[index] < beta:
+//     beta = beta - w[index]
+//     index = index + 1
+//
+// select p[index]k
 
 bool kmeansCPU(point3 *points, int *partition,
                point3 *codebook, int *histogram,
@@ -94,7 +100,7 @@ bool kmeansCPU(point3 *points, int *partition,
                         int partIdx = partition[i];
                         codebook[partIdx]= addPoint3(codebook[partIdx],points[i]);
                 }
-              
+
                 //Compute average
                 for (int i = 0; i < clusters; i++) {
                         codebook[i] = mulPoint3(codebook[i],1.0/histogram[i]);
@@ -103,11 +109,7 @@ bool kmeansCPU(point3 *points, int *partition,
         return true;
 }
 
-// while w[index] < beta:
-//     beta = beta - w[index]
-//     index = index + 1
-//
-// select p[index]
+
 
 bool LBGCPU(point3 *points,  point3 *codebook,
             int *histogram, int *partition,

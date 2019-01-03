@@ -21,7 +21,8 @@
     <remap from="codebook" to="/hsrb/codebook"/>
     <param name="nClusters" value="32" type="int"/>
     <param name="iterations" value="10" type="int"/>
-    <param name="method" value="inner" type="str"/>
+    <param name="method" value="uniform" type="str"/>
+    <param name="publish_label_space" value="true" type="bool"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->
   </node>
 

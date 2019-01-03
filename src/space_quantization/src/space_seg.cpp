@@ -126,10 +126,10 @@ bool spaceSegmenter::segmenterServer(sparse_map_msgs::QuantizeCloud::Request &re
         res.codebook = cdbk;
         res.histogram = histogramMsg;
         res.partition = partitionMsg;
-        // std::cout << "Histogram:" << '\n';
-        // for (int i = 0; i < nClusters; i++) {
-        //         printf("Cluster[%d]: %d\n",i,histogram[i] );
-        // }
+        std::cout << "Histogram:" << '\n';
+        for (int i = 0; i < nClusters; i++) {
+                printf("Cluster[%d]: %d\n",i,histogram[i] );
+        }
         // //free host memory
         free(space); free(codebook); free(partition); free(histogram);
         return true;
@@ -379,9 +379,11 @@ int spaceSegmenter::toPoint3(sensor_msgs::PointCloud2 tfCloud,
 void spaceSegmenter::makeHistogramMsg(std::vector<int> &histMsg,
                                       int* histogram, unsigned int nClusters )
 {
-        histMsg.resize(nClusters);
+        //histMsg.resize(nClusters);
         for (size_t i = 0; i < nClusters; i++) {
-                histMsg[i]=histogram[i];
+                if (histogram[i]>0) {
+                        histMsg.push_back(histogram[i]);
+                }
         }
         return;
 }

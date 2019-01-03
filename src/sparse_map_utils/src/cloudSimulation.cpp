@@ -120,9 +120,7 @@ void cloudSimulation::monteCarlo()
                 else
                 {
                         std::cout << "Error could not reconfigure" << '\n';
-
                         break;
-
                 }
                 while (simCounter<simTimes)
                 {
@@ -162,6 +160,9 @@ void cloudSimulation::monteCarlo()
 
                         }
 
+                }
+                if (!method.compare("LBG")) {
+                  /* code */
                 }
                 clusters+=clustersStep;
         }
@@ -387,7 +388,7 @@ bool cloudSimulation::writeFileHeader()
         resultsFile << pcdFile << ","<< method <<","
                     << iterations <<","<<cloudSize <<"\n";
         resultsFile << "# Data\n";
-        resultsFile << "simulation,time,distorsion,mean,stddev,clusters,requested\n";
+        resultsFile << "simulation,time,distorsion,stddev,clusters,requested\n";
         resultsFile.close();
         return true;
 }
@@ -519,14 +520,14 @@ void cloudSimulation::getHistStats(std::vector<int> &hist,double &stdDev)
 }
 
 double cloudSimulation::getDistorsion(sparse_map_msgs::codebook cdbk,
-                                      std::vector<int> histogram)
+                                      std::vector<int> partition)
 {
         double totalDistorsion=0;
         pointArray centroids = cdbk.centroids;
         for (unsigned int i = 0; i < cloud->points.size(); i++)
         {
                 pcl::PointXYZ cloudPoint(cloud->points[i]);
-                int pointLabel = histogram[i];
+                int pointLabel = partition[i];
                 double minDis = L2Norm(cloudPoint,centroids[pointLabel]);
                 totalDistorsion+=minDis;
         }
