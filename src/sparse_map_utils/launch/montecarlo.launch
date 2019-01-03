@@ -6,7 +6,7 @@
   <arg name="minClusters" default="16"/>
   <arg name="maxClusters" default="64"/>
   <arg name="simIterations" default="7"/>
-  <arg name="simMethod" default="uniform"/>
+  <arg name="simMethod" default="kmeansCPU"/>
   <arg name="experiments" default="5"/>
   <arg name="clusterStep" default="16"/>
   <arg name="cloudFolder" default="$(find sparse_map_utils)/clouds/test/separator"/>

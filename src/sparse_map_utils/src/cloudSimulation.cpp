@@ -253,7 +253,7 @@ bool cloudSimulation::loadCloud()
                 std::cout << "Unkown/Unsupported file format" << '\n';
                 succes = false;
         }
-        if (voxSize) {
+        if (voxSize>0) {
                 subsampleCloud();
         }
         cloud->header.stamp = ros::Time::now().toNSec()/1000;

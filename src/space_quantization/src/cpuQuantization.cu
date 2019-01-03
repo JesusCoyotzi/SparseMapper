@@ -66,7 +66,7 @@ bool kmeansCPU(point3 *points, int *partition,
 
         printf("Received %d pouints\n", nPoints );
         for (int t = 0; t < iterations; t++) {
-                printf("Iteration: %d\n",t );
+              
                 //zero histogram
                 for (int p = 0; p < clusters; p++) {
                         histogram[p]=0;
