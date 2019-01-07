@@ -69,11 +69,13 @@ def processFiles(csv_file):
         avg_dist = cursor.mean()["distorsion"] / n_points
         avg_time = cursor.mean()["time"]
         avg_stddev = cursor.mean()["stddev"]
+
         tmp_dic = {"clusters": i,
                    "time": avg_time,
                    "distorsion": avg_dist,
                    "stddev": avg_stddev,
-                   "method": meth}
+                   "method": meth,
+                   "points": n_points}
         local_data.append(tmp_dic)
         local_frame = pd.DataFrame(local_data)
         # print(local_frame)
@@ -122,7 +124,7 @@ def makeSummaryFigure(df, output_name):
 def processFolder(folder):
     files = [os.path.join(folder, f) for f in os.listdir(folder)]
     print(files)
-    cols = ["clusters", "time", "distorsion", "stddev", "method"]
+    cols = ["clusters", "time", "distorsion", "stddev", "method","points"]
     df_summary = pd.DataFrame(columns=cols)
     pcd_file = getFileName(files[0])
     for fil in files:
