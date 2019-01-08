@@ -16,7 +16,7 @@
       <param name="queue_size" type="int" value="25"/>
 
       <!-- RTAB-Map's parameters -->
-      <param name="Grid/FromDepth" type="string" value="false"/>
+      <param name="Grid/FromDepth" type="string" value="true"/>
       <param name="RGBD/ProximityPathMaxNeighbors" type="string" value="10"/>
       <param name="RGBD/NeighborLinkRefining" type="string" value="true"/>
       <param name="RGBD/ProximityBySpace" type="string" value="true"/>

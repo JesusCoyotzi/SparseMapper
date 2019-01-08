@@ -6,33 +6,22 @@ void kppInitCPU(point3 *points,  point3 *codebook,
         //kemeans ++ initialization
         printf("Generating %d clusters for %d points\n", clusters, nPoints );
         srand(time(NULL));
+        //Sample first centroid randomly
         int rndIdx = rand() % nPoints;
         codebook[0]= points[rndIdx];
         // printf("Cluster  0 is point[%d] ",rndIdx );
         // printPoint3(codebook[0]);
 
         float * dist   =  (float *) malloc(nPoints*sizeof(float));
+        float acc = 0.0;
         //Compute dist to all points to closest codebook
+        for (size_t i = 0; i < nPoints; i++) {
+                dist[i] = euclideanDistance(codebook[0],points[i]);
+                acc += dist[i];
+        }
+
         for (size_t j = 1; j < clusters; j++)
         {
-                float acc = 0.0;
-                // printf("Prev Codebook" );
-                // printPoint3(codebook[j-1]);
-                for (size_t i = 0; i < nPoints; i++)
-                {
-                        //printf("[%d]\n",i);
-                        float minDist =euclideanDistance(codebook[0],points[i]);
-                        for (size_t k = 1; k < j; k++)
-                        {
-                                float distance = euclideanDistance(codebook[k],points[i]);
-                                if (distance<minDist) {
-                                        minDist=distance;
-                                }
-                        }
-                        dist[i]=minDist;
-                        acc+=dist[i];
-
-                }
                 //Sampling wheel
                 float beta = static_cast <float> (rand()) /
                              (static_cast <float> (RAND_MAX/acc));
@@ -44,9 +33,19 @@ void kppInitCPU(point3 *points,  point3 *codebook,
                         index = (index+1)%nPoints;
                 }
                 codebook[j]=points[index];
-                //printf("%d\n",k-1 );
-                // printf("Cluster %ld is point[%d] ",j,index );
-                // printPoint3(codebook[j]);
+                // printf("Prev Codebook" );
+                // printPoint3(codebook[j-1]);
+                //Recalc distances
+                acc = 0.0;
+                for (size_t i = 0; i < nPoints; i++)
+                {
+                        //printf("[%d]\n",i);
+                        float tmpDist = euclideanDistance(codebook[j],points[i]);
+                        if (dist[i]>tmpDist) {
+                                dist[i]=tmpDist;
+                        }
+                        acc+=dist[i];
+                }
         }
 
         free(dist);
@@ -66,7 +65,7 @@ bool kmeansCPU(point3 *points, int *partition,
 
         printf("Received %d pouints\n", nPoints );
         for (int t = 0; t < iterations; t++) {
-              
+
                 //zero histogram
                 for (int p = 0; p < clusters; p++) {
                         histogram[p]=0;
