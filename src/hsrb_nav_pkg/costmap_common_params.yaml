@@ -2,7 +2,7 @@ obstacle_range:       3.5
 raytrace_range:       3.0
 #footprint:           [[x0, y0], [x1, y1], ... [xn, yn]]
 robot_radius:         0.20
-inflation_radius:     0.55
+inflation_radius:     0.3
 
 observation_sources:  laser_scan_sensor point_cloud_sensor
 
@@ -10,8 +10,7 @@ laser_scan_sensor: {sensor_frame: base_range_sensor_link, data_type: LaserScan, 
 
 point_cloud_sensor: {sensor_frame: head_rgbd_sensor_rgb_frame, data_type: PointCloud, topic: /hsrb/head_rgbd_sensor/depth_registered/rectified_points, marking: true, clearing: true}
 
-
 inflation_layer:
   enabled:              true
-  cost_scaling_factor:  5.0  # exponential rate at which the obstacle cost drops off (default: 10)
-  inflation_radius:     0.55  # max. distance from an obstacle at which costs are incurred for planning paths.
+  cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+  inflation_radius:     0.3  # max. distance from an obstacle at which costs are incurred for planning paths.

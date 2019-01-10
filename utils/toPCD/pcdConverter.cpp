@@ -8,6 +8,8 @@
 #include <pcl/filters/voxel_grid.h>
 //Boost
 #include "boost/filesystem.hpp"
+#include <time.h>
+#include <stdlib.h>
 
 int main(int argc, char  *argv[]) {
         //Program readas and subsamples pointcloud,
@@ -50,7 +52,13 @@ int main(int argc, char  *argv[]) {
         }
 
         std::cout << "Read cloud with " << cloud->points.size()<<"points\n";
-
+        //Sample a few elements from the cloud for checking
+        srand(time(NULL));
+        for (int i = 0; i < 10; i++) {
+                int idx = rand()%cloud->points.size();
+                printf("Point [%d] : ", idx);
+                std::cout <<cloud->points[idx] << '\n';
+        }
         if (argc>3)
         {
                 float leafSize = atof(argv[3]);
@@ -64,7 +72,9 @@ int main(int argc, char  *argv[]) {
 
         std::string outfile(argv[2]);
 
-        pcl::io::savePCDFileASCII (outfile, *cloud);
+        //SAve in binary mode to save meory and win precisionme
+
+        pcl::io::savePCDFile(outfile, *cloud,true);
         std::cerr << "Saved " << cloud->points.size () << " data points to "  << argv[2] << std::endl;
         // pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
         // viewer.showCloud (cloud);

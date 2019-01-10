@@ -7,6 +7,10 @@ www.ros.org/wiki/octomap_server for details -->
 
 		<!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
 		<param name="frame_id" type="string" value="map"/>
+		<param name="occupancy_max_z" value="2.0" type="double"/>
+		<param name="occupancy_min_z" value="0.2" type="double"/>
+		<param name="pointcloud_min_z" value="0.2" type="double"/>
+		<param name="pointcloud_max_z" value="2.0" type="double"/>
 
 		<!-- maximum range to integrate (speedup!) -->
 		<param name="sensor_model/max_range" value="25.0"/>
@@ -18,15 +22,13 @@ www.ros.org/wiki/octomap_server for details -->
 
 	</node>
 
-	<node pkg="tf" type="static_transform_publisher" name="tabmap_broadcaster" args="-0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100"/>
+	<node pkg="tf" type="static_transform_publisher" name="map_broadcaster" args="0 0 26.0 0 0.0 0  map head_rgbd_sensor_rgb_frame 100"/>
 
 	<node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
 		<remap from="/cloud" to="/hsrb/cloud"/>
 		<remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
-		<param name="cropEnable" value="false" type="bool"/>
-		<param name="cropDistance" value="2.0" type="double"/>
+		<param name="cropDistance" value="-2.0" type="double"/>
 		<param name="voxelSize" value="0.02" type="double"/>
-		<param name="voxEnable" value="true" type="bool"/>
 		<param name="baseFrame" value="map" type="string"/>
 	</node>
 
