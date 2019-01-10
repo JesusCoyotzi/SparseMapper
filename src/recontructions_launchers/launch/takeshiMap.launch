@@ -33,15 +33,17 @@
       <param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
 
       <param name="Grid/RangeMax" value="3.0" type="double"/>
+      <param name="Grid/MaxGroundHeight" value="0.1" type="double"/>
+      <param name="Grid/MaxObstacleHeight" value="2.0" type="double"/>
       <!-- <param name="cloud_max_depth" value="2.0" type="double"/>
       <param name="Grid/NoiseFiltering_radius" value="0.05"/>
       <param name="cloud_noise_filtering_min_neighbors" value="10"/> -->
     </node>
 
-    <node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" output="screen">
+    <!-- <node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" output="screen">
       <param name="frame_id" type="string" value="base_link"/>
       <remap from="rgb/image" to="/hsrb/head_rgbd_sensor/rgb/image_rect_color"/>
       <param name="rgb/image_transport" type="string" value="compressed"/>
-    </node>
+    </node> -->
   </group>
 </launch>

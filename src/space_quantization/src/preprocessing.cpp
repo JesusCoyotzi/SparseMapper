@@ -17,8 +17,8 @@ cloudPreprocessor::cloudPreprocessor(ros::NodeHandle &nh)
 void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& input)
 {
         pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
-        std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
         pcl::fromROSMsg(*input, *cloud);
+        std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
         if (cropDistance>0) {
                 std::cout << "Z filter" << '\n';
                 filterDistanceZ(cropDistance,cloud);
@@ -65,7 +65,7 @@ bool cloudPreprocessor::transformCloud(cloudRGBAPtr cloud)
 {
         bool sux = false;
         tf::StampedTransform transformTf;
-        std::cout << "TRansforming cloud" << '\n';
+        std::cout << "Transforming cloud to " << baseFrame<<'\n';
         try{
                 sux = pcl_ros::transformPointCloud(baseFrame,
                                                    *cloud,

@@ -195,19 +195,21 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
         makeTerminalsAndPublish(req.goalPose,req.startPose);
         bool isNotValid = sparseMap.validateNode(req.goalPose) ||
                           sparseMap.validateNode(req.startPose);
+
+        res.plan.header.frame_id = mapFrame;
+        res.plan.header.stamp = ros::Time();
         if (isNotValid) {
                 std::cout <<
                 "Error either initial or final position collides, with occupied nodes "
                           << '\n';
-                return false;
+                return true;
         }
         if(!sparseMap.Astar(req.goalPose,req.startPose,pth))
         {
                 //failure
-                return false;
+                return true;
         }
-        res.path.header.frame_id = mapFrame;
-        res.path.header.stamp = ros::Time();
+
         std::cout << "Nodes visited: " << '\n';
         for (size_t i = 0; i < pth.size(); i++) {
                 geometry_msgs::PoseStamped local_pose;
@@ -216,12 +218,12 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
                 local_pose.pose.orientation.y = 0;
                 local_pose.pose.orientation.z = 0;
                 local_pose.pose.orientation.w = 1;
-                res.path.poses.push_back(local_pose);
+                res.plan.poses.push_back(local_pose);
                 std::cout << pth[i].x << " "
                           << pth[i].y << " "
                           << pth[i].z << '\n';
         }
-        pathPub.publish(res.path);
+        pathPub.publish(res.plan);
         return true;
 }
 

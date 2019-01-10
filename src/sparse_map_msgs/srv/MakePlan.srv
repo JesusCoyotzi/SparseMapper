@@ -1,4 +1,4 @@
 geometry_msgs/Point startPose
 geometry_msgs/Point goalPose
 ---
-nav_msgs/Path path
+nav_msgs/Path plan
