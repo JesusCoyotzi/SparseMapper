@@ -104,7 +104,6 @@ bool adjacencyMap::loadMap(std::string filename)
                 std::getline(file,line);
                 code = parseCodeLine(line);
                 occupiedNodes.push_back(code);
-
         }
 
         //Number of free nodes
@@ -328,6 +327,12 @@ int adjacencyMap::getClosestNode(pointGeom p)
         return closestNode;
 }
 
+float adjacencyMap::getClosestNodeDistance(pointGeom p)
+{
+        //get the distance to closes node in graph
+        int nodeIdx = getClosestNode(p);
+        return euclideanDistance(freeNodes[nodeIdx],p);
+}
 
 
 double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
@@ -484,6 +489,27 @@ bool adjacencyMap::validateNode(pointGeom p1)
         return collision;
 }
 
+bool adjacencyMap::validateTerminals(pointGeom strt, pointGeom goal)
+{
+        int closetsNodeStrtIdx = getClosestNode(strt);
+        float strtDst =euclideanDistance(freeNodes[closetsNodeStrtIdx],strt);
+        if (strtDst > maxDist) {
+                std::cout << "Error: Start node is " << strtDst << " [m] away from closest node\n";
+                std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
+                return false;
+        }
+
+        int closestNodeGoalIdx = getClosestNode(goal);
+        float goalDst =euclideanDistance(freeNodes[closestNodeGoalIdx],goal);
+        if (goalDst > maxDist) {
+                std::cout << "Error: Goal node is " << goalDst << " [m] away from closest node\n";
+                std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
+                return false;
+        }
+
+        bool isNotValid = validateNode(strt) || validateNode (goal);
+        return isNotValid;
+}
 
 
 bool adjacencyMap::cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q, float radius)
@@ -497,6 +523,8 @@ bool adjacencyMap::cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eig
                 std::cout << "Same point no cylinder " <<  p2_p1.norm() <<'\n';
                 return true;
         }
+        //TODO change order of checking
+        //Radius first
         float distanceLid1 = (q-p1).dot(p2_p1);
         bool collision=false;
         if (distanceLid1>=0)

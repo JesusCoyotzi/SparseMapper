@@ -17,6 +17,7 @@ ros::ServiceServer pathServer;
 std::string mapFileName,mapFrame;
 float safetyHeight,safetyRadius,connectionRadius, maxDist, minDist;
 adjacencyMap sparseMap;
+bool visNodes,visTerminals;
 int kNeighboors;
 void makeCentroidsMarkerAndPublish( pointArray &codebook,std_msgs::ColorRGBA color, int id);
 void makeVizGraphAndPublish(adjacencyList l, pointArray codebook);
