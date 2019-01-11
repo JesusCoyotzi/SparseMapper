@@ -53,6 +53,7 @@ bool validateConnection(pointGeom p1, pointGeom p2, float radius);
 bool cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q, float radius);
 void printAdjacencyList(adjacencyList l);
 static bool compareDistance(distanceLabel i, distanceLabel j);
+bool validateNode(pointGeom p1);
 public:
 adjacencyMap(std::string mapFile,
              float safeHeight,float safeRadius,
@@ -68,7 +69,8 @@ bool loadMap(std::string filename);
 pointArray getFreeNodes();
 pointArray getOccNodes();
 adjacencyList getGraph();
-bool validateNode(pointGeom p1);
+bool validateTerminals(pointGeom strt,pointGeom goal);
+float getClosestNodeDistance(pointGeom p1);
 
 
 };

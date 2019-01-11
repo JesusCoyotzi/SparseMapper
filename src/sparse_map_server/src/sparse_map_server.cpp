@@ -14,6 +14,9 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         nh_priv.param<float>("max_dist",maxDist,2);
         nh_priv.param<float>("min_dist",minDist,1);
         nh_priv.param<int>("k_neighboors",kNeighboors,6);
+        nh_priv.param<bool>("visualize_nodes",visNodes,true);
+        //nh_priv.param<bool>("visualize_path",visPath,true);
+        nh_priv.param<bool>("visualize_terminals",visTerminals,true);
 
         codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1,true);
@@ -39,10 +42,13 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         adjacencyList adjL = sparseMap.getGraph();
         //To let advertisers enable
         ros::Duration(1).sleep();
-        makeCentroidsMarkerAndPublish(occ,occColor,0);
-        makeCentroidsMarkerAndPublish(libre,freeColor,1);
-        makeVizGraphAndPublish(adjL,libre);
-        makeLabelMsgAndPublish(libre,2);
+        if(visNodes)
+        {
+                makeCentroidsMarkerAndPublish(occ,occColor,0);
+                makeCentroidsMarkerAndPublish(libre,freeColor,1);
+                makeVizGraphAndPublish(adjL,libre);
+                makeLabelMsgAndPublish(libre,2); //second params is id
+        }
         return;
 }
 
@@ -192,9 +198,12 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
 {
         std::cout << "Calculating path" << '\n';
         pointArray pth;
-        makeTerminalsAndPublish(req.goalPose,req.startPose);
-        bool isNotValid = sparseMap.validateNode(req.goalPose) ||
-                          sparseMap.validateNode(req.startPose);
+        if (visTerminals) {
+                makeTerminalsAndPublish(req.goalPose,req.startPose);
+        }
+
+        //Check if goal and start are valid
+        bool isNotValid = sparseMap.validateTerminals(req.startPose,req.goalPose);
 
         res.plan.header.frame_id = mapFrame;
         res.plan.header.stamp = ros::Time();
