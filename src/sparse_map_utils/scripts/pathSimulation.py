@@ -42,7 +42,7 @@ def euclideanDistance(p1, p2):
     return sqrt((x_d - x_o)**2 + (y_d - y_o)**2 + (z_d - z_o)**2)
 
 
-def setupResults(start, goal, distance,reachable=True):
+def setupResults(start, goal, distance, reachable=True):
     results_dic = dict.fromkeys(file_header, float("nan"))
     results_dic["orig_x"] = start.position.x
     results_dic["orig_y"] = start.position.y
@@ -52,7 +52,7 @@ def setupResults(start, goal, distance,reachable=True):
     results_dic["goal_y"] = goal.position.y
     results_dic["goal_z"] = goal.position.z
     results_dic["direct_distance"] = distance
-    results_dic["reachable"] =reachable
+    results_dic["reachable"] = reachable
 
     return results_dic
 
@@ -62,8 +62,8 @@ def callPlanners(occ, free, experiments, output_file_name="results.csv"):
     sparseServer = rospy.ServiceProxy("sparse_make_plan", MakePlan)
 
     try:
-        moveServer.wait_for_service(1.0)
-        sparseServer.wait_for_service(1.0)
+        moveServer.wait_for_service()
+        sparseServer.wait_for_service()
     except rospy.exceptions.ROSException, e:
         print("Service call failed %s" % e)
 
@@ -73,8 +73,14 @@ def callPlanners(occ, free, experiments, output_file_name="results.csv"):
         csv_writer = csv.DictWriter(f, fieldnames=file_header)
         csv_writer.writeheader()
 
-    starts = random.sample(free, experiments)
-    goals = random.sample(free, experiments)
+    starts_valid = random.sample(free, experiments / 2)
+    goals_valid = random.sample(free, experiments / 2)
+    starts_blocked = random.sample(occ, experiments / 2)
+    goals_blocked = random.sample(occ, experiments / 2)
+    starts = starts_valid + goals_valid
+    goals = goals_valid + goals_blocked
+    random.shuffle(starts)
+    random.shuffle(goals)
     head = Header()
     head.stamp = rospy.Time.now()
     head.frame_id = "map"
@@ -90,32 +96,31 @@ def callPlanners(occ, free, experiments, output_file_name="results.csv"):
 
         straight_distance = euclideanDistance(start, goal)
         simulation_result = setupResults(start, goal, straight_distance)
-
-        try:
-            moveTime = rospy.Time.now()
-            moveResponse = moveServer(moveStart, moveGoal, 0.3)
-            nav_time = moveTime - rospy.Time.now()
-            nav_pth = moveResponse.plan
-            if nav_pth.poses:
-                nav_stck_nodes = len(nav_pth.poses)
-                nav_tray_dist = calcTrajectoryDist(nav_pth)
-                simulation_result["nav_nodes"] = nav_stck_nodes
-                simulation_result["nav_tray"] = nav_tray_dist
-                simulation_result["nav_time"] = nav_time
-        except rospy.ServiceException, e:
-            print("Service call failed %s" % e)
-
         try:
             sparseTime = rospy.Time.now()
             sparseResponse = sparseServer(sparseStart, sparseGoal)
-            sparseTime = sparseTime - rospy.Time.now()
+            sparseTime = rospy.Time.now() - sparseTime
             sparse_pth = sparseResponse.plan
             if sparse_pth.poses:
                 spr_stck_nodes = len(sparse_pth.poses)
                 spr_traj_dist = calcTrajectoryDist(sparse_pth)
                 simulation_result["sparse_nodes"] = spr_stck_nodes
                 simulation_result["sparse_tray"] = spr_traj_dist
-                simulation_result["sparse_time"] = sparseTime
+                simulation_result["sparse_time"] = sparseTime.to_sec()
+        except rospy.ServiceException, e:
+            print("Service call failed %s" % e)
+
+        try:
+            moveTime = rospy.Time.now()
+            moveResponse = moveServer(moveStart, moveGoal, 0.125)
+            nav_time = rospy.Time.now() - moveTime
+            nav_pth = moveResponse.plan
+            if nav_pth.poses:
+                nav_stck_nodes = len(nav_pth.poses)
+                nav_tray_dist = calcTrajectoryDist(nav_pth)
+                simulation_result["nav_nodes"] = nav_stck_nodes
+                simulation_result["nav_tray"] = nav_tray_dist
+                simulation_result["nav_time"] = nav_time.to_sec()
         except rospy.ServiceException, e:
             print("Service call failed %s" % e)
 
@@ -167,7 +172,7 @@ def main():
     print("Got %s free cells" % len(free_grids))
     #print(cadena.format(i, j, x, y))
 
-    callPlanners(free_grids, occ_grids, experiments, sys.argv[2])
+    callPlanners(occ_grids, free_grids, experiments, sys.argv[2])
 
     # for i, p in enumerate(grid.data):
     #     if p > 80 and p > 0:

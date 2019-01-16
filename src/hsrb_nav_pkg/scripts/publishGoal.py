@@ -12,7 +12,7 @@ from nav_msgs.srv import GetPlan
 
 def goalCallback(msg):
     hd = Header(stamp=msg.header.stamp,frame_id=msg.header.frame_id)
-    ps_start = Pose(Point(0,0,0),Quaternion(0,0,0,1))
+    ps_start = Pose(Point(3,-4,0),Quaternion(0,0,0,1))
     goal_pose = Pose(msg.point,Quaternion(0,0,0,1))
     start = PoseStamped(hd,ps_start)
     goal = PoseStamped(hd,goal_pose)

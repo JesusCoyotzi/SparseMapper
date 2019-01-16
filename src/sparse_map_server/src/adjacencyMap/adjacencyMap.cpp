@@ -57,7 +57,8 @@ adjacencyMap::adjacencyMap(std::string mapFile,
 
 
 void adjacencyMap::setParams(float safeHeight,float safeRadius,
-                             float cRadius, float mxDist, float minDist, int kNeighboors)
+                             float cRadius, float mxDist, float minDist,
+                             int kNeighboors)
 {
         //Setter for params
         this->safetyHeight = safeHeight;
@@ -96,36 +97,36 @@ bool adjacencyMap::loadMap(std::string filename)
         iss.str(line);
         std::getline(iss, tmp, ':');
         iss>>nOcc;
-        std::cout << "Found " <<nOcc<< " occupied centroids" <<'\n';
+        std::cout << "Listed: " <<nOcc<< " occupied centroids" <<'\n';
         //Occupied nodes
-        for (int i = 0; i < nOcc; i++)
-        {
-                pointGeom code;
-                std::getline(file,line);
-                code = parseCodeLine(line);
+        pointGeom code;
+        std::getline(file,line);
+        while (parseCodeLine(line,code)) {
                 occupiedNodes.push_back(code);
+                std::getline(file,line);
         }
+        std::cout << "Read: " << occupiedNodes.size()<< " occupied nodes while reading\n";
 
         //Number of free nodes
-        std::getline(file,line);
+        //std::getline(file,line);
         iss.clear();
         iss.str(std::string());
         iss.str(line);
         std::getline(iss, tmp, ':');
         iss>>nFree;
-        std::cout << "Found " <<nFree<< " free centroids" <<'\n';
+        std::cout << "Listed: " <<nFree<< " free centroids" <<'\n';
         //Free nodes
+        std::list<pointGeom> freeList;
         pointArray tempFree;
-        for (int i = 0; i < nFree; i++)
-        {
-                pointGeom code;
+        std::getline(file,line);
+        while (parseCodeLine(line,code)) {
+                freeList.push_back(code);
+                // if (!pruneNode(code,tempFree)) {
+                // }
                 std::getline(file,line);
-                code = parseCodeLine(line);
-                if (!pruneNode(code,tempFree)) {
-                        tempFree.push_back(code);
-                }
-
         }
+        //std::cout << "Read: " << tempFree.size()<< " free nodes while reading\n";
+        reduceNodes(freeList,tempFree);
         std::cout << "Pruned to: " << tempFree.size() <<" non redundant nodes\n";
         for (size_t i = 0; i < tempFree.size(); i++) {
                 bool isValidNode = !validateNode(tempFree[i]);
@@ -145,6 +146,50 @@ bool adjacencyMap::loadMap(std::string filename)
         // }
         file.close();
         return true;
+}
+
+int adjacencyMap::reduceNodes(std::list<pointGeom> &nodes, pointArray &oNodes)
+{
+        /* Reads a full list of points, reduces them using a voxel like filter
+           create 3d grid based on min_dist, and loop all points over it
+           for every box check how many points are inside and get the centroid
+           oNodes is all the centroids calculated*/
+        //Get largest and smalles element in nodes
+
+        std::list<pointGeom>::iterator i;
+        while (!nodes.empty()) {
+                pointGeom q = nodes.front();
+                nodes.pop_front();
+                //std::cout << nodes.size() << '\n';
+                Eigen::Vector3d query(q.x,q.y,q.z);
+                Eigen::Vector3d accumulator = query;
+                int n = 1;
+                i = nodes.begin();
+                while (i != nodes.end())
+                {
+                        pointGeom workingN = *i;
+                        Eigen::Vector3d workingNode(workingN.x,workingN.y,workingN.z);
+                        float dist = (workingNode-query).norm();
+                        if (dist<minDist)
+                        {
+                                accumulator += workingNode;
+                                i = nodes.erase(i);
+                                n++;
+                        }
+                        else
+                        {
+                                ++i;
+                        }
+                }
+                if (n>0)
+                {
+                        accumulator /= n;
+                        pointGeom centroid = makePointGeom(accumulator(0),accumulator(1),accumulator(2));
+                        oNodes.push_back(centroid);
+                        //std::cout << centroid << '\n';
+                }
+        }
+        return oNodes.size();
 }
 
 std::vector<int> adjacencyMap::parseGraphEntry(std::string line)
@@ -167,24 +212,34 @@ std::vector<int> adjacencyMap::parseGraphEntry(std::string line)
 
 }
 
-pointGeom adjacencyMap::parseCodeLine(std::string line)
+bool adjacencyMap::parseCodeLine(std::string line,  pointGeom &g)
 {
         std::istringstream iss(line);
         std::string tmp;
         float x,y,z;
         int label;
-        std::getline(iss,tmp,',');
-        x=std::stof(tmp.c_str());
-        std::getline(iss,tmp,',');
-        y=std::stof(tmp.c_str());
-        std::getline(iss,tmp,',');
-        z=std::stof(tmp.c_str());
-        std::getline(iss,tmp,',');
-        label = std::stoi(tmp);
+        bool sux = true;
+        try {
+                std::getline(iss,tmp,',');
+                x=std::stof(tmp.c_str());
+                std::getline(iss,tmp,',');
+                y=std::stof(tmp.c_str());
+                std::getline(iss,tmp,',');
+                z=std::stof(tmp.c_str());
+                std::getline(iss,tmp,',');
+                label = std::stoi(tmp);
+        }
+        catch (std::invalid_argument e)
+        {
+                // std::cout << "An exception occurred: " << e.what() << '\n';
+                std::cout << line << '\n';
+                x=0;  y=0;  z=0;
+                sux = false;
+        }
         //DEbug
         //printf("%f,%f,%f,%d\n",x,y,z,label );
-        pointGeom g = makePointGeom(x,y,z);
-        return g;
+        g = makePointGeom(x,y,z);
+        return sux;
 }
 
 bool adjacencyMap::pruneNode(pointGeom p, pointArray& tmpNodes)
@@ -194,7 +249,7 @@ bool adjacencyMap::pruneNode(pointGeom p, pointArray& tmpNodes)
         bool prune=false;
         if (tmpNodes.empty()) {
                 //if grpah is empty add node
-                std::cout << "Grpah is empty" << '\n';
+                //std::cout << "Grpah is empty" << '\n';
                 return prune;
         }
         Eigen::Vector3d pointEigen(p.x,p.y,p.z);
@@ -212,6 +267,57 @@ bool adjacencyMap::pruneNode(pointGeom p, pointArray& tmpNodes)
         }
         //If any node is closer to any other node by minDist then prune it
         return prune;
+}
+
+bool adjacencyMap::removeOccupiedPoint(pointGeom p)
+{
+        //Find closest node to p
+        int closestIdx = getClosestOccNode(p);
+        bool suxes = false;
+        float dist = euclideanDistance(occupiedNodes[closestIdx],p);
+        std::cout << dist << '\n';
+        if ( dist < maxDist)
+        {
+                //If farther than maxDist i just clicked a random point do nothing
+                //Else remove point
+                std::cout << "Removing: " << occupiedNodes[closestIdx]<< '\n';
+                occupiedNodes.erase(occupiedNodes.begin() + closestIdx);
+                suxes = true;
+        }
+        return suxes;
+}
+
+bool adjacencyMap::saveGraph(std::string filename)
+{
+        //Save pruned points and Grpah as txt
+        std::cout << "Writing to "<<filename<<"\n";
+        std::ofstream graphOut;
+        unsigned int freeNds = freeNodes.size();
+        unsigned int occNds =  occupiedNodes.size();
+        int totalNodes = freeNds+occNds;
+        graphOut.open(filename);
+        if (!graphOut.is_open()) {
+                return false;
+        }
+        graphOut<<"Clusters: " << totalNodes << "\n";
+        graphOut<<"Codebook: x,y,z,label\n";
+        graphOut << "Occupied Nodes: " << occNds <<"\n";
+        for(int i=0; i<occupiedNodes.size(); i++)
+        {
+                graphOut<<occupiedNodes[i].x<<",";
+                graphOut<<occupiedNodes[i].y<<",";
+                graphOut<<occupiedNodes[i].z<<",";
+                graphOut<<i<<"\n";
+        }
+        graphOut << "Free Nodes:" << freeNds<<"\n";
+        for(int i=0; i<freeNodes.size(); i++)
+        {
+                graphOut<<freeNodes[i].x<<",";
+                graphOut<<freeNodes[i].y<<",";
+                graphOut<<freeNodes[i].z<<",";
+                graphOut<<i<<"\n";
+        }
+        return true;
 }
 
 pointGeom adjacencyMap::makePointGeom(float x, float y, float z)
@@ -243,10 +349,10 @@ bool adjacencyMap::Astar(pointGeom goal,pointGeom start, pointArray & fullPath)
 
         int closestNodeStrt = getClosestNode(start);
         int closestNodeGoal = getClosestNode(goal);
-        std::cout << "Closest node to start is: ";
-        printPointGeom(freeNodes[closestNodeStrt]);
-        std::cout << "Closest node to goal is: ";
-        printPointGeom(freeNodes[closestNodeGoal]);
+        // std::cout << "Closest node to start is: ";
+        // printPointGeom(freeNodes[closestNodeStrt]);
+        // std::cout << "Closest node to goal is: ";
+        // printPointGeom(freeNodes[closestNodeGoal]);
         const double maxCost = 1000;
         std::vector<double> accCost(adjGraph.size(),maxCost);
         std::vector<int> path(adjGraph.size(),-1);
@@ -292,8 +398,8 @@ bool adjacencyMap::Astar(pointGeom goal,pointGeom start, pointArray & fullPath)
         fullPath.push_back(goal);
         int nd = closestNodeGoal;
         while (nd != closestNodeStrt) {
-                printf("C[%d]\n",nd );
-                printPointGeom(freeNodes[nd]);
+                // printf("C[%d]\n",nd );
+                // printPointGeom(freeNodes[nd]);
                 if (nd == -1) {
                         std::cout << "Path creation is  failure" << '\n';
                         return false;
@@ -312,18 +418,37 @@ int adjacencyMap::getClosestNode(pointGeom p)
         //find closest node in graph to an arbitrary point
         Eigen::Vector3d pointEigen(p.x,p.y,p.z);
         Eigen::Vector3d node(freeNodes[0].x,freeNodes[0].y,freeNodes[0].z);
-        double minDistance = (pointEigen - node).norm();
+        double minDistance = (pointEigen - node).squaredNorm();
         int closestNode=0;
         for (int i = 0; i < freeNodes.size(); i++)
         {
                 node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
+                double distance = (pointEigen - node).squaredNorm();
+                if (distance<minDistance) {
+                        closestNode = i;
+                        minDistance = distance;
+                }
+        }
+        //std::cout << "Closest node is" << closestNode <<'\n';
+        return closestNode;
+}
+
+int adjacencyMap::getClosestOccNode(pointGeom p)
+{
+        Eigen::Vector3d pointEigen(p.x,p.y,p.z);
+        Eigen::Vector3d node(occupiedNodes[0].x,occupiedNodes[0].y,occupiedNodes[0].z);
+        double minDistance = (pointEigen - node).norm();
+        int closestNode=0;
+        for (int i = 0; i < occupiedNodes.size(); i++)
+        {
+                node << occupiedNodes[i].x,occupiedNodes[i].y,occupiedNodes[i].z;
                 double distance = (pointEigen - node).norm();
                 if (distance<minDistance) {
                         closestNode = i;
                         minDistance = distance;
                 }
         }
-        std::cout << "Closest node is" << closestNode <<'\n';
+        //std::cout << "Closest node is" << closestNode <<'\n';
         return closestNode;
 }
 
@@ -337,9 +462,9 @@ float adjacencyMap::getClosestNodeDistance(pointGeom p)
 
 double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
 {
-        Eigen::Vector3d eigenA(a.x,a.y,a.z);
-        Eigen::Vector3d eigenB(b.x,b.y,b.z);
-        return (eigenA-eigenB).norm();
+        Eigen::Vector3d EigenA(a.x,a.y,a.z);
+        Eigen::Vector3d EigenB(b.x,b.y,b.z);
+        return (EigenA-EigenB).norm();
 }
 
 void adjacencyMap::printPointGeom(pointGeom p)
@@ -422,6 +547,7 @@ void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
                                 if (!validateConnection(centroids[label],centroids[i],
                                                         connectionRadius))
                                 {
+                                        //Check if node has been previously added else ignore
                                         bool isPresent=(std::find(adjL[i].begin(),
                                                                   adjL[i].end(), label) ==  adjL[i].end() );
                                         if (isPresent) {
@@ -432,7 +558,6 @@ void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
                                                              adjL[label].end(), i) ==  adjL[label].end() );
                                         if ( isPresent)
                                         {
-
                                                 adjL[label].push_back(i);
                                         }
                                 }

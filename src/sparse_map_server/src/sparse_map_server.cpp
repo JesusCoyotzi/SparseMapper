@@ -28,27 +28,54 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         pathPub=nh_.advertise<nav_msgs::Path>("sparse_plan",1);
 
         rebuildPub = nh_.subscribe("remake_graph",1,&sparseMapServer::remakeGraph,this);
+        rebuildPub = nh_.subscribe("clicked_point",1,&sparseMapServer::removePoint,this);
 
 
         sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,
                                  connectionRadius,
                                  maxDist,minDist,kNeighboors);
         sparseMap.makeGraph();
-        std_msgs::ColorRGBA freeColor = makeColor(0.5,1.0,0.50,1.0);
-        std_msgs::ColorRGBA occColor  = makeColor(1,0.0,0.5,1.0);
 
-        pointArray occ = sparseMap.getOccNodes();
-        pointArray libre = sparseMap.getFreeNodes();
-        adjacencyList adjL = sparseMap.getGraph();
         //To let advertisers enable
         ros::Duration(1).sleep();
         if(visNodes)
         {
+                std_msgs::ColorRGBA freeColor = makeColor(0.5,1.0,0.50,1.0);
+                std_msgs::ColorRGBA occColor  = makeColor(1,0.0,0.5,1.0);
+                pointArray occ = sparseMap.getOccNodes();
+                pointArray libre = sparseMap.getFreeNodes();
+                adjacencyList adjL = sparseMap.getGraph();
                 makeCentroidsMarkerAndPublish(occ,occColor,0);
                 makeCentroidsMarkerAndPublish(libre,freeColor,1);
                 makeVizGraphAndPublish(adjL,libre);
                 makeLabelMsgAndPublish(libre,2); //second params is id
         }
+        return;
+}
+
+void sparseMapServer::removePoint(const geometry_msgs::PointStamped &msg)
+{
+        //Removes point clicled from rvbiz
+        if (sparseMap.removeOccupiedPoint(msg.point))
+        {
+                std::cout << "Point removed" << '\n';
+                //sparseMap.makeGraph();
+                if(visNodes)
+                {
+                        std_msgs::ColorRGBA freeColor = makeColor(0.5,1.0,0.50,1.0);
+                        std_msgs::ColorRGBA occColor  = makeColor(1,0.0,0.5,1.0);
+                        pointArray occ = sparseMap.getOccNodes();
+                        pointArray libre = sparseMap.getFreeNodes();
+                        makeCentroidsMarkerAndPublish(occ,occColor,0);
+                        makeCentroidsMarkerAndPublish(libre,freeColor,1);
+                }
+        }
+        return;
+}
+
+void sparseMapServer::saveGraph(const std_msgs::Empty &msg)
+{
+        sparseMap.saveGraph(graphFile);
         return;
 }
 
@@ -219,7 +246,7 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
                 return true;
         }
 
-        std::cout << "Nodes visited: " << '\n';
+        std::cout << "Nodes visited: " << pth.size() <<'\n';
         for (size_t i = 0; i < pth.size(); i++) {
                 geometry_msgs::PoseStamped local_pose;
                 local_pose.pose.position = pth[i];
@@ -228,9 +255,9 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
                 local_pose.pose.orientation.z = 0;
                 local_pose.pose.orientation.w = 1;
                 res.plan.poses.push_back(local_pose);
-                std::cout << pth[i].x << " "
-                          << pth[i].y << " "
-                          << pth[i].z << '\n';
+                // std::cout << pth[i].x << " "
+                //           << pth[i].y << " "
+                //           << pth[i].z << '\n';
         }
         pathPub.publish(res.plan);
         return true;

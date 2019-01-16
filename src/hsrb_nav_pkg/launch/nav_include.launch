@@ -6,6 +6,8 @@
     <param name="publish_frequency" value="1.0" type="double"/>
   </node>
 
+  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find space_quantization)/maps/bioroboticaV.yaml"/>
+
   <!-- <node name="loc_amcl" pkg="amcl" type="amcl" output="screen" args="scan:=/hsrb/base_scan">
     <param name="odom_alpha1" value="0.4"/>
     <param name="odom_alpha2" value="0.4"/>
@@ -20,13 +22,15 @@
     <param name="odom_model_type" value="omni-corrected"/>
   </node> -->
 
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base">
     <remap from="cmd_vel" to="/hsrb/command_velocity" />
     <rosparam file="$(find hsrb_nav_pkg)/costmap_common_params.yaml" command="load" ns="global_costmap"/>
     <rosparam file="$(find hsrb_nav_pkg)/costmap_common_params.yaml" command="load" ns="local_costmap"/>
     <rosparam file="$(find hsrb_nav_pkg)/local_costmap_params.yaml" command="load"/>
     <rosparam file="$(find hsrb_nav_pkg)/global_costmap_params.yaml" command="load"/>
     <rosparam file="$(find hsrb_nav_pkg)/base_local_planner_params.yaml" command="load"/>
+    <rosparam file="$(find hsrb_nav_pkg)/global_planner_params.yaml" command="load"/>
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" type="str"/>
   </node>
 
 </launch>

@@ -7,7 +7,7 @@ from sparse_map_msgs.srv import MakePlan
 
 
 def goalCallback(msg):
-    start = Point(0, 0, 0)
+    start = Point(3, -4, 0)
     goal = Point(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
     try:
         goalProxy = rospy.ServiceProxy("/make_plan", MakePlan)
