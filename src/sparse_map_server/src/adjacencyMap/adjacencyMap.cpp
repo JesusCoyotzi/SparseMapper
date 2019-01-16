@@ -1,5 +1,6 @@
 #include "sparse_map_server/adjacencyMap.h"
 
+
 adjacencyMap::graphNode::graphNode(int vertex, double cost)
 {
         this->vertex = vertex;
