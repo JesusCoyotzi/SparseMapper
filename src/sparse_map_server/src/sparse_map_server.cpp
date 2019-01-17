@@ -12,11 +12,13 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         nh_priv.param<float>("safety_radius",safetyRadius,0.75);
         nh_priv.param<float>("connection_radius",connectionRadius,0.4);
         nh_priv.param<float>("max_dist",maxDist,2);
+        nh_priv.param<float>("max_dist_terminal",maxDistTerm,1.5);
         nh_priv.param<float>("min_dist",minDist,1);
         nh_priv.param<int>("k_neighboors",kNeighboors,6);
         nh_priv.param<bool>("visualize_nodes",visNodes,true);
         //nh_priv.param<bool>("visualize_path",visPath,true);
         nh_priv.param<bool>("visualize_terminals",visTerminals,true);
+        nh_priv.param<bool>("quick_terminals_validation",validateTerminals,true);
 
         codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1,true);
@@ -33,7 +35,7 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
 
         sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,
                                  connectionRadius,
-                                 maxDist,minDist,kNeighboors);
+                                 maxDist,minDist,maxDistTerm,kNeighboors);
         sparseMap.makeGraph();
 
         //To let advertisers enable
@@ -223,43 +225,65 @@ std_msgs::ColorRGBA sparseMapServer::makeColor(float r,float g, float b, float a
 bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
                               sparse_map_msgs::MakePlan::Response &res)
 {
-        std::cout << "Calculating path" << '\n';
+        //std::cout << "Calculating path" << '\n';
         pointArray pth;
         if (visTerminals) {
                 makeTerminalsAndPublish(req.goalPose,req.startPose);
         }
 
         //Check if goal and start are valid
-        bool isNotValid = sparseMap.validateTerminals(req.startPose,req.goalPose);
+        //  ros::Time validStart = ros::Time::now();
+        int start, goal;
+        bool isValid;
+        if (validateTerminals)
+        {
+                isValid = sparseMap.validateTerminals(req.startPose,req.goalPose,start,goal);
+        }
+        else
+        {
+                isValid = sparseMap.validateTerminalsQuick(req.startPose,req.goalPose,start,goal);
+        }
+        //ros::Duration validRun = ros::Time::now() - validStart;
 
         res.plan.header.frame_id = mapFrame;
         res.plan.header.stamp = ros::Time();
-        if (isNotValid) {
+        if (!isValid) {
                 std::cout <<
-                "Error either initial or final position collides, with occupied nodes "
-                          << '\n';
+                " \033[1;31m Error either initial or final position collides, with occupied nodes or is too far \033[0m \n";
                 return true;
         }
-        if(!sparseMap.Astar(req.goalPose,req.startPose,pth))
+
+        //ros::Time planStart = ros::Time::now();
+        if(!sparseMap.Astar(goal,start,pth))
         {
                 //failure
                 return true;
         }
 
-        std::cout << "Nodes visited: " << pth.size() <<'\n';
+        geometry_msgs::Quaternion q;
+        q.x=0; q.y=0; q.z=0; q.w=1;
+        geometry_msgs::PoseStamped local_pose;
+        local_pose.pose.position = req.startPose;
+        local_pose.pose.orientation = q;
+
+        res.plan.poses.push_back(local_pose);
+
         for (size_t i = 0; i < pth.size(); i++) {
-                geometry_msgs::PoseStamped local_pose;
                 local_pose.pose.position = pth[i];
-                local_pose.pose.orientation.x = 0;
-                local_pose.pose.orientation.y = 0;
-                local_pose.pose.orientation.z = 0;
-                local_pose.pose.orientation.w = 1;
                 res.plan.poses.push_back(local_pose);
                 // std::cout << pth[i].x << " "
                 //           << pth[i].y << " "
                 //           << pth[i].z << '\n';
         }
+        local_pose.pose.position = req.goalPose;
+        res.plan.poses.push_back(local_pose);
+        //ros::Duration planRun = ros::Time::now() - planStart;
+
+        std::cout << "Path planning succesfull: Nodes visited: " << pth.size()+2 <<'\n';
+        // std::cout << "Validation time: " << validRun << '\n';
+        // std::cout << "Planning time: " << planRun << '\n';
         pathPub.publish(res.plan);
+
         return true;
 }
 

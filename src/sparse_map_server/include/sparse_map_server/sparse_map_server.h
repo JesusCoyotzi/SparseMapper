@@ -16,9 +16,10 @@ ros::Publisher codebookMarkerPub, graphMarkerPub, pathPub, labelPub, terminalPub
 ros::Subscriber rebuildPub;
 ros::ServiceServer pathServer;
 std::string mapFileName,graphFile,mapFrame;
-float safetyHeight,safetyRadius,connectionRadius, maxDist, minDist;
+//TODO this is saved on sparseMap, no need to duplicate outside. REMOVE
+float safetyHeight,safetyRadius,connectionRadius, maxDist, minDist,maxDistTerm;
 adjacencyMap sparseMap;
-bool visNodes,visTerminals;
+bool visNodes,visTerminals,validateTerminals;
 int kNeighboors;
 void makeCentroidsMarkerAndPublish( pointArray &codebook,std_msgs::ColorRGBA color, int id);
 void makeVizGraphAndPublish(adjacencyList l, pointArray codebook);

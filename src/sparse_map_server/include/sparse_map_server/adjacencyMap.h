@@ -36,9 +36,11 @@ struct distanceLabel {
         bool operator<(const distanceLabel& a) const;
 };
 
+//TODO mini kd tree implementation inside.
+
 pointArray occupiedNodes,freeNodes;
 adjacencyList adjGraph;
-float safetyHeight,safetyRadius,connectionRadius, maxDist,minDist;
+float safetyHeight,safetyRadius,connectionRadius, maxDist,minDist,maxDistTerm;
 int kNeighboors;
 
 bool parseCodeLine(std::string line,pointGeom &p);
@@ -60,7 +62,7 @@ int reduceNodes(std::list<pointGeom> &nodes, std::vector<pointGeom> &oNodes );
 public:
 adjacencyMap(std::string mapFile,
              float safeHeight,float safeRadius,
-             float cRadius, float mxDist, float minDist,
+             float cRadius, float mxDist, float minDist, float maxDistTerm,
              int kNeighboors);
 adjacencyMap(std::string filename);
 adjacencyMap();
@@ -69,12 +71,15 @@ bool saveGraph(std::string filename);
 void makeGraph();
 void setParams(float safeHeight,float safeRadius, float cRadius,
                float mxDist,float minDist,int kNeighboors);
-bool Astar(pointGeom goal,pointGeom start, pointArray &fullPath);
+bool Astar(int goal,int start, pointArray &fullPath);
 bool loadMap(std::string filename);
 pointArray getFreeNodes();
 pointArray getOccNodes();
 adjacencyList getGraph();
-bool validateTerminals(pointGeom strt,pointGeom goal);
+bool validateTerminals(pointGeom strt,pointGeom goal,
+                       int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
+bool validateTerminalsQuick(pointGeom strt,pointGeom goal,
+                       int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
 float getClosestNodeDistance(pointGeom p1);
 bool removeOccupiedPoint(pointGeom p);
 

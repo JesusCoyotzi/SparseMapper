@@ -1,3 +1,38 @@
+bool adjacencyMap::validateNode(pointGeom p1)
+{
+        //Chceck if a point is too close to occupied node
+        //REturns true if collision exists
+        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z);
+        Eigen::Vector3d p2Eigen(p1.x,p1.y,p1.z+safetyHeight);
+        //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
+        std::vector<distanceLabel> distances(occupiedNodes.size());
+        for (int j = 0; j < occupiedNodes.size(); j++)
+        {
+                Eigen::Vector3d q(occupiedNodes[j].x,occupiedNodes[j].y,occupiedNodes[j].z);
+                distances[j].dist=(p1Eigen-q).norm();
+                distances[j].label=j;
+        }
+        std::sort(distances.begin(),distances.end());
+
+        bool collision = false;
+        for (size_t i = 0; i < distances.size(); i++) {
+                if (distances[i].dist>(safetyRadius+safetyHeight)) {
+                        //They are ordered there wont be any more centroids closer to safetySphere
+                        break;
+                }
+                int label = distances[i].label;
+                Eigen::Vector3d q(occupiedNodes[label].x,occupiedNodes[label].y,occupiedNodes[label].z);
+                //Check if it is worth doing cilinder collision
+                //If node is closer than safetyH + safetyRadius check else ignore
+                collision = cylinderCollision(p1Eigen,p2Eigen,q,safetyRadius);
+                if (collision) {
+                        break;
+                }
+
+        }
+        return collision;
+}
+
 void adjacencyGraph::makeGraph(const std_msgs::Empty &msg)
 {
         //Allocate an initialize adj matrix

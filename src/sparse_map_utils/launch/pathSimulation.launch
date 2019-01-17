@@ -2,7 +2,7 @@
 <launch>
   <arg name="map_name" default="bioroboticaV"/>
 
-  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name).yaml"/>
+  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)Octo.yaml"/>
   <node name="truth_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)gndInf.yaml">
     <remap from="static_map" to="truth_map"/>
     <remap from="map" to="true_map"/>

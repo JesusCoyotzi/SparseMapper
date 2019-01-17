@@ -35,6 +35,7 @@ adjacencyMap::adjacencyMap(std::string mapFileName)
 adjacencyMap::adjacencyMap(std::string mapFile,
                            float safeHeight,float safeRadius,
                            float cRadius, float mxDist, float minDist,
+                           float mxDistTerm,
                            int kNeighboors)
 {
         //Setter for params
@@ -43,12 +44,14 @@ adjacencyMap::adjacencyMap(std::string mapFile,
         this->connectionRadius = cRadius;
         this->maxDist = mxDist;
         this->minDist = minDist;
+        this->maxDistTerm = mxDistTerm;
         this->kNeighboors = kNeighboors;
         std::cout << "Parameters set for adj map:" << '\n';
         std::cout << "Safety Heigth: " << safetyHeight  << '\n';
         std::cout << "Safety Radius: " << safetyRadius  << '\n';
         std::cout << "Connection Radius: " << connectionRadius  << '\n';
         std::cout << "Max distance: " << maxDist  << '\n';
+        std::cout << "Max distance to terminal: " << maxDistTerm  << '\n';
         std::cout << "Min distance: " << minDist  << '\n';
         std::cout << "K neighbors: " << this->kNeighboors  << '\n';
 
@@ -345,23 +348,28 @@ adjacencyList adjacencyMap::getGraph()
         return this->adjGraph;
 }
 
-bool adjacencyMap::Astar(pointGeom goal,pointGeom start, pointArray & fullPath)
+bool adjacencyMap::Astar(int goal,int start, pointArray & fullPath)
 {
-
-        int closestNodeStrt = getClosestNode(start);
-        int closestNodeGoal = getClosestNode(goal);
+        /*get shortes path using A* algorithm
+           goal  index of goal node
+           start index of start node
+           fullPath reconstructed path*/
+        // int closestNodeStrt = getClosestNode(start);
+        // int closestNodeGoal = getClosestNode(goal);
         // std::cout << "Closest node to start is: ";
         // printPointGeom(freeNodes[closestNodeStrt]);
         // std::cout << "Closest node to goal is: ";
         // printPointGeom(freeNodes[closestNodeGoal]);
+        pointGeom goalPoint =freeNodes[goal];
+        pointGeom startPoint =freeNodes[start];
+
         const double maxCost = 1000;
         std::vector<double> accCost(adjGraph.size(),maxCost);
         std::vector<int> path(adjGraph.size(),-1);
-
         std::priority_queue<graphNode> pq;
         //double cost = euclideanDistance()
-        pq.push(graphNode(closestNodeStrt,0));
-        accCost[closestNodeStrt]=0;
+        pq.push(graphNode(start,0));
+        accCost[start]=0;
         int nodesVisited =0;
         while (!pq.empty()) {
                 int current = pq.top().vertex;
@@ -373,7 +381,7 @@ bool adjacencyMap::Astar(pointGeom goal,pointGeom start, pointArray & fullPath)
                         std::cout << "Error could not find path, check connectivity" << '\n';
                         return false;
                 }
-                if (current == closestNodeGoal)
+                if (current == goal)
                 {
                         break;
                 }
@@ -388,28 +396,27 @@ bool adjacencyMap::Astar(pointGeom goal,pointGeom start, pointArray & fullPath)
                                 accCost[nxtNode]=newCost;
                                 double priority =
                                         newCost +
-                                        euclideanDistance(nxtPoint,
-                                                          freeNodes[closestNodeGoal]);
+                                        euclideanDistance(nxtPoint,goalPoint);
                                 pq.push(graphNode(nxtNode,priority));
                                 path[nxtNode]= current;
                         }
                 }
         }
 
-        fullPath.push_back(goal);
-        int nd = closestNodeGoal;
-        while (nd != closestNodeStrt) {
+        fullPath.push_back(goalPoint);
+        int nd = goal;
+        while (nd != start) {
                 // printf("C[%d]\n",nd );
                 // printPointGeom(freeNodes[nd]);
                 if (nd == -1) {
-                        std::cout << "Path creation is  failure" << '\n';
+                        std::cout << "Error: Path not found" << '\n';
                         return false;
                 }
                 fullPath.push_back(freeNodes[nd]);
                 nd = path[nd];
 
         }
-        fullPath.push_back(start);
+        fullPath.push_back(startPoint);
         std::reverse(fullPath.begin(),fullPath.end());
         return true;
 }
@@ -584,12 +591,20 @@ bool adjacencyMap::validateConnection(pointGeom p1, pointGeom p2, float radius)
 {
         //Chceck if a connection between two free centroids is intersected by an occupied
         //point
-        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z+radius); //why radiuus?
+        Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z+radius); //why radiuus? cylinder bvetwwen connections!
         Eigen::Vector3d p2Eigen(p2.x,p2.y,p2.z+radius);
         //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
+        // std::vector<distanceLabel> distances(nCnt);
+        // for (int j = 0; j < occupiedNodes.size(); j++)
+        // {
+        //         distances[j].dist=euclideanDistance(centroids[i],centroids[j]);
+        //         distances[j].label=j;
+        // }
         bool collision = false;
         for (size_t i = 0; i < occupiedNodes.size(); i++) {
                 Eigen::Vector3d q(occupiedNodes[i].x,occupiedNodes[i].y,occupiedNodes[i].z);
+                //Check if it is worth checking collision
+
                 collision = cylinderCollision(p1Eigen,p2Eigen,q,radius);
                 if (collision) {
                         break;
@@ -601,46 +616,76 @@ bool adjacencyMap::validateConnection(pointGeom p1, pointGeom p2, float radius)
 bool adjacencyMap::validateNode(pointGeom p1)
 {
         //Chceck if a point is too close to occupied node
+        //REturns true if collision exists
         Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z);
         Eigen::Vector3d p2Eigen(p1.x,p1.y,p1.z+safetyHeight);
         //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
+
         bool collision = false;
         for (size_t i = 0; i < occupiedNodes.size(); i++) {
                 Eigen::Vector3d q(occupiedNodes[i].x,occupiedNodes[i].y,occupiedNodes[i].z);
-                collision = cylinderCollision(p1Eigen,p2Eigen,q,safetyRadius);
-                if (collision) {
-                        break;
+                //Check if it is worth doing cilinder collision
+                //If node is closer than safetyH + safetyRadius check else ignore
+                float dist = (p1Eigen-q).norm();
+                if (dist< (safetyHeight+safetyRadius)) {
+                        collision = cylinderCollision(p1Eigen,p2Eigen,q,safetyRadius);
+                        if (collision) {
+                                break;
+                        }
                 }
         }
         return collision;
 }
 
-bool adjacencyMap::validateTerminals(pointGeom strt, pointGeom goal)
+bool adjacencyMap::validateTerminals(pointGeom strt, pointGeom goal,
+                                     int &closetsNodeStrtIdx, int &closestNodeGoalIdx)
 {
-        int closetsNodeStrtIdx = getClosestNode(strt);
+        closetsNodeStrtIdx = getClosestNode(strt);
         float strtDst =euclideanDistance(freeNodes[closetsNodeStrtIdx],strt);
-        if (strtDst > maxDist) {
+        if (strtDst > maxDistTerm) {
                 std::cout << "Error: Start node is " << strtDst << " [m] away from closest node\n";
                 std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
                 return false;
         }
 
-        int closestNodeGoalIdx = getClosestNode(goal);
+        closestNodeGoalIdx = getClosestNode(goal);
         float goalDst =euclideanDistance(freeNodes[closestNodeGoalIdx],goal);
-        if (goalDst > maxDist) {
+        if (goalDst > maxDistTerm) {
                 std::cout << "Error: Goal node is " << goalDst << " [m] away from closest node\n";
                 std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
                 return false;
         }
 
         bool isNotValid = validateNode(strt) || validateNode (goal);
-        return isNotValid;
+        return !isNotValid;
+}
+
+bool adjacencyMap::validateTerminalsQuick(pointGeom strt, pointGeom goal,
+                                          int &closetsNodeStrtIdx, int &closestNodeGoalIdx)
+{
+        closetsNodeStrtIdx = getClosestNode(strt);
+        float strtDst =euclideanDistance(freeNodes[closetsNodeStrtIdx],strt);
+        if (strtDst > maxDistTerm) {
+                std::cout << "Error: Start node is " << strtDst << " [m] away from closest node\n";
+                std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
+                return false;
+        }
+
+        closestNodeGoalIdx = getClosestNode(goal);
+        float goalDst =euclideanDistance(freeNodes[closestNodeGoalIdx],goal);
+        if (goalDst > maxDistTerm) {
+                std::cout << "Error: Goal node is " << goalDst << " [m] away from closest node\n";
+                std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
+                return false;
+        }
+
+        return true;
 }
 
 
 bool adjacencyMap::cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q, float radius)
 {
-        Eigen::Vector3d p2_p1=p2-p1;
+        Eigen::Vector3d p2_p1 = p2-p1;
         // std::cout << "Conecttions from " << '\n';
         // std::cout << "p1: " <<  p1<<'\n';
         // std::cout << "p2: " <<  p2<<'\n';
