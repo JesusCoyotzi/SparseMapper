@@ -1,24 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <arg name="map_name" default="bioroboticaIV"/>
-  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find space_quantization)/maps/$(arg map_name).yaml"/>
-  <include file="$(find hsrb_nav_pkg)/launch/nav_include.launch"/>
+  <arg name="map_name" default="bioroboticaV"/>
 
-  <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node">
-    <param name="map_file" value="$(find space_quantization)/graphs/$(arg map_name).txt" type="str"/>
+  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)Octo.yaml"/>
+  <node name="truth_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)gndInf.yaml">
+    <remap from="static_map" to="truth_map"/>
+    <remap from="map" to="true_map"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_map" args="0.0 -0.0 0.0 -0.000, 0, 0, 1 base_link map 100">
+
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="link_broadcaster_odom" args="0.0 -0.0 0.0 -0.000, 0, 0, 1 base_link odom 100">
+
+  </node>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base">
+    <remap from="cmd_vel" to="/hsrb/command_velocity" />
+    <rosparam file="$(find hsrb_nav_pkg)/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+    <rosparam file="$(find hsrb_nav_pkg)/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+    <rosparam file="$(find hsrb_nav_pkg)/local_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find hsrb_nav_pkg)/global_costmap_params.yaml" command="load"/>
+    <rosparam file="$(find hsrb_nav_pkg)/base_local_planner_params.yaml" command="load"/>
+    <rosparam file="$(find hsrb_nav_pkg)/global_planner_params.yaml" command="load"/>
+    <param name="base_global_planner" value="global_planner/GlobalPlanner" type="str"/>
+  </node>
+
+
+  <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">
+    <param name="map_file" value="$(find sparse_map_utils)/graphs/$(arg map_name).txt" type="str"/>
     <param name="k_neighboors" value="6" type="int"/>
     <param name="max_dist" value="1.2" type="double"/>
-    <param name="min_dist" value="0.250" type="double"/>
+    <param name="min_dist" value="0.25" type="double"/>
     <param name="safety_height" value="1.0" type="double"/>
-    <param name="safety_radius" value="0.3" type="double"/>
+    <param name="safety_radius" value="0.25" type="double"/>
     <param name="connection_radius" value="0.3" type="double"/>
+    <param name="visualize_terminals" value="false" type="bool"/>
     <remap from="graph_marker" to="/hsrb/graph_marker"/>
     <remap from="make_plan" to="/sparse_map/make_plan" />
   </node>
 
-  <node name="path_simulator" pkg="sparse_map_utils" type="pathSimulation.py" args="10 $(find sparse_map_utils)/results/run1.csv" output="screen" >
-    <remap from="move_make_plan" to="/move_base/make_plan" />
-    <remap from="sparse_make_plan" to="/sparse_map/make_plan" />
-  </node>
 
 </launch>

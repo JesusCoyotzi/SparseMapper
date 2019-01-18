@@ -5,7 +5,7 @@
 int main(int argc, char  *argv[]) {
 
         if (argc < 5) {
-                std::cout << "Usage program inFile outFile mapResolution erosionRadius" << '\n';
+                std::cout << "Usage program inFile outFile mapResolution [m] erosionRadius [m]" << '\n';
         }
 
         std::string inputFileName(argv[1]);

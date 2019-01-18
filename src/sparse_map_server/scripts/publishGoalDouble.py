@@ -12,7 +12,7 @@ from sparse_map_msgs.srv import MakePlan
 
 
 def goalCallback(msg):
-    start = Point(0, 0, 0)
+    start = Point(3, -4, 0)
     goal = Point(msg.point.x, msg.point.y, msg.point.z)
     head = Header()
     head.stamp = rospy.Time.now()

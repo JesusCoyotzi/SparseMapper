@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <string>
 #include <algorithm>
 #include <queue>
@@ -35,17 +36,20 @@ struct distanceLabel {
         bool operator<(const distanceLabel& a) const;
 };
 
+//TODO mini kd tree implementation inside.
+
 pointArray occupiedNodes,freeNodes;
 adjacencyList adjGraph;
-float safetyHeight,safetyRadius,connectionRadius, maxDist,minDist;
+float safetyHeight,safetyRadius,connectionRadius, maxDist,minDist,maxDistTerm;
 int kNeighboors;
 
-pointGeom parseCodeLine(std::string line);
+bool parseCodeLine(std::string line,pointGeom &p);
 pointGeom makePointGeom(float x, float y, float z);
 std_msgs::ColorRGBA makeColor(float r,float g, float b, float a);
 std::vector<int> parseGraphEntry(std::string line);
 double euclideanDistance(pointGeom a, pointGeom b);
 int getClosestNode(pointGeom p);
+int getClosestOccNode(pointGeom p);
 bool pruneNode(pointGeom p,pointArray &tmpNodes);
 void printPointGeom(pointGeom p);
 void Knn(pointArray &centroids, adjacencyList & adjL);
@@ -54,23 +58,30 @@ bool cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q
 void printAdjacencyList(adjacencyList l);
 static bool compareDistance(distanceLabel i, distanceLabel j);
 bool validateNode(pointGeom p1);
+int reduceNodes(std::list<pointGeom> &nodes, std::vector<pointGeom> &oNodes );
 public:
 adjacencyMap(std::string mapFile,
              float safeHeight,float safeRadius,
-             float cRadius, float mxDist, float minDist,
+             float cRadius, float mxDist, float minDist, float maxDistTerm,
              int kNeighboors);
 adjacencyMap(std::string filename);
 adjacencyMap();
+
+bool saveGraph(std::string filename);
 void makeGraph();
 void setParams(float safeHeight,float safeRadius, float cRadius,
                float mxDist,float minDist,int kNeighboors);
-bool Astar(pointGeom goal,pointGeom start, pointArray &fullPath);
+bool Astar(int goal,int start, pointArray &fullPath);
 bool loadMap(std::string filename);
 pointArray getFreeNodes();
 pointArray getOccNodes();
 adjacencyList getGraph();
-bool validateTerminals(pointGeom strt,pointGeom goal);
+bool validateTerminals(pointGeom strt,pointGeom goal,
+                       int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
+bool validateTerminalsQuick(pointGeom strt,pointGeom goal,
+                       int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
 float getClosestNodeDistance(pointGeom p1);
+bool removeOccupiedPoint(pointGeom p);
 
 
 };

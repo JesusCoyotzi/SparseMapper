@@ -33,36 +33,8 @@ def readHeaders(csv_files):
 
     return cloud_dict
 
-
-def makeSummary(csv_files):
-    while not csv_files:
-        f = csv_file.pop()
-        df_metadata = pd.read_csv(f, skiprows=1, nrows=1, header=0)
-        cloud_file = os.path.basename(df_metadata["filename"])
-        for csv in csv_files:
-            df_metadata = pd.read_csv(csv, skiprows=1, nrows=1, header=0)
-            if cloud_file == os.path.basename(df_metadata["filename"]):
-                pass
-        return
-
-
-def getFileName(csv_file):
-    df_metadata = pd.read_csv(csv_file, skiprows=1, nrows=1, header=0)
-    cloud_file = os.path.basename(df_metadata["filename"][0])
-    return os.path.splitext(cloud_file)[0]
-
-
-def processFiles(csv_file):
-    df_metadata = pd.read_csv(csv_file, skiprows=1, nrows=1, header=0)
-    # if not (df_metadata.iloc[0]["method"] ==  mthd):
-    #     continue
-    meth = df_metadata["method"][0]
-    simul_data = pd.read_csv(csv_file, skiprows=4)
-    valid_data = simul_data.loc[simul_data["clusters"]
-                                == simul_data["requested"]]
+def reduceFrame(valid_data,n_points,meth):
     cltrs = valid_data["requested"].unique()
-    n_points = df_metadata["points"][0]
-
     local_data = []
     for i in cltrs:
         cursor = valid_data.loc[valid_data["clusters"] == i]
@@ -77,8 +49,60 @@ def processFiles(csv_file):
                    "method": meth,
                    "points": n_points}
         local_data.append(tmp_dic)
-        local_frame = pd.DataFrame(local_data)
-        # print(local_frame)
+    # print(local_frame)
+    local_frame = pd.DataFrame(local_data)
+    return local_frame
+
+
+def makeSummary(csv_files):
+    while not csv_files:
+        f = csv_file.pop()
+        df_metadata = pd.read_csv(f, skiprows=1, nrows=1, header=0)
+        cloud_file = os.path.basename(df_metadata["filename"])
+        for csv in csv_files:
+            df_metadata = pd.read_csv(csv, skiprows=1, nrows=1, header=0)
+            if cloud_file == os.path.basename(df_metadata["filename"]):
+                pass
+        return
+
+
+def getFileName(csv_file):
+    print(csv_file)
+    df_metadata = pd.read_csv(csv_file, skiprows=1, nrows=1, header=0)
+    cloud_file = os.path.basename(df_metadata["filename"][0])
+    return os.path.splitext(cloud_file)[0]
+
+
+def processFiles(csv_file):
+    df_metadata = pd.read_csv(csv_file, skiprows=1, nrows=1, header=0)
+
+    # if not (df_metadata.iloc[0]["method"] ==  mthd):
+    #     continue
+    meth = df_metadata["method"][0]
+    simul_data = pd.read_csv(csv_file, skiprows=4)
+    #print(csv_file)
+    valid_data = simul_data.loc[simul_data["clusters"]
+                                == simul_data["requested"]]
+    n_points = df_metadata["points"][0]
+
+    # local_frame = reduceFrame(valid_data,n_points,meth)
+    cltrs = valid_data["requested"].unique()
+    local_data = []
+    for i in cltrs:
+        cursor = valid_data.loc[valid_data["clusters"] == i]
+        avg_dist = cursor.mean()["distorsion"] / n_points
+        avg_time = cursor.mean()["time"]
+        avg_stddev = cursor.mean()["stddev"]
+
+        tmp_dic = {"clusters": i,
+                   "time": avg_time,
+                   "distorsion": avg_dist,
+                   "stddev": avg_stddev,
+                   "method": meth,
+                   "points": n_points}
+        local_data.append(tmp_dic)
+    # print(local_frame)
+    local_frame = pd.DataFrame(local_data)
     return local_frame
 
 
@@ -123,7 +147,7 @@ def makeSummaryFigure(df, output_name):
 
 def processFolder(folder):
     files = [os.path.join(folder, f) for f in os.listdir(folder)]
-    print(files)
+    #print(files)
     cols = ["clusters", "time", "distorsion", "stddev", "method","points"]
     df_summary = pd.DataFrame(columns=cols)
     pcd_file = getFileName(files[0])
@@ -154,7 +178,7 @@ def main():
     output_folder = os.path.abspath(sys.argv[2])
     pcd_folders = [os.path.join(csv_folder, dI) for dI in os.listdir(
         csv_folder) if os.path.isdir(os.path.join(csv_folder, dI))]
-    print(pcd_folders)
+    #print(pcd_folders)
     for pcd_folder in pcd_folders:
         df_sum, pcd_name = processFolder(pcd_folder)
         saveCsvAndFig(df_sum, output_folder, pcd_name)
