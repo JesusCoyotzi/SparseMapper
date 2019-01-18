@@ -12,7 +12,6 @@
       <remap from="rgb/image" to="/hsrb/head_rgbd_sensor/rgb/image_rect_color"/>
       <remap from="depth/image" to="/hsrb/head_rgbd_sensor/depth_registered/image_raw"/>
       <remap from="rgb/camera_info" to="/hsrb/head_rgbd_sensor/rgb/camera_info"/>
-      <param name="subscribe_stereo" type="bool" value="false"/>
 
       <param name="queue_size" type="int" value="25"/>
 
@@ -41,12 +40,6 @@
       <param name="cloud_noise_filtering_min_neighbors" value="10"/> -->
     </node>
 
-    <node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d /home/takeshi/.rtabmap/rtabmap.ini" output="screen">
-      <param name="frame_id" type="string" value="base_link"/>
-      <remap from="rgb/image" to="/hsrb/head_rgbd_sensor/rgb/image_rect_color"/>
-      <param name="rgb/image_transport" type="string" value="compressed"/>
-    </node> 
-  
-
-  
+    
 </launch>
+i

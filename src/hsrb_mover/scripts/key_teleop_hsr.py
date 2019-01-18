@@ -81,7 +81,7 @@ def moveTorso(height,pub):
     traj.joint_names = ["arm_lift_joint", "arm_flex_joint",
                         "arm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
     p = trajectory_msgs.msg.JointTrajectoryPoint()
-    p.positions = [height, -0.0, -1.57, -1.57 , 0.0]
+    p.positions = [height, -0.2, -1.57, -1.57 , 0.0]
     p.velocities = [0, 0, 0, 0, 0]
     p.time_from_start = rospy.Time(1)
     traj.points = [p]
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     settings = termios.tcgetattr(sys.stdin)
     pub = rospy.Publisher('/hsrb/command_velocity', Twist, queue_size=1)
     rospy.init_node('hsr_keyboard_teleop')
-    speed = rospy.get_param("~speed", 1.0)
+    speed = rospy.get_param("~speed", 0.75)
     turn = rospy.get_param("~turn", 0.5)
     x = 0
     y = 0
