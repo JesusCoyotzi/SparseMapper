@@ -3,11 +3,15 @@
     <node name="rtabmap" pkg="rtabmap_ros" type="rtabmap" output="screen" args="--delete_db_on_start">
       <param name="frame_id" type="string" value="base_link"/>
 
+      <param name="subscribe_stereo" type="bool" value="false"/>
+      <param name="subscribe_rgbd" type="bool" value="false"/>
       <param name="subscribe_depth" type="bool" value="true"/>
       <param name="subscribe_scan" type="bool" value="true"/>
+      <param name="visual_odometry" type="bool" value="false"/>
 
       <remap from="odom" to="/hsrb/odom"/>
       <remap from="scan" to="/hsrb/base_scan"/>
+      
 
       <remap from="rgb/image" to="/hsrb/head_rgbd_sensor/rgb/image_rect_color"/>
       <remap from="depth/image" to="/hsrb/head_rgbd_sensor/depth_registered/image_raw"/>
@@ -23,17 +27,18 @@
       <param name="RGBD/ProximityBySpace" type="string" value="true"/>
       <param name="RGBD/AngularUpdate" type="string" value="0.01"/>
       <param name="RGBD/LinearUpdate" type="string" value="0.01"/>
+      <param name="RGBD/OptimizeMaxError" type="string" value="3.0"/>
       <param name="RGBD/OptimizeFromGraphEnd" type="string" value="false"/>
-      <param name="Reg/Force3DoF" type="string" value="true"/>
+      <param name="Reg/Force3DoF" type="string" value="false"/>
       <param name="Reg/Strategy" type="string" value="1"/>
       <!-- 1=ICP -->
       <param name="Reg/Force3DoF" type="string" value="true"/>
       <param name="Vis/MinInliers" type="string" value="5"/>
       <param name="Vis/InlierDistance" type="string" value="0.1"/>
-      <param name="Rtabmap/TimeThr" type="string" value="800"/>
+      <param name="Rtabmap/TimeThr" type="string" value="900"/>
       <param name="Mem/RehearsalSimilarity" type="string" value="0.45"/>
 
-      <param name="Grid/RangeMax" value="3.0" type="double"/>
+      <param name="Grid/RangeMax" value="4.0" type="double"/>
       <param name="Grid/MaxGroundHeight" value="0.1" type="double"/>
       <param name="Grid/MaxObstacleHeight" value="2.0" type="double"/>
       <!-- <param name="cloud_max_depth" value="2.0" type="double"/>
@@ -41,11 +46,20 @@
       <param name="cloud_noise_filtering_min_neighbors" value="10"/> -->
     </node>
 
-    <node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d /home/takeshi/.rtabmap/rtabmap.ini" output="screen">
+   <node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d /home/takeshi/.rtabmap/rtabmap.ini" output="screen">
       <param name="frame_id" type="string" value="base_link"/>
+      <param name="queue_size" type="int" value="30"/>
+      <param name="approx_sync" type="bool" value="true"/>
+
+      <param name="subscribe_rgbd"  type="bool"   value="false"/>
+      <param name="subscribe_stereo"  type="bool"   value="false"/>
+      <param name="subscribe_depth" type="bool" value="false"/>
+
       <remap from="rgb/image" to="/hsrb/head_rgbd_sensor/rgb/image_rect_color"/>
       <param name="rgb/image_transport" type="string" value="compressed"/>
-    </node> 
+      <remap from="scan"                to="/hsrb/base_scan"/>
+      <remap from="odom" to="/hsrb/odom"/>
+   </node> 
   
 
   

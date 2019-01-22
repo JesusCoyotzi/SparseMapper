@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <arg name="grid_map"  default="$(find space_quantization)/maps/bioroboticaIV.yaml"/>
+  <arg name="grid_map"  default="/home/takeshi/coyo/maps/PDS.yaml"/>
   <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(arg grid_map)"/>
   <node name="loc_amcl" pkg="amcl" type="amcl" output="screen" args="scan:=/hsrb/base_scan">
     <param name="odom_alpha1" value="0.4"/>
