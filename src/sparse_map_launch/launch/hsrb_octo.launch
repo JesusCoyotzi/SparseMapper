@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
-  <arg name="crop" default="2.0"/>
+  <arg name="crop" default="4.0"/>
   <arg name="freeSpace" default="0.2  "/>
   <arg name="name" default="sparse_map"/>
 
   <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-    <param name="resolution" value="0.05"/>
+   <param name="resolution" value="0.05"/>
 
     <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
     <param name="frame_id" type="string" value="map"/>
 
     <!-- maximum range to integrate (speedup!) -->
-    <param name="sensor_model/max_range" value="15.0"/>
+    <param name="sensor_model/max_range" value="$(arg crop)"/>
     <param name="filter_ground " value="true" type="bool"/>
-    <param name="base_frame_id " value="/hsrb/head_rgbd_sensor/depth_registered/rectified_points" type="str"/>
+    <param name="base_frame_id " value="base_link" type="str"/>
 
     <!-- data source to integrate (PointCloud2) -->
-    <remap from="cloud_in" to="/hsrb/processed_cloud"/>
+    <remap from="cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
 
   </node>
 
