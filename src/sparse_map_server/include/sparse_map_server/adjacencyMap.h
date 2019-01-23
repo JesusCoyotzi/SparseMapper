@@ -48,6 +48,8 @@ pointGeom makePointGeom(float x, float y, float z);
 std_msgs::ColorRGBA makeColor(float r,float g, float b, float a);
 std::vector<int> parseGraphEntry(std::string line);
 double euclideanDistance(pointGeom a, pointGeom b);
+double chebyshevDistance(pointGeom a, pointGeom b);
+double L1Distance(pointGeom a, pointGeom b);
 int getClosestNode(pointGeom p);
 int getClosestOccNode(pointGeom p);
 bool pruneNode(pointGeom p,pointArray &tmpNodes);
@@ -59,6 +61,7 @@ void printAdjacencyList(adjacencyList l);
 static bool compareDistance(distanceLabel i, distanceLabel j);
 bool validateNode(pointGeom p1);
 int reduceNodes(std::list<pointGeom> &nodes, std::vector<pointGeom> &oNodes );
+
 public:
 adjacencyMap(std::string mapFile,
              float safeHeight,float safeRadius,
@@ -79,9 +82,39 @@ adjacencyList getGraph();
 bool validateTerminals(pointGeom strt,pointGeom goal,
                        int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
 bool validateTerminalsQuick(pointGeom strt,pointGeom goal,
-                       int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
+                            int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
 float getClosestNodeDistance(pointGeom p1);
 bool removeOccupiedPoint(pointGeom p);
+};
 
+class graphIO
+{
+private:
+  struct lessL1
+  {
+           bool operator()(const pointGeom& p1, const pointGeom &p2)
+          {
+              double p1norm =  p1.x*p1.x+p1.y*p1.y+p1.z*p1.z;
+              double p2norm =  p2.x*p2.x+p2.y*p2.y+p2.z*p2.z;
+              return p1norm < p2norm;
+          }
+  };
+  std::list<pointGeom> freeCodes;
+  std::list<pointGeom> occCodes;
+  bool nodesLoaded;
+  bool parseCodeLine(std::string, pointGeom &g);
 
+public:
+  double thres;
+  graphIO();
+  graphIO(std::string filename);
+  pointGeom removeOccCode(pointGeom p);
+  pointGeom removeFreeCode(pointGeom p);
+  bool loadNodes(std::string filename);
+  bool saveAsTxt(std::string filename);
+  void addFreeCode(pointGeom p);
+  void addOccCode(pointGeom p);
+  pointArray getFreeCodes();
+  pointArray getOccCodes();
+  void loadToGraph(adjacencyMap &graph);
 };

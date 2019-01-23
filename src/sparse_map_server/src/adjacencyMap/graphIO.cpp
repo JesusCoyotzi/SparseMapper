@@ -1,0 +1,222 @@
+#include "sparse_map_server/adjacencyMap.h"
+
+graphIO::graphIO()
+{
+        return;
+}
+
+graphIO::graphIO(std::string filename)
+{
+        loadNodes(filename);
+        return;
+}
+
+bool graphIO::loadNodes(std::string filename)
+{
+        //  std::cout << "Loading map from" << filename <<'\n';
+        std::ifstream file(filename.c_str());
+        if(!file.is_open())
+        {
+                std::cout << "Error reading file:" << filename <<'\n';
+                return false;
+        }
+        std::string line, tmp;
+        std::getline(file,line);
+        std::istringstream iss(line);
+        int clusters,nOcc,nFree;
+        //Chcek if top of file is indeed a graph file
+        //Find number of clusters
+        std::getline(iss, tmp, ':');
+        iss>>clusters;
+        std::cout << "Found: " << clusters<< " clusters \n";
+        //Skip info headers
+        std::getline(file,line);
+        //Number of occupied nodes
+        std::getline(file,line);
+        iss.clear();
+        iss.str(std::string());
+        iss.str(line);
+        std::getline(iss, tmp, ':');
+        iss>>nOcc;
+        std::cout << "Listed: " <<nOcc<< " occupied centroids" <<'\n';
+        //Occupied nodes
+        pointGeom code;
+        std::getline(file,line);
+        while (parseCodeLine(line,code)) {
+                occCodes.push_back(code);
+                std::getline(file,line);
+        }
+        std::cout << "Read: " << occCodes.size()<< " occupied nodes while reading\n";
+
+        //Number of free nodes
+        //std::getline(file,line);
+        iss.clear();
+        iss.str(std::string());
+        iss.str(line);
+        std::getline(iss, tmp, ':');
+        iss>>nFree;
+        std::cout << "Listed: " <<nFree<< " free centroids" <<'\n';
+        //Free nodes
+        std::getline(file,line);
+        while (parseCodeLine(line,code)) {
+                freeCodes.push_back(code);
+                std::getline(file,line);
+        }
+        //std::cout << "Read: " << tempFree.size()<< " free nodes while reading\n";
+        std::cout << "Found " << freeCodes.size() <<" valid nodes remains\n";
+        file.close();
+        return true;
+}
+
+void graphIO::loadToGraph(adjacencyMap &graph)
+{
+        return;
+}
+
+pointArray graphIO::getFreeCodes()
+{
+        pointArray freeVector;
+        std::copy( freeCodes.begin(), freeCodes.end(),
+                   std::back_inserter( freeVector ) );
+        return freeVector;
+
+}
+
+
+pointArray graphIO::getOccCodes()
+{
+        pointArray occVector;
+        std::copy( occCodes.begin(), occCodes.end(),
+                   std::back_inserter( occVector ) );
+        return occVector;
+}
+
+bool graphIO::parseCodeLine(std::string line,  pointGeom &g)
+{
+        std::istringstream iss(line);
+        std::string tmp;
+        float x,y,z;
+        int label;
+        bool sux = true;
+        try {
+                std::getline(iss,tmp,',');
+                x=std::stof(tmp.c_str());
+                std::getline(iss,tmp,',');
+                y=std::stof(tmp.c_str());
+                std::getline(iss,tmp,',');
+                z=std::stof(tmp.c_str());
+                std::getline(iss,tmp,',');
+                label = std::stoi(tmp);
+        }
+        catch (std::invalid_argument e)
+        {
+                // std::cout << "An exception occurred: " << e.what() << '\n';
+                std::cout << line << '\n';
+                x=0;  y=0;  z=0;
+                sux = false;
+        }
+
+        g.x=x; g.y=y; g.z=z;
+        return sux;
+}
+
+
+pointGeom graphIO::removeOccCode(pointGeom p)
+{
+        Eigen::Vector3d pEigen(p.x,p.y,p.z);
+        pointGeom closestPoint = occCodes.front(); occCodes.pop_front();
+        Eigen::Vector3d cp(closestPoint.x,closestPoint.y,closestPoint.z);
+        float minDist = (pEigen-cp).norm();
+        std::list<pointGeom>::iterator closestIt;
+        for (std::list<pointGeom>::iterator it = occCodes.begin();
+             it != occCodes.end(); ++it)
+        {
+                Eigen::Vector3d workingCode(it->x,it->y,it->z);
+                float dist = (workingCode-pEigen).norm();
+                if (dist < minDist) {
+                        minDist = dist;
+                        closestPoint = *it;
+                        closestIt = it;
+                }
+        }
+
+        occCodes.erase(closestIt);
+        return closestPoint;
+}
+
+pointGeom graphIO::removeFreeCode(pointGeom p)
+{
+        Eigen::Vector3d pEigen(p.x,p.y,p.z);
+        pointGeom closestPoint = freeCodes.front(); freeCodes.pop_front();
+        Eigen::Vector3d cp(closestPoint.x,closestPoint.y,closestPoint.z);
+        float minDist = (pEigen-cp).norm();
+        std::list<pointGeom>::iterator closestIt;
+        for (std::list<pointGeom>::iterator it = freeCodes.begin();
+             it != freeCodes.end(); ++it)
+        {
+                Eigen::Vector3d workingCode(it->x,it->y,it->z);
+                float dist = (workingCode-pEigen).norm();
+                if (dist < minDist) {
+                        minDist = dist;
+                        closestPoint = *it;
+                        closestIt = it;
+                }
+        }
+
+        freeCodes.erase(closestIt);
+        return closestPoint;
+}
+
+void graphIO::addFreeCode(pointGeom p)
+{
+        freeCodes.push_back(p);
+        return;
+}
+
+void graphIO::addOccCode(pointGeom p)
+{
+        occCodes.push_back(p);
+        return;
+}
+
+bool graphIO::saveAsTxt(std::string filename)
+{
+        //Saves the adjacency matrix to a file to disk.
+        std::cout << "Writing to "<<filename<<"\n";
+        std::ofstream graphOut;
+        int freeNodes =freeCodes.size(); int occNodes =  occCodes.size();
+        int totalNodes = freeNodes+occNodes;
+        graphOut.open(filename);
+        if (!graphOut.is_open())
+        {
+                std::cout << "Error writing to:"<< filename << '\n';
+                return false;
+        }
+        graphOut<<"Clusters: " << totalNodes << "\n";
+        graphOut<<"Codebook: x,y,z,label\n";
+        graphOut << "Occupied Nodes: " << occNodes <<"\n";
+
+        freeCodes.sort(lessL1());
+        occCodes.sort(lessL1());
+        int i =0;
+        for (std::list<pointGeom>::iterator it = occCodes.begin();
+             it != occCodes.end(); ++it)
+        {
+                graphOut<<it->x<<",";
+                graphOut<<it->y<<",";
+                graphOut<<it->z<<",";
+                graphOut<<i<<"\n"; i++;
+        }
+
+        i=0;
+        graphOut << "Free Nodes:" << freeNodes<<"\n";
+        for (std::list<pointGeom>::iterator it = freeCodes.begin();
+             it != freeCodes.end(); ++it)
+        {
+                graphOut<<it->x<<",";
+                graphOut<<it->y<<",";
+                graphOut<<it->z<<",";
+                graphOut<<i<<"\n"; i++;
+        }
+        return true;
+}

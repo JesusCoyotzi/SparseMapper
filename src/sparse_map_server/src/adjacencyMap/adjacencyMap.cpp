@@ -102,7 +102,7 @@ bool adjacencyMap::loadMap(std::string filename)
         std::getline(iss, tmp, ':');
         iss>>nOcc;
         std::cout << "Listed: " <<nOcc<< " occupied centroids" <<'\n';
-        //Occupied nodes
+        //****Occupied nodes
         pointGeom code;
         std::getline(file,line);
         while (parseCodeLine(line,code)) {
@@ -119,7 +119,7 @@ bool adjacencyMap::loadMap(std::string filename)
         std::getline(iss, tmp, ':');
         iss>>nFree;
         std::cout << "Listed: " <<nFree<< " free centroids" <<'\n';
-        //Free nodes
+        //****Free nodes
         std::list<pointGeom> freeList;
         pointArray tempFree;
         std::getline(file,line);
@@ -129,7 +129,7 @@ bool adjacencyMap::loadMap(std::string filename)
                 // }
                 std::getline(file,line);
         }
-        //std::cout << "Read: " << tempFree.size()<< " free nodes while reading\n";
+        std::cout << "Read: " << freeList.size()<< " actual free nodes while reading\n";
         reduceNodes(freeList,tempFree);
         std::cout << "Pruned to: " << tempFree.size() <<" non redundant nodes\n";
         for (size_t i = 0; i < tempFree.size(); i++) {
@@ -363,7 +363,7 @@ bool adjacencyMap::Astar(int goal,int start, pointArray & fullPath)
         pointGeom goalPoint =freeNodes[goal];
         pointGeom startPoint =freeNodes[start];
 
-        const double maxCost = 1000;
+        const double maxCost = 1000.0;
         std::vector<double> accCost(adjGraph.size(),maxCost);
         std::vector<int> path(adjGraph.size(),-1);
         std::priority_queue<graphNode> pq;
@@ -386,13 +386,15 @@ bool adjacencyMap::Astar(int goal,int start, pointArray & fullPath)
                         break;
                 }
 
-                for (int nxt = 0; nxt < adjGraph[current].size(); nxt++) {
+                for (int nxt = 0; nxt < adjGraph[current].size(); nxt++)
+                {
                         int nxtNode = adjGraph[current][nxt];
                         pointGeom nxtPoint = freeNodes[nxtNode];
                         double d =  euclideanDistance(freeNodes[current],
                                                       nxtPoint);
                         double newCost = d + accCost[current];
-                        if (newCost<accCost[nxtNode]) {
+                        if (newCost<accCost[nxtNode])
+                        {
                                 accCost[nxtNode]=newCost;
                                 double priority =
                                         newCost +
@@ -432,9 +434,15 @@ int adjacencyMap::getClosestNode(pointGeom p)
         {
                 node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
                 double distance = (pointEigen - node).squaredNorm();
-                if (distance<minDistance) {
-                        closestNode = i;
-                        minDistance = distance;
+                if (distance > minDist)
+                {
+                        //If closest node is too close ignore it
+                        //Take closest node outside robot radius
+                        if(distance<minDistance)
+                        {
+                                closestNode = i;
+                                minDistance = distance;
+                        }
                 }
         }
         //std::cout << "Closest node is" << closestNode <<'\n';
@@ -473,6 +481,20 @@ double adjacencyMap::euclideanDistance(pointGeom a, pointGeom b)
         Eigen::Vector3d EigenA(a.x,a.y,a.z);
         Eigen::Vector3d EigenB(b.x,b.y,b.z);
         return (EigenA-EigenB).norm();
+}
+
+double adjacencyMap::L1Distance(pointGeom a, pointGeom b)
+{
+        Eigen::Vector3d EigenA(a.x,a.y,a.z);
+        Eigen::Vector3d EigenB(b.x,b.y,b.z);
+        return (EigenA-EigenB).squaredNorm();
+}
+
+double adjacencyMap::chebyshevDistance(pointGeom a, pointGeom b)
+{
+        double dx = abs(a.x-b.x);
+        double dy = abs(a.y-b.y);
+        return (dx>dy) ? dx : dy;
 }
 
 void adjacencyMap::printPointGeom(pointGeom p)
@@ -620,14 +642,14 @@ bool adjacencyMap::validateNode(pointGeom p1)
         Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z);
         Eigen::Vector3d p2Eigen(p1.x,p1.y,p1.z+safetyHeight);
         //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
-
+        float minimalDist = (safetyHeight*safetyHeight+safetyRadius*safetyRadius);
         bool collision = false;
         for (size_t i = 0; i < occupiedNodes.size(); i++) {
                 Eigen::Vector3d q(occupiedNodes[i].x,occupiedNodes[i].y,occupiedNodes[i].z);
                 //Check if it is worth doing cilinder collision
                 //If node is closer than safetyH + safetyRadius check else ignore
-                float dist = (p1Eigen-q).norm();
-                if (dist< (safetyHeight+safetyRadius)) {
+                float dist = (p1Eigen-q).squaredNorm();
+                if (dist < minimalDist) {
                         collision = cylinderCollision(p1Eigen,p2Eigen,q,safetyRadius);
                         if (collision) {
                                 break;

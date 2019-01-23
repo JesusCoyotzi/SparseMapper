@@ -43,6 +43,7 @@ include_directories(
 ## Declare a C++ library
 add_library(adjacencyMap
    src/adjacencyMap/adjacencyMap.cpp
+   src/adjacencyMap/graphIO.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -54,9 +55,14 @@ add_library(adjacencyMap
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(sparse_map_server_node src/sparse_map_node.cpp  src/sparse_map_server.cpp)
-add_dependencies(sparse_map_server_node adjacencyMa ${catkin_EXPORTED_TARGETS})
+add_dependencies(sparse_map_server_node adjacencyMap ${catkin_EXPORTED_TARGETS})
 target_link_libraries(sparse_map_server_node
    adjacencyMap ${catkin_LIBRARIES} )
+
+add_executable(sparse_map_editor_node src/sparse_map_editor_node.cpp  src/sparse_map_editor.cpp)
+add_dependencies(sparse_map_editor_node adjacencyMap ${catkin_EXPORTED_TARGETS})
+target_link_libraries(sparse_map_editor_node
+  adjacencyMap ${catkin_LIBRARIES} )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

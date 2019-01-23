@@ -65,6 +65,7 @@ find_package(catkin REQUIRED COMPONENTS
    GetSparseMap.srv
    Reconfigure.srv
    QuantizeCloud.srv
+   SaveMap.srv
  )
 
 ## Generate actions in the 'action' folder

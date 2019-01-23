@@ -18,7 +18,7 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         nh_priv.param<bool>("visualize_nodes",visNodes,true);
         //nh_priv.param<bool>("visualize_path",visPath,true);
         nh_priv.param<bool>("visualize_terminals",visTerminals,true);
-        nh_priv.param<bool>("quick_terminals_validation",validateTerminals,true);
+        nh_priv.param<bool>("validate_terminals",validateTerminals,true);
 
         codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1,true);
@@ -237,10 +237,12 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
         bool isValid;
         if (validateTerminals)
         {
+                //std::cout << "Using full validation" << '\n';
                 isValid = sparseMap.validateTerminals(req.startPose,req.goalPose,start,goal);
         }
         else
         {
+                //std::cout << "Using Quickq validation" << '\n';
                 isValid = sparseMap.validateTerminalsQuick(req.startPose,req.goalPose,start,goal);
         }
         //ros::Duration validRun = ros::Time::now() - validStart;

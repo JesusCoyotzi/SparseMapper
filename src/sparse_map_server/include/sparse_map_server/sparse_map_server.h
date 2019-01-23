@@ -1,6 +1,7 @@
 #include "sparse_map_server/adjacencyMap.h"
 #include "sparse_map_server/types.h"
 #include "sparse_map_msgs/MakePlan.h"
+#include "sparse_map_msgs/SaveMap.h"
 
 #include "ros/ros.h"
 #include "geometry_msgs/PoseStamped.h"
