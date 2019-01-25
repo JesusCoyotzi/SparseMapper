@@ -3,7 +3,7 @@
 
   <arg name="crop" default="4.0"/>
   <arg name="freeSpace" default="0.10  "/>
-  <arg name="name" default="PDS"/>
+  <arg name="name" default="apartmentCoyo"/>
 
   <node name="pose_chk" pkg="space_quantization" type="pose_chck" output="screen">
     <remap from="/localization_pose" to="/amcl_pose"/>
@@ -11,16 +11,15 @@
     <remap from="/cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
     <remap from="/cloud_out" to="/hsrb/cloud"/>
     <param name="angular_update" value="45"/>
-    <param name="linear_update" value="0.50"/>
+    <param name="linear_update" value="0.5"/>
   </node>
 
-  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen" respawn="true">
     <remap from="/cloud" to="/hsrb/cloud"/>
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
-    <param name="voxelSize" value="-0.01" type="double"/>
-    <param name="voxEnable" value="true" type="bool"/>
+    <param name="voxelSize" value="0.01" type="double"/>
     <param name="baseFrame" value="map" type="string"/>
   </node>
 

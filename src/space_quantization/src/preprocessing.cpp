@@ -19,20 +19,31 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
         pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
         pcl::fromROSMsg(*input, *cloud);
         std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
+        std::cout << "With size " <<  cloud->points.size() <<"\n";
+        // std::cout << "With fields:" << '\n';
+        // for (int i = 0; i < input->fields.size(); i++) {
+        //   std::cout << input->fields[i].name << '\n';
+        // }
+        if (cloud->points.size()<1) {
+                std::cout << "Error empty cloud received skiped" << '\n';
+                return;
+        }
+
         if (cropDistance>0) {
-                std::cout << "Z filter" << '\n';
+              //  std::cout << "Z filter" << '\n';
                 filterDistanceZ(cropDistance,cloud);
         }
         if (voxelSize>0) {
-                std::cout << "Voxel filter" << '\n';
+                //std::cout << "Voxel filter" << '\n';
                 voxelFilter(voxelSize,cloud);
         }
         if (!transformCloud(cloud))
         {
-          std::cout << "Cloud not transform cloud skipping" << '\n';
-          return;
+                std::cout << "Cloud not transform cloud skipping" << '\n';
+                return;
         }
         //convert to msg and publish
+        std::cout << "Publishing processed cloud" << '\n';
         sensor_msgs::PointCloud2 cloud_msg;
         pcl::toROSMsg(*cloud,cloud_msg);
         processedCloudPub.publish(cloud_msg);
@@ -74,7 +85,7 @@ bool cloudPreprocessor::transformCloud(cloudRGBAPtr cloud)
                                                    );
         }
         catch (tf::TransformException ex) {
-                //std::cout << "Erroring!!!!!" << '\n';
+                std::cout << "Erroring!!!!!" << '\n';
                 ROS_ERROR("%s",ex.what());
                 ros::Duration(1.0).sleep();
 

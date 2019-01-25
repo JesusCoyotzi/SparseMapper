@@ -17,7 +17,6 @@
   <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
     <remap from="/cloud" to="/hsrb/cloud"/>
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
-    <param name="cropEnable" value="false" type="bool"/>
     <param name="cropDistance" value="$(arg crop)" type="double"/>
     <param name="voxelSize" value="0.01" type="double"/>
     <param name="voxEnable" value="true" type="bool"/>
