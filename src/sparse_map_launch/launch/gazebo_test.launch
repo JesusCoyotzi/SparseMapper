@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <include file="$(find hsrb_gazebo_launch)/launch/include/hsrb_gazebo_common.xml">
-    <arg name="world_name" value="$(find tmc_gazebo_worlds)/worlds/mock_home.world" />
+    <arg name="world_name" value="$(find tmc_gazebo_worlds)/worlds/megaweb2018.world" />
     <arg name="robot_pos" value="-x 0 -y 0 -z 0 -Y 3.1416" />
     <arg name="use_laser_odom" value="false" />
   </include>

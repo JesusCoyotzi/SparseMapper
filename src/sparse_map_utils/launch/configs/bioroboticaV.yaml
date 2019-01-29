@@ -1,0 +1,4 @@
+# Configuration file for BioroboticaV test
+map_name: bioroboticaVOcto.yaml
+truth_map: bioroboticaVgndInf.yaml
+graph_name: bioroboticaV.txt

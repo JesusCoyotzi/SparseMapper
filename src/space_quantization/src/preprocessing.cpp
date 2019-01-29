@@ -5,7 +5,8 @@ cloudPreprocessor::cloudPreprocessor(ros::NodeHandle &nh)
         nh_ = nh;
         ros::NodeHandle nh_priv("~");
         nh_priv.param<std::string>("baseFrame",baseFrame,"base_link");
-        nh_priv.param<float>("cropDistance",cropDistance,10);
+        nh_priv.param<float>("crop_max_distance",cropMaxDistance,10);
+        nh_priv.param<float>("crop_min_distance",cropMinDistance,-0.1);
         nh_priv.param<float>("voxelSize",voxelSize,0.01); //in meters
 
         inCloudSub = nh_.subscribe<sensor_msgs::PointCloud2>("/cloud",10,&cloudPreprocessor::processCallback,this);
@@ -18,8 +19,7 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
 {
         pcl::PointCloud<pcl::PointXYZRGBA>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZRGBA>);
         pcl::fromROSMsg(*input, *cloud);
-        std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
-        std::cout << "With size " <<  cloud->points.size() <<"\n";
+
         // std::cout << "With fields:" << '\n';
         // for (int i = 0; i < input->fields.size(); i++) {
         //   std::cout << input->fields[i].name << '\n';
@@ -29,11 +29,11 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
                 return;
         }
 
-        if (cropDistance>0) {
-              //  std::cout << "Z filter" << '\n';
-                filterDistanceZ(cropDistance,cloud);
+        if (cropMaxDistance > 0) {
+                //  std::cout << "Z filter" << '\n';
+                filterDistanceZ(cloud);
         }
-        if (voxelSize>0) {
+        if (voxelSize > 0) {
                 //std::cout << "Voxel filter" << '\n';
                 voxelFilter(voxelSize,cloud);
         }
@@ -43,6 +43,8 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
                 return;
         }
         //convert to msg and publish
+        std::cout << "Got PointCloud @ frame " << cloud->header.frame_id <<'\n';
+        std::cout << "With size " <<  cloud->points.size() <<"\n";
         std::cout << "Publishing processed cloud" << '\n';
         sensor_msgs::PointCloud2 cloud_msg;
         pcl::toROSMsg(*cloud,cloud_msg);
@@ -50,16 +52,16 @@ void cloudPreprocessor::processCallback(const sensor_msgs::PointCloud2ConstPtr& 
         return;
 }
 
-void cloudPreprocessor::filterDistanceZ(double maxDist, cloudRGBAPtr cloud)
+void cloudPreprocessor::filterDistanceZ(cloudRGBAPtr cloud)
 {
         //removes all points below z (depth)
         //done in the point cloud frame to crop at depth
         pcl::PassThrough<pcl::PointXYZRGBA> pass;
-        pass.setInputCloud (cloud);
-        pass.setFilterFieldName ("z");
-        pass.setFilterLimits (0.0, maxDist);
+        pass.setInputCloud(cloud);
+        pass.setFilterFieldName("z");
+        pass.setFilterLimits(cropMinDistance, cropMaxDistance);
         //pass.setFilterLimitsNegative (true);
-        pass.filter (*cloud);
+        pass.filter(  *cloud);
         return;
 }
 

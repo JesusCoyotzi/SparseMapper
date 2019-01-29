@@ -218,5 +218,94 @@ bool graphIO::saveAsTxt(std::string filename)
                 graphOut<<it->z<<",";
                 graphOut<<i<<"\n"; i++;
         }
+        graphOut.close();
         return true;
+}
+
+int graphIO::simpleOccZPassThrough(double max, double min)
+{
+        // A simple implementation of a passthorugh filter like pcl::passthorugh
+        std::list<pointGeom>::iterator i;
+        pointGeom q = occCodes.front();
+        i = occCodes.begin();
+        int n=0;
+        while (i != occCodes.end())
+        {
+                double height = i->z;
+                if ((height > max) || (height < min) )
+                {
+                        i = occCodes.erase(i);
+                        n++;
+                }
+                else
+                {
+                        ++i;
+                }
+        }
+        return n; //how many elements i pruned?
+
+}
+
+int graphIO::simpleFreeZPassThrough(double max, double min)
+{
+        // A simple implementation of a passthorugh filter like pcl::passthorugh
+        std::list<pointGeom>::iterator i;
+        pointGeom q = freeCodes.front();
+        i = freeCodes.begin();
+        int n=0;
+        while (i != freeCodes.end())
+        {
+                double height = i->z;
+                if ((height > max) || (height < min) )
+                {
+                        i = occCodes.erase(i);
+                        n++;
+                }
+                else
+                {
+                        ++i;
+                }
+        }
+        return n; //how many elements i pruned?
+
+}
+
+int graphIO::simpleZPassThrough(double max, double min)
+{
+        // A simple implementation of a passthorugh filter like pcl::passthorugh
+        std::list<pointGeom>::iterator i;
+        i = occCodes.begin();
+        int n=0;
+        while (i != occCodes.end())
+        {
+                double height = i->z;
+                if ((height > max) || (height < min) )
+                {
+                        i = occCodes.erase(i);
+                        n++;
+                }
+                else
+                {
+                        ++i;
+                }
+        }
+
+        i = freeCodes.begin();
+        while (i != freeCodes.end())
+        {
+                double height = i->z;
+                if ((height > max) || (height < min) )
+                {
+                        i = freeCodes.erase(i);
+                        n++;
+                }
+                else
+                {
+                        ++i;
+                }
+        }
+
+
+        return n; //how many elements i pruned?
+
 }

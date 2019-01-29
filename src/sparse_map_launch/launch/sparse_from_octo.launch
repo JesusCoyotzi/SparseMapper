@@ -1,15 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
-  <arg name="name" default="apt"/>
-  <arg name="crop" default="-23.0"/>
+
+
+  <arg name="octomap_folder" default="/home/jesus/maestria/tesis/cloud/octoclouds/"/>
+  <arg name="octomap_name" default="megawebFull.bt"/>
+  <arg name="graph_folder" default="/home/jesus/maestria/tesis/graphs/"/>
+  <arg name="graph_name" default="megawebFull.txt"/>
+
+  <arg name="crop" default="-2.0"/>
   <arg name="freeSpace" default="0.10"/>
+
+  <node pkg="octomap_server" type="octomap_tracking_server_node" name="octomap_server" args="$(arg octomap_folder)$(arg octomap_name)">
+    <param name="resolution" value="0.05"/>
+
+    <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <param name="frame_id" type="string" value="map"/>
+    <param name="base_frame_id " value="base_link" type="str"/>
+    <param name="occupancy_min_z" value="-0.125" type="double"/>
+    <param name="occupancy_max_z" value="2.0" type="double"/>
+    <remap from="octomap_point_cloud_centers" to="/hsrb/cloud" />
+    <!-- data source to integrate (PointCloud2) -->
+  </node>
 
   <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
     <remap from="/cloud" to="/hsrb/cloud"/>
     <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
     <param name="crop_max_distance" value="$(arg crop)" type="double"/>
-    <param name="crop_min_distance" value="-25" type="double"/>
-    <param name="voxelSize" value="0.05" type="double"/>
+    <param name="crop_min_distance" value="-0.5" type="double"/>
+    <param name="voxelSize" value="-0.04" type="double"/>
+    <param name="voxEnable" value="true" type="bool"/>
     <param name="baseFrame" value="map" type="string"/>
   </node>
 
@@ -28,16 +47,8 @@
   <node name="sparseMap" pkg="sparse_mapper" type="sparse_mapper_node" output="screen">
     <remap from="codebook" to="/hsrb/codebook"/>
     <remap from="graph_marker" to="/hsrb/graph_marker"/>
-  <param name="free_thr" value="$(arg freeSpace)" type="double"/>
-    <param name="graph_file" value="$(find sparse_map_utils)/graphs/$(arg name)Full.txt" type="str"/>
-  </node>
-
-  <node pkg="tf" type="static_transform_publisher" name="map_broadcaster" args="0 0 25.9 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
-
-  <!-- head_rgbd_sensor_rgb_frame -->
-  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
-    <remap from="cloud_pcd" to="/hsrb/cloud"/>
-    <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+    <param name="free_thr" value="$(arg freeSpace)" type="double"/>
+    <param name="graph_file" value="$(arg graph_folder)$(arg graph_name)" type="str"/>
   </node>
 
 </launch>

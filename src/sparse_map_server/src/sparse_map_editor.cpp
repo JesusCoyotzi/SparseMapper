@@ -9,6 +9,9 @@ sparseMapEditor::sparseMapEditor(ros::NodeHandle &nh)
         nh_priv.param<std::string>("map_frame",mapFrame,"map");
         nh_priv.param<std::string>("mode",opMode,"remove");
         nh_priv.param<std::string>("set",opSet,"occupied");
+        float pruneMax,pruneMin;
+        nh_priv.param<float>("nodes_max_z",pruneMax,0.0);
+        nh_priv.param<float>("nodes_min_z",pruneMin,0.0);
         codesPublisher = nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         removeSub = nh_.subscribe("clicked_point",1,&sparseMapEditor::modifyCodes,this);
         savingSrv = nh_.advertiseService("save_map",&sparseMapEditor::saveNodes,this);
@@ -16,8 +19,16 @@ sparseMapEditor::sparseMapEditor(ros::NodeHandle &nh)
 
         std::cout << "Starting with mode " << opMode << " on set " << opSet << '\n';
         codes.loadNodes(graphFileName);
+        bool doPassThrough = ( (abs(pruneMax) > 0) ||  (abs(pruneMin) >0) );
+        if (doPassThrough) {
+                int nPruned = codes.simpleZPassThrough(pruneMax,pruneMin);
+                std::cout << "Removed: " << nPruned << " nodes \n";
+
+        }
         pointArray occCodes = codes.getOccCodes();
         pointArray freeCodes = codes.getFreeCodes();
+        std::cout << occCodes.size() << "free nodes \n";
+        std::cout << freeCodes.size() << "occupied nodes \n";
         std_msgs::ColorRGBA colorFree;
         colorFree.r=0.5;   colorFree.g=1.0;   colorFree.b=0.5;   colorFree.a=1.0;
         std_msgs::ColorRGBA colorOcc;
@@ -29,7 +40,7 @@ sparseMapEditor::sparseMapEditor(ros::NodeHandle &nh)
 }
 
 bool sparseMapEditor::updateParameters(std_srvs::Empty::Request& request,
-                                  std_srvs::Empty::Response& response )
+                                       std_srvs::Empty::Response& response )
 {
         ros::NodeHandle nh_priv("~");
 
@@ -71,7 +82,7 @@ void sparseMapEditor::modifyCodes(const geometry_msgs::PointStamped &msg)
         }
         else
         {
-          std::cout << "Error on parameters" << opMode << opSet<< '\n';
+                std::cout << "Error on parameters" << opMode << opSet<< '\n';
         }
 
 

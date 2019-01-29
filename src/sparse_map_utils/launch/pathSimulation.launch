@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <arg name="map_name" default="bioroboticaV"/>
+  <arg name="map_name" default="megawebOcto.yaml"/>
+  <arg name="truth_name" default="megawebGndInf.yaml"/>
+  <arg name="graph_name" default="megaweb2.txt"/>
 
-  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)Octo.yaml"/>
-  <node name="truth_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)gndInf.yaml">
+  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)"/>
+  <node name="truth_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg truth_name)">
     <remap from="static_map" to="truth_map"/>
     <remap from="map" to="true_map"/>
   </node>
@@ -24,15 +26,15 @@
   </node>
 
   <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">
-    <param name="map_file" value="$(find sparse_map_utils)/graphs/$(arg map_name).txt" type="str"/>
+    <param name="map_file" value="$(find sparse_map_utils)/graphs/$(arg graph_name)" type="str"/>
     <param name="k_neighboors" value="6" type="int"/>
     <param name="max_dist" value="1.2" type="double"/>
-    <param name="min_dist" value="0.25" type="double"/>
+    <param name="min_dist" value="0.3" type="double"/>
     <param name="safety_height" value="1.0" type="double"/>
-    <param name="safety_radius" value="0.25" type="double"/>
+    <param name="safety_radius" value="0.3" type="double"/>
     <param name="connection_radius" value="0.3" type="double"/>
     <param name="visualize_terminals" value="false" type="bool"/>
-    <param name="validate_terminals" value="falseq" type="bool"/>
+    <param name="validate_terminals" value="false" type="bool"/>
     <remap from="graph_marker" to="/hsrb/graph_marker"/>
     <remap from="make_plan" to="/sparse_map/make_plan"/>
 

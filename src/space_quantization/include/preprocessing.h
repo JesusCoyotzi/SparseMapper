@@ -18,11 +18,11 @@ private:
   ros::Subscriber inCloudSub;
   ros::Publisher processedCloudPub;
   tf::TransformListener tf_listener;
-  float cropDistance,voxelSize;
+  float cropMaxDistance,cropMinDistance,voxelSize;
   bool cropEnable, voxEnable;
   std::string baseFrame;
   void processCallback(const sensor_msgs::PointCloud2ConstPtr& input);
-  void filterDistanceZ(double maxDist, cloudRGBAPtr cloud);
+  void filterDistanceZ(cloudRGBAPtr cloud);
   void voxelFilter(double vSize,cloudRGBAPtr cloud);
   bool transformCloud(cloudRGBAPtr cloud);
 public:

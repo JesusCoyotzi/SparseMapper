@@ -112,6 +112,9 @@ public:
   pointGeom removeFreeCode(pointGeom p);
   bool loadNodes(std::string filename);
   bool saveAsTxt(std::string filename);
+  int simpleOccZPassThrough(double max, double min);
+  int simpleFreeZPassThrough(double max, double min);
+  int simpleZPassThrough(double max, double min);
   void addFreeCode(pointGeom p);
   void addOccCode(pointGeom p);
   pointArray getFreeCodes();

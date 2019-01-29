@@ -5,20 +5,15 @@ sparseMapper::sparseMapper(ros::NodeHandle &nh)
         nh_=nh;
         ros::NodeHandle nh_priv("~");
         nh_priv.param<float>("free_thr",freeThr,0.1);
-        // nh_priv.param<float>("safety_height",safetyHeight,1.2);
-        // nh_priv.param<float>("safety_radius",safetyRadius,0.75);
-        // nh_priv.param<float>("connection_radius",connectionRadius,0.4);
-        // nh_priv.param<int>("k_neighboors",kNeighboors,6);
-        //nh_priv.param<float>("max_dist",maxDist,2); //max distance between neighboors
-        nh_priv.param<std::string>("graph_file",graphFile,"adjGraph.txt");
+        // nh_priv.param<std::string>("graph_file",graphFile,"adjGraph.txt");
 
         codebookSub = nh_.subscribe("codebook",10, &sparseMapper::codebookCallback, this);
-        graphMakeSub = nh_.subscribe("make_graph",1, &sparseMapper::saveSparseMap,this);
+        graphMakeSub = nh_.advertiseService("make_graph", &sparseMapper::saveMapSrv,this);
         graphClearSub = nh_.subscribe("clear_graph",1, &sparseMapper::clearGraph,this);
         codebookMarkerPub=
                 nh_.advertise<visualization_msgs::Marker>("centroids_marker",2);
         std::cout << "Starting sparse_mapper node by CoyoSoft" << '\n';
-        std::cout << graphFile << '\n';
+        
 }
 
 void sparseMapper::clearGraph(const std_msgs::Empty &msg)
@@ -101,14 +96,19 @@ void sparseMapper::codebookCallback(const sparse_map_msgs::codebook &msg)
 }
 
 
-void sparseMapper::saveSparseMap(const std_msgs::Empty &msg)
+bool sparseMapper::saveSparseMap(std::string filename)
 {
         //Saves the adjacency matrix to a file to disk.
-        std::cout << "Writing to "<<graphFile<<"\n";
+        std::cout << "Writing to "<<filename<<"\n";
         std::ofstream graphOut;
         int freeNodes =freeCodebook.size(); int occNodes =  occCodebook.size();
         int totalNodes = freeNodes+occNodes;
-        graphOut.open(graphFile);
+        graphOut.open(filename);
+        if (!graphOut.is_open())
+        {
+                std::cout << "Error writing to:"<< filename << '\n';
+                return false;
+        }
         graphOut<<"Clusters: " << totalNodes << "\n";
         graphOut<<"Codebook: x,y,z,label\n";
         graphOut << "Occupied Nodes: " << occNodes <<"\n";
@@ -130,7 +130,24 @@ void sparseMapper::saveSparseMap(const std_msgs::Empty &msg)
                 graphOut<<freeCodebook[i].z<<",";
                 graphOut<<i<<"\n";
         }
-        return;
+        graphOut.close();
+        return true;
+}
+
+bool sparseMapper::saveMapSrv(sparse_map_msgs::SaveMap::Request &req,
+                                 sparse_map_msgs::SaveMap::Response &res)
+{
+        res.success = saveSparseMap(req.filename);
+        if (res.success)
+        {
+                std::cout << "File saving successfull " << req.filename << std::endl;
+        }
+        else
+        {
+                std::cout << "Error saving " << req.filename << std::endl;
+
+        }
+        return true;
 }
 
 double sparseMapper::normL1(pointGeom p)

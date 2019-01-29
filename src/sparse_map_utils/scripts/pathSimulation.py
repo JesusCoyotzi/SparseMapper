@@ -139,10 +139,15 @@ def callPlanners(occ, free, experiments, output_file_name="results.csv", invalid
         csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
         csv_writer.writeheader()
 
-    starts_valid = random.sample(free, experiments / 2)
-    goals_valid = random.sample(free, experiments / 2)
-    starts_blocked = random.sample(occ, experiments / 2)
-    goals_blocked = random.sample(occ, experiments / 2)
+    if invalid:
+        starts_valid = random.sample(free, experiments / 2)
+        goals_valid = random.sample(free, experiments / 2)
+        starts_blocked = random.sample(occ, experiments / 2)
+        goals_blocked = random.sample(occ, experiments / 2)
+    else:
+        starts_valid = random.sample(free, experiments)
+        goals_valid = random.sample(free, experiments)
+
     # starts = starts_valid + goals_valid
     # goals = goals_valid + goals_blocked
     # random.shuffle(starts)

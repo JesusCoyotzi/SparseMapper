@@ -105,8 +105,14 @@ bool adjacencyMap::loadMap(std::string filename)
         //****Occupied nodes
         pointGeom code;
         std::getline(file,line);
-        while (parseCodeLine(line,code)) {
-                occupiedNodes.push_back(code);
+        while (parseCodeLine(line,code))
+        {
+                if (code.z <= safetyHeight)
+                {
+                        /* If occupied node is higher than the robot height, why
+                        do we even bother?*/
+                        occupiedNodes.push_back(code);
+                }
                 std::getline(file,line);
         }
         std::cout << "Read: " << occupiedNodes.size()<< " occupied nodes while reading\n";

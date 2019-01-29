@@ -247,7 +247,11 @@ bool spaceSegmenter::validateCloudMsg(sensor_msgs::PointCloud2 msg)
         //Check if pointcloud is compatible.
         //Currently only pointcloud2 with at least 3 xyz coordinates in float work
         bool cloudValid = true;
-        if (msg.fields.size()<3) {
+        if (n<1) {
+                std::cout << "This pointcloud is empty" << '\n';
+                cloudValid = false;
+        }
+        else if (msg.fields.size()<3) {
                 std::cout << "This pointcloud does not have enough dimensions" << '\n';
                 cloudValid = false;
         }

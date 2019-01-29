@@ -30,7 +30,7 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         pathPub=nh_.advertise<nav_msgs::Path>("sparse_plan",1);
 
         rebuildPub = nh_.subscribe("remake_graph",1,&sparseMapServer::remakeGraph,this);
-        rebuildPub = nh_.subscribe("clicked_point",1,&sparseMapServer::removePoint,this);
+        //rebuildPub = nh_.subscribe("clicked_point",1,&sparseMapServer::removePoint,this);
 
 
         sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,
@@ -288,6 +288,7 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
 
         return true;
 }
+
 
 void sparseMapServer::remakeGraph(const std_msgs::Empty &msg)
 {
