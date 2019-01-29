@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="crop" default="2.0"/>
+  <arg name="centroids" default="32">
+
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
+    <remap from="/cloud" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
+    <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
+    <param name="cropDistance" value="$(arg crop)" type="double"/>
+    <param name="voxelSize" value="0.01" type="double"/>
+    <param name="voxEnable" value="true" type="bool"/>
+    <param name="baseFrame" value="map" type="string"/>
+  </node>
+
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <remap from="cloud" to="/hsrb/processed_cloud"/>
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <param name="nClusters" value="$(arg centroids)" type="int"/>
+    <param name="iterations" value="10" type="int"/>
+  </node>
+
+</launch>
