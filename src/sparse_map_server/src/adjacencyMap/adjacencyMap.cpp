@@ -110,7 +110,7 @@ bool adjacencyMap::loadMap(std::string filename)
                 if (code.z <= safetyHeight)
                 {
                         /* If occupied node is higher than the robot height, why
-                        do we even bother?*/
+                           do we even bother?*/
                         occupiedNodes.push_back(code);
                 }
                 std::getline(file,line);
@@ -434,21 +434,22 @@ int adjacencyMap::getClosestNode(pointGeom p)
         //find closest node in graph to an arbitrary point
         Eigen::Vector3d pointEigen(p.x,p.y,p.z);
         Eigen::Vector3d node(freeNodes[0].x,freeNodes[0].y,freeNodes[0].z);
-        double minDistance = (pointEigen - node).squaredNorm();
+        double smallestDistance = (pointEigen - node).squaredNorm();
         int closestNode=0;
         for (int i = 0; i < freeNodes.size(); i++)
         {
                 node << freeNodes[i].x,freeNodes[i].y,freeNodes[i].z;
                 double distance = (pointEigen - node).squaredNorm();
-                if (distance > minDist)
+                if (distance < smallestDistance)
                 {
                         //If closest node is too close ignore it
                         //Take closest node outside robot radius
-                        if(distance<minDistance)
-                        {
-                                closestNode = i;
-                                minDistance = distance;
-                        }
+                        //Sadly does not always works as intended :(
+                        closestNode = i;
+                        smallestDistance = distance;
+                        // if(distance>minDist)
+                        // {
+                        // }
                 }
         }
         //std::cout << "Closest node is" << closestNode <<'\n';
@@ -574,6 +575,8 @@ void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
                 //Fisrt element is always the node compared
                 //with itself, distance=0 by definition
 
+                //Since connection is undirected, it can happen some nodes en with more
+                //than kNeighboors
                 for(int k=1; k<kNeighboors+1; k++)
                 {
                         float localDist =distances[k].dist;
@@ -643,8 +646,8 @@ bool adjacencyMap::validateConnection(pointGeom p1, pointGeom p2, float radius)
 
 bool adjacencyMap::validateNode(pointGeom p1)
 {
-        //Chceck if a point is too close to occupied node
-        //REturns true if collision exists
+        //Check if a point is too close to occupied node
+        //Returns true if collision exists
         Eigen::Vector3d p1Eigen(p1.x,p1.y,p1.z);
         Eigen::Vector3d p2Eigen(p1.x,p1.y,p1.z+safetyHeight);
         //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
@@ -665,6 +668,46 @@ bool adjacencyMap::validateNode(pointGeom p1)
         return collision;
 }
 
+bool adjacencyMap::validateNode(pointGeom p, pointArray &codes)
+{
+        //Like above but this,checks with a subset of codes instead of all of them
+        Eigen::Vector3d p1Eigen(p.x,p.y,p.z);
+        Eigen::Vector3d p2Eigen(p.x,p.y,p.z+safetyHeight);
+        //std::cout << p1Eigen << "<---->"<< p2Eigen<< '\n';
+        float minimalDist = (safetyHeight*safetyHeight+safetyRadius*safetyRadius);
+        bool collision = false;
+        for (size_t i = 0; i < codes.size(); i++) {
+                Eigen::Vector3d q(codes[i].x,codes[i].y,codes[i].z);
+                //Check if it is worth doing cilinder collision
+                //If node is closer than safetyH + safetyRadius check else ignore
+                float dist = (p1Eigen-q).squaredNorm();
+                if (dist < minimalDist) {
+                        collision = cylinderCollision(p1Eigen,p2Eigen,q,safetyRadius);
+                        if (collision) {
+                                break;
+                        }
+                }
+        }
+        //std::cout << "The object collides " << collision<< '\n';
+        return collision;
+}
+
+bool adjacencyMap::validateSingleTerminal(pointGeom p, int &nodeIdx, pointArray &codesToCheck)
+{
+        nodeIdx = getClosestNode(p);
+        float dst = L1Distance(freeNodes[nodeIdx],p);
+        float sqr = maxDistTerm*maxDistTerm;
+        if (dst > sqr) {
+                std::cout << "Error: Start node is " << dst << " [m] away from closest node\n";
+                std::cout << "Max allowed distance is:" << maxDistTerm<< "[m]\n";
+                return false;
+        }
+
+        bool isNotValid = validateNode(p,codesToCheck);
+        return !isNotValid;
+}
+
+
 bool adjacencyMap::validateTerminals(pointGeom strt, pointGeom goal,
                                      int &closetsNodeStrtIdx, int &closestNodeGoalIdx)
 {
@@ -672,7 +715,7 @@ bool adjacencyMap::validateTerminals(pointGeom strt, pointGeom goal,
         float strtDst =euclideanDistance(freeNodes[closetsNodeStrtIdx],strt);
         if (strtDst > maxDistTerm) {
                 std::cout << "Error: Start node is " << strtDst << " [m] away from closest node\n";
-                std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
+                std::cout << "Max allowed distance is:" << maxDistTerm<< "[m]\n";
                 return false;
         }
 
@@ -680,7 +723,7 @@ bool adjacencyMap::validateTerminals(pointGeom strt, pointGeom goal,
         float goalDst =euclideanDistance(freeNodes[closestNodeGoalIdx],goal);
         if (goalDst > maxDistTerm) {
                 std::cout << "Error: Goal node is " << goalDst << " [m] away from closest node\n";
-                std::cout << "Max allowed distance is:" << maxDist<< "[m]\n";
+                std::cout << "Max allowed distance is:" << maxDistTerm<< "[m]\n";
                 return false;
         }
 

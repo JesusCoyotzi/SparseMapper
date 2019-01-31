@@ -44,6 +44,7 @@ include_directories(
 add_library(adjacencyMap
    src/adjacencyMap/adjacencyMap.cpp
    src/adjacencyMap/graphIO.cpp
+   src/adjacencyMap/voxelGrid.cpp
 )
 
 ## Add cmake target dependencies of the library

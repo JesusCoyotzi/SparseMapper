@@ -2,17 +2,18 @@
 <launch>
   <arg name="map_folder" default="$(find sparse_map_utils)/graphs/"/>
   <arg name="grid_folder" default="$(find sparse_map_utils)/maps/"/>
-  <arg name="map_name" default="$(arg map_folder)/bioroboticaVFull.txt"/>
-  <arg name="grid_name" default="$(arg grid_folder)bioroboticaV.yaml"/>
+  <arg name="map_name" default="$(arg map_folder)/megaweb2.txt"/>
+  <arg name="grid_name" default="$(arg grid_folder)megawebGndInf.yaml"/>
   <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(arg grid_name)"/>
   <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">
     <param name="map_file" value="$(arg map_name)" type="str"/>
-    <param name="k_neighboors" value="8" type="int"/>
+    <param name="k_neighboors" value="4" type="int"/>
     <param name="max_dist" value="1.5" type="double"/>
     <param name="min_dist" value="0.25" type="double"/>
     <param name="safety_height" value="1.0" type="double"/>
     <param name="safety_radius" value="0.3" type="double"/>
     <param name="connection_radius" value="0.3" type="double"/>
     <remap from="graph_marker" to="/hsrb/graph_marker"/>
+    <remap from="make_plan" to="/sparse_map/make_plan"/>
   </node>
 </launch>

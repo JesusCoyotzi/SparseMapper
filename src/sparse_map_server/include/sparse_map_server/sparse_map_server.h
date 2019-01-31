@@ -20,6 +20,7 @@ std::string mapFileName,graphFile,mapFrame;
 //TODO this is saved on sparseMap, no need to duplicate outside. REMOVE
 float safetyHeight,safetyRadius,connectionRadius, maxDist, minDist,maxDistTerm;
 adjacencyMap sparseMap;
+voxelGrid occupiedGrid;
 bool visNodes,visTerminals,validateTerminals;
 int kNeighboors;
 void makeCentroidsMarkerAndPublish( pointArray &codebook,std_msgs::ColorRGBA color, int id);

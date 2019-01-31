@@ -38,6 +38,10 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
                                  maxDist,minDist,maxDistTerm,kNeighboors);
         sparseMap.makeGraph();
 
+        //Voxel Grid
+        occupiedGrid.setStep(safetyRadius*2); //for diameter
+        occupiedGrid.voxelize(sparseMap.getOccNodes());
+        //occupiedGrid.printVoxGrid();
         //To let advertisers enable
         ros::Duration(1).sleep();
         if(visNodes)
@@ -238,7 +242,12 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
         if (validateTerminals)
         {
                 //std::cout << "Using full validation" << '\n';
-                isValid = sparseMap.validateTerminals(req.startPose,req.goalPose,start,goal);
+                pointArray checkingCodes = occupiedGrid.getPointsInVoxel(req.startPose);
+                bool isValidStrt = sparseMap.validateSingleTerminal(req.startPose,start,checkingCodes);
+                checkingCodes = occupiedGrid.getPointsInVoxel(req.goalPose);
+                std::cout << checkingCodes.size() << '\n';
+                bool isValidGoal = sparseMap.validateSingleTerminal(req.goalPose,goal,checkingCodes);
+                isValid = isValidStrt && isValidGoal;
         }
         else
         {

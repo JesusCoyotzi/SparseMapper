@@ -15,12 +15,16 @@ import sys
 import random
 import csv
 import numpy as np
+import pandas as pd
 
 
 file_header = ["orig_x", "orig_y", "goal_x", "goal_y",
                "direct_distance", "reachable",
-               "nav_tray", "nav_nodes", "nav_time", "nav_jerk",
-               "sparse_tray", "sparse_nodes", "sparse_time", "sparse_jerk"]
+               "nav_tray", "nav_twist", "nav_time",
+               "nav_jerk", "nav_std", "nav_nodes",
+               "sparse_tray", "sparse_twist", "sparse_time",
+               "sparse_jerk", "sparse_std", "sparse_nodes"
+               ]
 
 
 def calcTrajectoryDist(path):
@@ -48,7 +52,7 @@ def getJerk(path):
     key_points = [[p.pose.position.x, p.pose.position.y,
                    p.pose.position.z] for p in path.poses]
     points_np = np.array(key_points)
-    #print(points_np[0:5])
+    # print(points_np[0:5])
     frst_dev = np.gradient(points_np)
     scnd_dev = np.gradient(frst_dev)
     thrd_dev = np.gradient(scnd_dev)
@@ -57,18 +61,59 @@ def getJerk(path):
     return jerk_mean
 
 
+def calcAngle(v1, v2):
+    n1 = np.linalg.norm(v1)
+    n2 = np.linalg.norm(v2)
+
+    v1_u = v1 / n1
+    v2_u = v2 / n2
+
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+
+def getTwist(path):
+    key_points = [[p.pose.position.x, p.pose.position.y,
+                   p.pose.position.z] for p in path.poses]
+    points_np = np.array(key_points)
+    n_poses = len(path.poses)
+
+    twist = 0.0
+    for i in range(1, n_poses - 1):
+        vi = points_np[i] - points_np[i - 1]
+        vj = points_np[i + 1] - points_np[i]
+
+        if vj.any():
+            twist = twist + calcAngle(vi, vj)
+
+        # print((points_np[i+1],points_np[i],points_np[i-1]))
+    
+    return twist
+
+
+def getStdDev(pth):
+    # Get the std deviation of the
+    key_points = [[p.pose.position.x, p.pose.position.y,
+                   p.pose.position.z] for p in pth.poses]
+    points_np = np.array(key_points)
+    m = np.mean(points_np, axis=0)
+    return np.sqrt(np.mean(np.abs(points_np - m)**2))
+
+
 def setupResults(start, goal, distance, reachable=True):
+    # z is irrelevant in this case but not generally
     results_dic = dict.fromkeys(file_header, float("nan"))
     results_dic["orig_x"] = start.position.x
     results_dic["orig_y"] = start.position.y
-    #results_dic["orig_z"] = start.position.z
 
     results_dic["goal_x"] = goal.position.x
     results_dic["goal_y"] = goal.position.y
-    # results_dic["goal_z"] = goal.position.z
 
     results_dic["direct_distance"] = distance
     results_dic["reachable"] = reachable
+
+    # results_list = [start.position.x, start.position.y,
+    #                 goal.position.x, goal.position.y,
+    #                 distance, reachable]
 
     return results_dic
 
@@ -87,21 +132,29 @@ def processPath(head, start, goal,
 
     straight_distance = euclideanDistance(start, goal)
     simulation_result = setupResults(start, goal, straight_distance, reachable)
-    try:
-        sparseTime = rospy.Time.now()
-        sparseResponse = sparseServer(sparseStart, sparseGoal)
-        sparseTime = rospy.Time.now() - sparseTime
-        sparse_pth = sparseResponse.plan
-        if sparse_pth.poses:
-            spr_stck_nodes = len(sparse_pth.poses)
-            spr_traj_dist = calcTrajectoryDist(sparse_pth)
-            spr_jrk = getJerk(sparse_pth)
-            simulation_result["sparse_nodes"] = spr_stck_nodes
-            simulation_result["sparse_tray"] = spr_traj_dist
-            simulation_result["sparse_time"] = sparseTime.to_sec()
-            simulation_result["sparse_jerk"] = spr_jrk
-    except rospy.ServiceException, e:
-        print("Service call failed %s" % e)
+    # try:
+    #     sparseTime = rospy.Time.now()
+    #     sparseResponse = sparseServer(sparseStart, sparseGoal)
+    #     sparseTime = rospy.Time.now() - sparseTime
+    #     sparse_pth = sparseResponse.plan
+    #     if sparse_pth.poses:
+    #         spr_stck_nodes = len(sparse_pth.poses)
+    #         spr_traj_dist = calcTrajectoryDist(sparse_pth)
+    #         spr_jrk = getJerk(sparse_pth)
+    #         spr_std = getStdDev(sparse_pth)
+    #         spr_twst = getTwist(sparse_pth)
+    #         simulation_result["sparse_nodes"] = spr_stck_nodes
+    #         simulation_result["sparse_tray"] = spr_traj_dist
+    #         simulation_result["sparse_time"] = sparseTime.to_sec()
+    #         simulation_result["sparse_jerk"] = spr_jrk
+    #         simulation_result["sparse_std"] = spr_std
+    #         simulation_result["sparse_twist"] = spr_twst
+    #         # simulation_result.extend(
+    #         #     [spr_stck_nodes, spr_traj_dist,
+    #         #      sparseTime.to_sec(), spr_jrk])
+    #
+    # except rospy.ServiceException, e:
+    #     print("Service call failed %s" % e)
 
     try:
         moveTime = rospy.Time.now()
@@ -112,10 +165,19 @@ def processPath(head, start, goal,
             nav_stck_nodes = len(nav_pth.poses)
             nav_tray_dist = calcTrajectoryDist(nav_pth)
             nav_jrk = getJerk(nav_pth)
+            nav_std = getStdDev(nav_pth)
+            nav_twst = getTwist(nav_pth)
+            print(nav_twst)
             simulation_result["nav_nodes"] = nav_stck_nodes
             simulation_result["nav_tray"] = nav_tray_dist
             simulation_result["nav_time"] = nav_time.to_sec()
             simulation_result["nav_jerk"] = nav_jrk
+            simulation_result["nav_std"] = nav_std
+            simulation_result["nav_twist"] = nav_twst
+            # print(nav_twst)
+            # simulation_result.extend(
+            #     [nav_stck_nodes, nav_tray_dist,
+            #      nav_time.to_sec(), nav_jrk])
 
     except rospy.ServiceException, e:
         print("Service call failed %s" % e)
@@ -135,9 +197,11 @@ def callPlanners(occ, free, experiments, output_file_name="results.csv", invalid
 
     print("Writing results to %s" % output_file_name)
 
-    with open(output_file_name, 'w') as f:
-        csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
-        csv_writer.writeheader()
+    # with open(output_file_name, 'w') as f:
+    #     csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
+    #     csv_writer.writeheader()
+
+    results_df = pd.DataFrame(columns=file_header)
 
     if invalid:
         starts_valid = random.sample(free, experiments / 2)
@@ -148,27 +212,31 @@ def callPlanners(occ, free, experiments, output_file_name="results.csv", invalid
         starts_valid = random.sample(free, experiments)
         goals_valid = random.sample(free, experiments)
 
-    # starts = starts_valid + goals_valid
-    # goals = goals_valid + goals_blocked
-    # random.shuffle(starts)
-    # random.shuffle(goals)
     head = Header()
     head.stamp = rospy.Time.now()
     head.frame_id = "map"
+    full_results = []
     for start, goal in zip(starts_valid, goals_valid):
         simul_res = processPath(head, start, goal, True,
                                 sparseServer, moveServer)
-        with open(output_file_name, 'a') as f:
-            csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
-            csv_writer.writerow(simul_res)
+
+        full_results.append(simul_res)
+        # with open(output_file_name, 'a') as f:
+        #     csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
+        #     csv_writer.writerow(simul_res)
 
     if invalid:
         for start, goal in zip(starts_blocked, goals_blocked):
             simul_res = processPath(head, start, goal, False,
                                     sparseServer, moveServer)
-            with open(output_file_name, 'a') as f:
-                csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
-                csv_writer.writerow(simul_res)
+            full_results.append(simul_res)
+            # with open(output_file_name, 'a') as f:
+            #     csv_writer = csv.DictWriter(f, fieldnames=file_header,quoting=csv.QUOTE_NONE)
+            #     csv_writer.writerow(simul_res)
+
+    # print(simul_res)
+    results_df = results_df.append(full_results)
+    results_df.to_csv(output_file_name, float_format='%.5f')
 
     return
 

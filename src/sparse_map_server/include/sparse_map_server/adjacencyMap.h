@@ -17,8 +17,7 @@
 
 class adjacencyMap {
 //This class implements an adjacency graph on nodes.
-//Pretty much the same as the space_quantization package
-//But hopefully more generic.
+//Hopefully somewhat generic.
 private:
 
 struct graphNode {
@@ -60,6 +59,7 @@ bool cylinderCollision(Eigen::Vector3d p1, Eigen::Vector3d p2, Eigen::Vector3d q
 void printAdjacencyList(adjacencyList l);
 static bool compareDistance(distanceLabel i, distanceLabel j);
 bool validateNode(pointGeom p1);
+bool validateNode(pointGeom p1,pointArray &codes);
 int reduceNodes(std::list<pointGeom> &nodes, std::vector<pointGeom> &oNodes );
 
 public:
@@ -79,6 +79,7 @@ bool loadMap(std::string filename);
 pointArray getFreeNodes();
 pointArray getOccNodes();
 adjacencyList getGraph();
+bool validateSingleTerminal(pointGeom p, int &nodeIdx, pointArray &codesToCheck);
 bool validateTerminals(pointGeom strt,pointGeom goal,
                        int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
 bool validateTerminalsQuick(pointGeom strt,pointGeom goal,
@@ -90,34 +91,55 @@ bool removeOccupiedPoint(pointGeom p);
 class graphIO
 {
 private:
-  struct lessL1
-  {
-           bool operator()(const pointGeom& p1, const pointGeom &p2)
-          {
-              double p1norm =  p1.x*p1.x+p1.y*p1.y+p1.z*p1.z;
-              double p2norm =  p2.x*p2.x+p2.y*p2.y+p2.z*p2.z;
-              return p1norm < p2norm;
-          }
-  };
-  std::list<pointGeom> freeCodes;
-  std::list<pointGeom> occCodes;
-  bool nodesLoaded;
-  bool parseCodeLine(std::string, pointGeom &g);
+struct lessL1
+{
+        bool operator()(const pointGeom& p1, const pointGeom &p2)
+        {
+                double p1norm =  p1.x*p1.x+p1.y*p1.y+p1.z*p1.z;
+                double p2norm =  p2.x*p2.x+p2.y*p2.y+p2.z*p2.z;
+                return p1norm < p2norm;
+        }
+};
+std::list<pointGeom> freeCodes;
+std::list<pointGeom> occCodes;
+bool nodesLoaded;
+bool parseCodeLine(std::string, pointGeom &g);
 
 public:
-  double thres;
-  graphIO();
-  graphIO(std::string filename);
-  pointGeom removeOccCode(pointGeom p);
-  pointGeom removeFreeCode(pointGeom p);
-  bool loadNodes(std::string filename);
-  bool saveAsTxt(std::string filename);
-  int simpleOccZPassThrough(double max, double min);
-  int simpleFreeZPassThrough(double max, double min);
-  int simpleZPassThrough(double max, double min);
-  void addFreeCode(pointGeom p);
-  void addOccCode(pointGeom p);
-  pointArray getFreeCodes();
-  pointArray getOccCodes();
-  void loadToGraph(adjacencyMap &graph);
+double thres;
+graphIO();
+graphIO(std::string filename);
+pointGeom removeOccCode(pointGeom p);
+pointGeom removeFreeCode(pointGeom p);
+bool loadNodes(std::string filename);
+bool saveAsTxt(std::string filename);
+int simpleOccZPassThrough(double max, double min);
+int simpleFreeZPassThrough(double max, double min);
+int simpleZPassThrough(double max, double min);
+void addFreeCode(pointGeom p);
+void addOccCode(pointGeom p);
+pointArray getFreeCodes();
+pointArray getOccCodes();
+void loadToGraph(adjacencyMap &graph);
+};
+
+class voxelGrid {
+//Creates an axis oriented voxel grid for fast acces to elements
+private:
+typedef   std::list <pointGeom> voxel;
+typedef   std::vector<voxel> voxelArray;
+voxelArray voxelGrd;
+int cellsX,cellsY,cellsZ;   //Number of cells in each axis
+float stepX,stepY,stepZ;   //size of voxel in each direction
+bool isSet, isReady;
+pointGeom minPoint, maxPoint;
+void getAOBB(pointArray &points, pointGeom &minCorner, pointGeom &maxCorner);
+public:
+voxelGrid(float step);
+voxelGrid();
+void setStep(float step);
+void setStep(float stepx,float stepy,float stepz);
+void voxelize(std::vector<pointGeom> points);
+void printVoxGrid();
+pointArray getPointsInVoxel(pointGeom q);
 };

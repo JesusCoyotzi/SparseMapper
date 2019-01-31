@@ -11,7 +11,7 @@ start = Point(3, -4, 0)
 def goalCallback(msg):
     goal = Point(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
     try:
-        goalProxy = rospy.ServiceProxy("/make_plan", MakePlan)
+        goalProxy = rospy.ServiceProxy("/sparse_map/make_plan", MakePlan)
         pth = goalProxy(start, goal)
         print("pat planing succesfull")
     except rospy.ServiceException as e:
@@ -26,7 +26,7 @@ def setup():
     rospy.init_node("goal_emitter", anonymous=False)
     rospy.Subscriber("/move_base_simple/goal", PoseStamped, goalCallback)
     rospy.Subscriber("/initialpose", PoseWithCovarianceStamped, startCallBack)
-    rospy.wait_for_service("/make_plan")
+    rospy.wait_for_service("/sparse_map/make_plan")
     rospy.spin()
 
 

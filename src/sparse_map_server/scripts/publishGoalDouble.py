@@ -42,8 +42,8 @@ def setup():
     rospy.init_node("goal_emitter", anonymous=False)
     print("Starting micro server for move base and sparse map")
     rospy.Subscriber("/clicked_point", PointStamped, goalCallback)
-    rospy.wait_for_service("sparse_make_plan")
-    rospy.wait_for_service("move_make_plan")
+    rospy.wait_for_service("/sparse_map/make_plan")
+    rospy.wait_for_service("/move_base/make_plan")
     rospy.spin()
 
 

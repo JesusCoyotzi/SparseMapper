@@ -66,6 +66,11 @@ void sparseMapEditor::modifyCodes(const geometry_msgs::PointStamped &msg)
                 {
                         removedPoint = codes.removeFreeCode(msg.point);
                 }
+                else
+                {
+                        std::cout << "Invalid space" <<  opSet<<'\n';
+                        return;
+                }
                 std::cout << "Point "<< removedPoint <<" removed\n";
         }
         else if (!opMode.compare("add"))
@@ -77,6 +82,11 @@ void sparseMapEditor::modifyCodes(const geometry_msgs::PointStamped &msg)
                 else if (!opSet.compare("free"))
                 {
                         codes.addFreeCode(msg.point);
+                }
+                else
+                {
+                        std::cout << "Invalid space" <<  opSet<<'\n';
+                        return;
                 }
                 std::cout << "Point "<< msg.point <<" added\n";
         }
