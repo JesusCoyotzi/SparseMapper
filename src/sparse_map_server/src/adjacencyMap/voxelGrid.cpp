@@ -152,7 +152,7 @@ pointArray voxelGrid::getPointsInVoxel(pointGeom q, bool eigthN)
                         for (j = minI; i < maxI; i++)
                         {
                                 int idxQ = i + j * cellsX + k * cellsY;
-                                if (( idxQ > voxelGrd.size() ) && ( idxQ < 0 )) {
+                                if (( idxQ < voxelGrd.size() ) && ( idxQ > 0 )) {
                                         voxel vx = voxelGrd[idxQ];
                                         closePoints.insert( closePoints.end(), vx.begin(), vx.end());
                                 }
@@ -163,8 +163,11 @@ pointArray voxelGrid::getPointsInVoxel(pointGeom q, bool eigthN)
         {
                 //Return only local voxel, probably faster
                 int idxQ = i + j * cellsX + k * cellsY;
-                voxel vx = voxelGrd[idxQ];
-                closePoints.insert( closePoints.end(), vx.begin(), vx.end());
+                if (( idxQ < voxelGrd.size() ) && ( idxQ > 0 ))
+                {
+                        voxel vx = voxelGrd[idxQ];
+                        closePoints.insert( closePoints.end(), vx.begin(), vx.end());
+                }
         }
 
 
