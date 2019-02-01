@@ -141,5 +141,5 @@ void setStep(float step);
 void setStep(float stepx,float stepy,float stepz);
 void voxelize(std::vector<pointGeom> points);
 void printVoxGrid();
-pointArray getPointsInVoxel(pointGeom q, bool eigthN=false);
+pointArray getPointsInVoxel(pointGeom q, bool eigthN=true);
 };

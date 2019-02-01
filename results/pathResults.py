@@ -39,7 +39,7 @@ def main():
     print("Time averages")
     print(msg_tray.format(nav_times.mean(),sparse_times.mean()))
     print("Smoothness averages")
-    print(msg_tray.format(nav_jerk.mean(),sparse_jerk.mean()))
+    print(msg_tray.format(nav_twist.mean(),sparse_twist.mean()))
 
     barWidth = 0.5
 
