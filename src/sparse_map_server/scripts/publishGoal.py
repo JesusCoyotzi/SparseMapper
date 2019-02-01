@@ -14,6 +14,8 @@ def goalCallback(msg):
         goalProxy = rospy.ServiceProxy("/sparse_map/make_plan", MakePlan)
         pth = goalProxy(start, goal)
         print("pat planing succesfull")
+        for p in pth.plan.poses:
+            print((p.pose.position.x,p.pose.position.y,p.pose.position.z))
     except rospy.ServiceException as e:
         print("Service call failed %s"%e)
 

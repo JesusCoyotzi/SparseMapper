@@ -7,7 +7,7 @@
   <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(arg grid_name)"/>
   <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">
     <param name="map_file" value="$(arg map_name)" type="str"/>
-    <param name="k_neighboors" value="4" type="int"/>
+    <param name="k_neighboors" value="6" type="int"/>
     <param name="max_dist" value="1.5" type="double"/>
     <param name="min_dist" value="0.25" type="double"/>
     <param name="safety_height" value="1.0" type="double"/>

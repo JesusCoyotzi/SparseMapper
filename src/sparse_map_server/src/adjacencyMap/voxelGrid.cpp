@@ -54,8 +54,8 @@ void voxelGrid::voxelize(std::vector<pointGeom> points)
         printf("With [%d,%d,%d] cells\n",cellsX,cellsY,cellsZ);
         printf("Cell Size [%f,%f,%f]\n \n", stepX,stepY,stepZ);
         printf("With %ld points \n", pointList.size());
-        std::cout << "Min Point" << minPoint <<'\n';
-        std::cout << "Max Point" << maxPoint <<'\n';
+        // std::cout << "Min Point" << minPoint <<'\n';
+        // std::cout << "Max Point" << maxPoint <<'\n';
         //copy to list since is faster to remove, push from it
         //Touchin size
         int idx = 0, i=0,j=0,k=0;
@@ -65,11 +65,9 @@ void voxelGrid::voxelize(std::vector<pointGeom> points)
         voxelI_next.y = minPoint.y + (1) * stepY;
         voxelI_next.z = minPoint.z + (1) * stepZ;
 
-        int voxelized =0 ;
+        int voxelized =0;
         while(!pointList.empty())
         {
-                //BUG Not all nodes are saved to grid
-
                 if (idx > voxelGrd.size())
                 {
                         std::cout << "Over indexing!!! " << idx <<'\n';
@@ -133,7 +131,7 @@ void voxelGrid::voxelize(std::vector<pointGeom> points)
         return;
 }
 
-pointArray voxelGrid::getPointsInVoxel(pointGeom q)
+pointArray voxelGrid::getPointsInVoxel(pointGeom q, bool eigthN)
 {
         //return all points in a 27 neighboor around point q
         if (!isReady) {
@@ -142,10 +140,32 @@ pointArray voxelGrid::getPointsInVoxel(pointGeom q)
         int i = (q.x -minPoint.x)/stepX;
         int j = (q.y -minPoint.y)/stepY;
         int k = (q.z -minPoint.z)/stepZ;
-        int idxQ = i + j * cellsX + k * cellsY;
-        voxel vx = voxelGrd[idxQ];
         pointArray closePoints;
-        closePoints.insert( closePoints.begin(), vx.begin(), vx.end());
+
+        if (eigthN)
+        {
+                int maxI = i+1, minI = i-1;
+                int maxJ = i+1, minJ = i-1;
+                //Return all codes in a 8-neighboord around q voxel
+                for (i=minJ; i < maxJ; i++)
+                {
+                        for (j = minI; i < maxI; i++)
+                        {
+                                int idxQ = i + j * cellsX + k * cellsY;
+                                voxel vx = voxelGrd[idxQ];
+                                closePoints.insert( closePoints.end(), vx.begin(), vx.end());
+                        }
+                }
+        }
+        else
+        {
+                //Return only local voxel, probably faster
+                int idxQ = i + j * cellsX + k * cellsY;
+                voxel vx = voxelGrd[idxQ];
+                closePoints.insert( closePoints.end(), vx.begin(), vx.end());
+        }
+
+
         return closePoints;
 }
 

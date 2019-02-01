@@ -5,7 +5,7 @@
   <arg name="octomap_folder" default="/home/jesus/maestria/tesis/cloud/octoclouds/"/>
   <arg name="octomap_name" default="megawebFull.bt"/>
   <arg name="graph_folder" default="/home/jesus/maestria/tesis/graphs/"/>
-  <arg name="graph_name" default="megawebFull.txt"/>
+  <arg name="graph_name" default="megaweb2048Full.txt"/>
 
   <arg name="crop" default="-2.0"/>
   <arg name="freeSpace" default="0.10"/>
@@ -17,7 +17,7 @@
     <param name="frame_id" type="string" value="map"/>
     <param name="base_frame_id " value="base_link" type="str"/>
     <param name="occupancy_min_z" value="-0.125" type="double"/>
-    <param name="occupancy_max_z" value="2.0" type="double"/>
+    <param name="occupancy_max_z" value="1.0" type="double"/>
     <remap from="octomap_point_cloud_centers" to="/hsrb/cloud" />
     <!-- data source to integrate (PointCloud2) -->
   </node>
@@ -37,8 +37,8 @@
     <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
     <remap from="quantized_space" to="/hsrb/quantized_space"/>
     <remap from="codebook" to="/hsrb/codebook"/>
-    <param name="nClusters" value="1024" type="int"/>
-    <param name="iterations" value="10" type="int"/>
+    <param name="nClusters" value="2048" type="int"/>
+    <param name="iterations" value="7" type="int"/>
     <param name="method" value="kpp" type="str"/>
     <param name="publish_label_space" value="true" type="bool"/>
     <!-- <param name="visualizeCentroids" value="True" type="bool"/> <param name="visualizeSegCloud" value="false" type="bool"/> <param name="freeThr" value="0.05" type="double"/> -->

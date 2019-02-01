@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 
 
+np.set_printoptions(suppress=True,precision=3)
+
 file_header = ["orig_x", "orig_y", "goal_x", "goal_y",
                "direct_distance", "reachable",
                "nav_tray", "nav_twist", "nav_time",
@@ -76,17 +78,24 @@ def getTwist(path):
                    p.pose.position.z] for p in path.poses]
     points_np = np.array(key_points)
     n_poses = len(path.poses)
-
     twist = 0.0
     for i in range(1, n_poses - 1):
         vi = points_np[i] - points_np[i - 1]
         vj = points_np[i + 1] - points_np[i]
+        # print("***")
+        # print(points_np[i - 1])
+        # print(points_np[i])
+        # print(points_np[i + 1])
+        # print(vi)
+        # print(vj)
+        #print("***")
 
-        if vj.any():
-            twist = twist + calcAngle(vi, vj)
+        if vi.any() and vj.any():
+            twist = twist + np.abs(calcAngle(vi, vj))
+        #print(twist)
+#
 
-        # print((points_np[i+1],points_np[i],points_np[i-1]))
-    
+#        print((points_np[i+1],points_np[i],points_np[i-1]))
     return twist
 
 
@@ -132,29 +141,29 @@ def processPath(head, start, goal,
 
     straight_distance = euclideanDistance(start, goal)
     simulation_result = setupResults(start, goal, straight_distance, reachable)
-    # try:
-    #     sparseTime = rospy.Time.now()
-    #     sparseResponse = sparseServer(sparseStart, sparseGoal)
-    #     sparseTime = rospy.Time.now() - sparseTime
-    #     sparse_pth = sparseResponse.plan
-    #     if sparse_pth.poses:
-    #         spr_stck_nodes = len(sparse_pth.poses)
-    #         spr_traj_dist = calcTrajectoryDist(sparse_pth)
-    #         spr_jrk = getJerk(sparse_pth)
-    #         spr_std = getStdDev(sparse_pth)
-    #         spr_twst = getTwist(sparse_pth)
-    #         simulation_result["sparse_nodes"] = spr_stck_nodes
-    #         simulation_result["sparse_tray"] = spr_traj_dist
-    #         simulation_result["sparse_time"] = sparseTime.to_sec()
-    #         simulation_result["sparse_jerk"] = spr_jrk
-    #         simulation_result["sparse_std"] = spr_std
-    #         simulation_result["sparse_twist"] = spr_twst
-    #         # simulation_result.extend(
-    #         #     [spr_stck_nodes, spr_traj_dist,
-    #         #      sparseTime.to_sec(), spr_jrk])
-    #
-    # except rospy.ServiceException, e:
-    #     print("Service call failed %s" % e)
+    try:
+        sparseTime = rospy.Time.now()
+        sparseResponse = sparseServer(sparseStart, sparseGoal)
+        sparseTime = rospy.Time.now() - sparseTime
+        sparse_pth = sparseResponse.plan
+        if sparse_pth.poses:
+            spr_stck_nodes = len(sparse_pth.poses)
+            spr_traj_dist = calcTrajectoryDist(sparse_pth)
+            spr_jrk = getJerk(sparse_pth)
+            spr_std = getStdDev(sparse_pth)
+            spr_twst = getTwist(sparse_pth)
+            simulation_result["sparse_nodes"] = spr_stck_nodes
+            simulation_result["sparse_tray"] = spr_traj_dist
+            simulation_result["sparse_time"] = sparseTime.to_sec()
+            simulation_result["sparse_jerk"] = spr_jrk
+            simulation_result["sparse_std"] = spr_std
+            simulation_result["sparse_twist"] = spr_twst
+            # simulation_result.extend(
+            #     [spr_stck_nodes, spr_traj_dist,
+            #      sparseTime.to_sec(), spr_jrk])
+
+    except rospy.ServiceException, e:
+        print("Service call failed %s" % e)
 
     try:
         moveTime = rospy.Time.now()
@@ -167,14 +176,12 @@ def processPath(head, start, goal,
             nav_jrk = getJerk(nav_pth)
             nav_std = getStdDev(nav_pth)
             nav_twst = getTwist(nav_pth)
-            print(nav_twst)
             simulation_result["nav_nodes"] = nav_stck_nodes
             simulation_result["nav_tray"] = nav_tray_dist
             simulation_result["nav_time"] = nav_time.to_sec()
             simulation_result["nav_jerk"] = nav_jrk
             simulation_result["nav_std"] = nav_std
             simulation_result["nav_twist"] = nav_twst
-            # print(nav_twst)
             # simulation_result.extend(
             #     [nav_stck_nodes, nav_tray_dist,
             #      nav_time.to_sec(), nav_jrk])

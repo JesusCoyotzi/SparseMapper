@@ -411,7 +411,6 @@ bool adjacencyMap::Astar(int goal,int start, pointArray & fullPath)
                 }
         }
 
-        fullPath.push_back(goalPoint);
         int nd = goal;
         while (nd != start) {
                 // printf("C[%d]\n",nd );

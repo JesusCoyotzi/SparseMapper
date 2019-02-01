@@ -6,6 +6,7 @@ int main(int argc, char  *argv[]) {
 
         if (argc < 5) {
                 std::cout << "Usage program inFile outFile mapResolution [m] erosionRadius [m]" << '\n';
+                return -1;
         }
 
         std::string inputFileName(argv[1]);
@@ -19,9 +20,10 @@ int main(int argc, char  *argv[]) {
         // float resolution = fs["resolution"];
         std::cout << "Reading map " <<  inputFileName<<'\n';
         std::cout << "@ " << resolution << " m/pix\n";
+        int elementSize = radius/resolution;
+        std::cout << "Using element size of " << elementSize<<" pixels\n";
 
         cv::Mat occGrid=cv::imread(argv[1]);
-        int elementSize = radius/resolution;
         cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( elementSize, elementSize));
         cv::Mat processed;
         cv::morphologyEx( occGrid, processed, cv::MORPH_ERODE , element );

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <node name="path_simulator" pkg="sparse_map_utils" type="pathSimulation.py" args="1 $(find sparse_map_utils)/results/paths/gridVox.csv" output="screen">
+  <node name="path_simulator" pkg="sparse_map_utils" type="pathSimulation.py" args="500 $(find sparse_map_utils)/results/paths/gridVox2048.csv" output="screen">
     <remap from="move_make_plan" to="/move_base/make_plan"/>
     <remap from="sparse_make_plan" to="/sparse_map/make_plan"/>
     <remap from="static_map" to="truth_map"/>
