@@ -3,9 +3,9 @@
 
 
   <arg name="octomap_folder" default="/home/jesus/maestria/tesis/cloud/octoclouds/"/>
-  <arg name="octomap_name" default="megawebFull.bt"/>
+  <arg name="octomap_name" default="PDSFULL.bt"/>
   <arg name="graph_folder" default="/home/jesus/maestria/tesis/graphs/"/>
-  <arg name="graph_name" default="megaweb2048Full.txt"/>
+  <arg name="graph_name" default="PDS2Full.txt"/>
 
   <arg name="crop" default="-2.0"/>
   <arg name="freeSpace" default="0.10"/>
@@ -17,7 +17,7 @@
     <param name="frame_id" type="string" value="map"/>
     <param name="base_frame_id " value="base_link" type="str"/>
     <param name="occupancy_min_z" value="-0.125" type="double"/>
-    <param name="occupancy_max_z" value="1.0" type="double"/>
+    <param name="occupancy_max_z" value="3.0" type="double"/>
     <remap from="octomap_point_cloud_centers" to="/hsrb/cloud" />
     <!-- data source to integrate (PointCloud2) -->
   </node>

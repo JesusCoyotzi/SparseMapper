@@ -34,6 +34,7 @@ def main():
 
 
     msg_tray = "Navigation: {} | Sparse{} "
+    print("got {} vomparable measurements".format(len(paths["nav_tray"])))
     print("Trayectory averages")
     print(msg_tray.format(nav_trays.mean(),sparse_trays.mean()))
     print("Time averages")

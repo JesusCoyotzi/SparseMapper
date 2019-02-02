@@ -2,7 +2,7 @@
 <launch>
   <arg name="map_name" default="megawebOcto.yaml"/>
   <arg name="truth_name" default="megawebNoPlantGndInf.yaml"/>
-  <arg name="graph_name" default="megaweb2048Full.txt"/>
+  <arg name="graph_name" default="megaweb2.txt"/>
 
   <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg map_name)"/>
   <node name="truth_server" pkg="map_server" type="map_server" output="screen" args="$(find sparse_map_utils)/maps/$(arg truth_name)">

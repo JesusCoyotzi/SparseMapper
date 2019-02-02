@@ -245,7 +245,7 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
                 pointArray checkingCodes = occupiedGrid.getPointsInVoxel(req.startPose);
                 bool isValidStrt = sparseMap.validateSingleTerminal(req.startPose,start,checkingCodes);
                 checkingCodes = occupiedGrid.getPointsInVoxel(req.goalPose);
-                std::cout << checkingCodes.size() << '\n';
+                //std::cout << checkingCodes.size() << '\n';
                 bool isValidGoal = sparseMap.validateSingleTerminal(req.goalPose,goal,checkingCodes);
                 isValid = isValidStrt && isValidGoal;
         }
