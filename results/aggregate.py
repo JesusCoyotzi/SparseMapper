@@ -24,9 +24,13 @@ def main():
     print (files_to_agg)
     df_agg = pd.DataFrame()
     for f in files_to_agg:
-        df_tmp = pd.read_csv(f)
-        df_agg=df_agg.append(df_tmp)
-        print(df_tmp.head())
+        f_name = os.path.basename(f)
+        df_tmp = pd.read_csv(f,index_col=0)
+        df_tmp = df_tmp.assign(filename=f_name)
+        df_agg=df_agg.append(df_tmp,ignore_index=True)
+        #print(df_tmp.head())
+
+    print(df_agg["filename"].unique())
     df_agg.to_csv(aggregated_file)
 
 

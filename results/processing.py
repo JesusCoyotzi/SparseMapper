@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 
 from collections import defaultdict
+import itertools
 #from sets import Set
 
 
@@ -85,21 +86,27 @@ def processFiles(csv_file):
 def makeSummaryFigure(df, output_name):
     plt.style.use("seaborn-whitegrid")
     methods = ("kmeansCPU", "inner", "LBG", "kpp")
+    met_name = {"kmeansCPU": "K-medias CPU",
+                "inner": "K-medias GPU",
+                "LBG": "LBG",
+                "kpp": "K-medias++"}
     f_time, ax_time = plt.subplots()
     f_dist, ax_dist = plt.subplots()
     f_dev, ax_dev = plt.subplots()
 
-    ax_time.set_title("Average Time")
-    ax_time.set_xlabel("Number of clusters")
-    ax_time.set_ylabel("Time [s]")
+    ax_time.set_title("Tiempo promedio de ejecución")
+    ax_time.set_xlabel("Número de centroides")
+    ax_time.set_ylabel("Tiempo [s]")
 
-    ax_dist.set_title("Mean Squared Distorsion")
-    ax_dist.set_xlabel("Number of clusters")
-    ax_dist.set_ylabel("Meand Distorsion [m]")
+    ax_dist.set_title("Distorsión o error promedio")
+    ax_dist.set_xlabel("Número de centroides")
+    ax_dist.set_ylabel("Distorsión Media [m]")
 
-    ax_dev.set_title("Average standard deviation")
-    ax_dev.set_xlabel("Number of clusters")
-    ax_dev.set_ylabel("Standard deviation [clusters]")
+    ax_dev.set_title("Desviación estandar promedio")
+    ax_dev.set_xlabel("Número de centroides")
+    ax_dev.set_ylabel("Desviación estandar [puntos]")
+
+    lnstyle = itertools.cycle(('-', '--', '-.', ':'))
 
     for met in methods:
         df_mth = df.loc[df["method"] == met]
@@ -108,16 +115,21 @@ def makeSummaryFigure(df, output_name):
         stddev_series = df_mth["stddev"]
         cluster_series = df_mth["clusters"]
 
-        ax_time.plot(cluster_series, time_series, label=met)
-        ax_dist.plot(cluster_series, distorsion_series, label=met)
-        ax_dev.plot(cluster_series, stddev_series, label=met)
+        stl = next(lnstyle)
+
+        ax_time.plot(cluster_series, time_series,
+                     linewidth=1, linestyle=stl , label=met_name[met])
+        ax_dist.plot(cluster_series, distorsion_series,
+                     linewidth=1, linestyle=stl , label=met_name[met])
+        ax_dev.plot(cluster_series, stddev_series,
+                    linewidth=1, linestyle=stl , label=met_name[met])
 
     ax_time.legend(loc='best')
     ax_dist.legend(loc='best')
     ax_dev.legend(loc='best')
-    f_time.savefig(output_name + "-time.png", dpi=100)
-    f_dist.savefig(output_name + "-dist.png", dpi=100)
-    f_dev.savefig(output_name + "-dev.png", dpi=100)
+    f_time.savefig(output_name + "-time.eps", dpi=100)
+    f_dist.savefig(output_name + "-dist.eps", dpi=100)
+    f_dev.savefig(output_name + "-dev.eps", dpi=100)
 # plt.show()
 
 

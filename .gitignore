@@ -13,3 +13,5 @@ frame_pdf/*
 
 *.tar*
 *.png
+
+*.eps

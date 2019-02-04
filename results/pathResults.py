@@ -2,96 +2,173 @@ import sys
 import os
 
 import pandas as pd
-
 import matplotlib.pyplot as plt
-
 import numpy as np
+import json
+from scipy.signal import savgol_filter
+
+
+def formatGrph(x, y_nav, y_spr, filter=False, samples=5):
+    sz = (10, 6)
+    f = plt.figure(figsize=sz)
+    if filter:
+        y_hat_nav = savgol_filter(y_nav, smpls, 3)
+        y_hat_spr = savgol_filter(y_spr, smpls, 3)
+    else:
+        y_hat_nav = y_nav
+        y_hat_spr = y_spr
+
+    plt.plot(x, y_hat_nav, linestyle='-',
+             linewidth=1, marker="", markersize=2, label="Navigation")
+    plt.plot(x, y_hat_spr, linestyle='--',
+             linewidth=1, marker="", markersize=2, label="Sparse")
+
+    return f
+
 
 def main():
     if len(sys.argv) < 2:
         print("Error usage:")
-        print("pathResults.py file to process")
+        print("pathResults.py file to process, [outputFolder]")
         return
-    bs_name= sys.argv[1].split('.')[0]
 
-    paths=pd.read_csv(sys.argv[1])
+    filename = sys.argv[1]
+    paths = pd.read_csv(sys.argv[1])
+    nav_fails = paths["nav_tray"].isna().sum()
+    sparse_fails = paths["sparse_tray"].isna().sum()
+    n_paths = len(paths.index)
+    nav_error_ratio = nav_fails / n_paths
+    sparse_error_ratio = sparse_fails / n_paths
+
+
     paths.dropna(inplace=True)
-    paths.sort_values("direct_distance",inplace=True)
+    paths.sort_values("direct_distance", inplace=True)
     valid_nav = paths["nav_tray"]
     valid_sparse = paths["sparse_tray"]
-    #print(paths["direct_distance"].loc[valid_nav])
+    valid_paths = len(paths.index)
+    # print(paths["direct_distance"].loc[valid_nav])
 
     nav_trays = paths["nav_tray"]
     nav_times = paths["nav_time"]
     nav_jerk = paths["nav_jerk"]
     nav_nodes = paths["nav_nodes"]
     nav_twist = paths["nav_twist"]
+    nav_std = paths["nav_std"]
+
     sparse_trays = paths["sparse_tray"]
     sparse_times = paths["sparse_time"]
     sparse_jerk = paths["sparse_jerk"]
     sparse_nodes = paths["sparse_nodes"]
     sparse_twist = paths["sparse_twist"]
+    sparse_std = paths["sparse_std"]
 
-
-    msg_tray = "Navigation: {} | Sparse{} "
-    print("got {} vomparable measurements".format(len(paths["nav_tray"])))
+    msg_tray = "Navigation {} | Sparse: {}"
+    print("File processed:" + filename)
+    print("Has {} paths {} are valid".format(n_paths,valid_paths))
+    print("Path Errors")
+    print(msg_tray.format(nav_fails, sparse_fails))
+    print(msg_tray.format(nav_error_ratio, sparse_error_ratio))
     print("Trayectory averages")
-    print(msg_tray.format(nav_trays.mean(),sparse_trays.mean()))
+    print(msg_tray.format(nav_trays.mean(), sparse_trays.mean()))
     print("Time averages")
-    print(msg_tray.format(nav_times.mean(),sparse_times.mean()))
+    print(msg_tray.format(nav_times.mean(), sparse_times.mean()))
+    print("Nodes averages")
+    print(msg_tray.format(nav_nodes.mean(), sparse_nodes.mean()))
     print("Smoothness averages")
-    print(msg_tray.format(nav_twist.mean(),sparse_twist.mean()))
+    print(msg_tray.format(nav_twist.mean(), sparse_twist.mean()))
+    print("Std Avg averages")
+    print(msg_tray.format(nav_std.mean(), sparse_std.mean()))
+    print("*" * 15)
 
-    barWidth = 0.5
+    plt.style.use("seaborn-darkgrid")
+    x = paths["direct_distance"]
 
-
-    #fig, ax1 = plt.subplots()
-
-
-    sz = (10,6)
-    x = np.arange(0,len(nav_trays))
-    f1=plt.style.use("seaborn-whitegrid")
-    plt.figure(1,figsize=sz)
-    plt.plot(paths["direct_distance"],nav_trays,label="navigation")
-    plt.plot(paths["direct_distance"],sparse_trays,label="sparse")
-    plt.xlabel("Straight Distance [m]")
-    plt.ylabel("Trajectory lenght [m]")
-    plt.title("lenght")
+    f1 = formatGrph(x, nav_trays, sparse_trays)
+    plt.xlabel("Distancias entre inicio y destino [m]")
+    plt.ylabel("Longitud de la trayectoria [m]")
+    plt.title("Comparación de longitud")
+    plt.grid(True)
     plt.legend()
 
-
-    f2=plt.figure(2,figsize=sz)
-    plt.plot(paths["direct_distance"],nav_times,label="navigation")
-    plt.plot(paths["direct_distance"],sparse_times,label="sparse")
-    plt.xlabel("Straight Distance [m]")
-    plt.ylabel("Exection Time [s]")
-    plt.title("Runtime")
+    f2 = formatGrph(x, nav_times, sparse_times)
+    plt.xlabel("Distancias entre inicio y destino [m]")
+    plt.ylabel("Tiempo de ejecución [s]")
+    plt.title("Velocidad de ejecución")
+    plt.grid(True)
     plt.legend()
 
-    f3=plt.figure(3,figsize=sz)
-    plt.plot(paths["direct_distance"],nav_nodes,label="navigation")
-    plt.plot(paths["direct_distance"],sparse_nodes,label="sparse")
-    plt.xlabel("Straight Distance [m]")
-    plt.ylabel("Number of nodes")
-    plt.title("Nodes in trajectory")
+    f3 = formatGrph(x, nav_nodes, sparse_nodes)
+    plt.xlabel("Distancias entre inicio y destino [m]")
+    plt.ylabel("Nodos")
+    plt.title("Numero de nodos en trayectoria")
+    plt.grid(True)
     plt.legend()
 
-    f4=plt.figure(4,figsize=sz)
-    plt.plot(paths["direct_distance"],nav_twist,label="navigation")
-    plt.plot(paths["direct_distance"],sparse_twist,label="sparse")
-    plt.xlabel("Distancia entre puntos [m]")
-    plt.ylabel("Angulo [rad]")
+    f4 = formatGrph(x, nav_twist, sparse_twist)
+    plt.xlabel("Distancias entre inicio y destino [m]")
+    plt.ylabel("Angulo acumulado [r]")
     plt.title("Tortuosidad")
+    plt.grid(True)
     plt.legend()
 
-    # f3=plt.figure(3,figsize=sz)
-    # plt.scatter(paths["direct_distance"],nav_jerk,label="navigation")
-    # plt.scatter(paths["direct_distance"],sparse_jerk,label="sparse")
-    # plt.xlabel("Straight Distance [m]")
-    # plt.ylabel("Third derivate average")
-    # plt.title("Trajectory Smoothness")
-    # plt.legend()
-    plt.show()
+    f5 = formatGrph(x, nav_std, sparse_std)
+    plt.xlabel("Distancias entre inicio y destino [m]")
+    plt.ylabel("Desviación Estandar [m]")
+    plt.title("Dispersión de las trayectorias")
+    plt.grid(True)
+    plt.legend()
+
+    # plt.show()
+
+    # basename = sys.argv[1].split('.')[0]
+
+    if len(sys.argv) < 3:
+        # outputFolder = os.path.dirname(sys.argv[1])
+        plt.show()
+    else:
+        payload = {}
+        micro = {}
+        outputFolder = sys.argv[2]
+        basename = os.path.basename(sys.argv[1]).split('.')[0]
+
+        f1.savefig(outputFolder + "longitud" + basename + ".eps")
+        f2.savefig(outputFolder + "tiempo" + basename + ".eps")
+        f3.savefig(outputFolder + "nodos" + basename + ".eps")
+        f4.savefig(outputFolder + "tortuosidad" + basename + ".eps")
+        f5.savefig(outputFolder + "dispersion" + basename + ".eps")
+
+        payload["filename"] = basename
+        payload["n_paths"] = n_paths
+        payload["valid_paths"] = valid_paths
+        payload["nav_errors"] = nav_fails
+        payload["sparse_errors"] = sparse_fails
+        payload["nav_error_ratio"] = nav_error_ratio
+        payload["sparse_error_ratio"] = sparse_error_ratio
+        micro["nav_mean"] = nav_trays.mean()
+        micro["nav_std"] = nav_trays.std()
+        micro["sparse_mean"] = sparse_trays.mean()
+        micro["sparse_std"] = sparse_trays.std()
+        payload["length"] = micro
+        micro["nav_mean"] = nav_times.mean()
+        micro["nav_std"] = nav_times.std()
+        micro["sparse_mean"] = sparse_times.mean()
+        micro["sparse_std"] = sparse_times.std()
+        payload["runtime"] = micro
+        micro["nav_mean"] = nav_twist.mean()
+        micro["nav_std"] = nav_twist.std()
+        micro["sparse_mean"] = sparse_twist.mean()
+        micro["sparse_std"] = sparse_twist.std()
+        payload["twist"] = micro
+        micro["nav_mean"] = nav_std.mean()
+        micro["nav_std"] = nav_std.std()
+        micro["sparse_mean"] = sparse_std.mean()
+        micro["sparse_std"] = sparse_std.std()
+        payload["std"] = micro
+
+
+        with open(outputFolder + "estadisticos.json",'w') as statsFile:
+            json.dump(payload,statsFile,sort_keys=True, indent=4)
+
 
     # f3.savefig(bs_name + "traj.eps")
     # f3.savefig(bs_name + "time.eps")
