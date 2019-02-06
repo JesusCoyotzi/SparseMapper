@@ -80,7 +80,7 @@ def main():
     print(msg_tray.format(nav_std.mean(), sparse_std.mean()))
     print("*" * 15)
 
-    plt.style.use("seaborn-darkgrid")
+    plt.style.use("seaborn-whitegrid")
     x = paths["direct_distance"]
 
     f1 = formatGrph(x, nav_trays, sparse_trays)
@@ -131,17 +131,17 @@ def main():
         outputFolder = sys.argv[2]
         basename = os.path.basename(sys.argv[1]).split('.')[0]
 
-        f1.savefig(outputFolder + "longitud" + basename + ".eps")
-        f2.savefig(outputFolder + "tiempo" + basename + ".eps")
-        f3.savefig(outputFolder + "nodos" + basename + ".eps")
-        f4.savefig(outputFolder + "tortuosidad" + basename + ".eps")
-        f5.savefig(outputFolder + "dispersion" + basename + ".eps")
+        f1.savefig(outputFolder + "longitud" + basename + ".png")
+        f2.savefig(outputFolder + "tiempo" + basename + ".png")
+        f3.savefig(outputFolder + "nodos" + basename + ".png")
+        f4.savefig(outputFolder + "tortuosidad" + basename + ".png")
+        f5.savefig(outputFolder + "dispersion" + basename + ".png")
 
         payload["filename"] = basename
         payload["n_paths"] = n_paths
         payload["valid_paths"] = valid_paths
-        payload["nav_errors"] = nav_fails
-        payload["sparse_errors"] = sparse_fails
+        payload["nav_errors"] = nav_fails.item()
+        payload["sparse_errors"] = sparse_fails.item()
         payload["nav_error_ratio"] = nav_error_ratio
         payload["sparse_error_ratio"] = sparse_error_ratio
         micro["nav_mean"] = nav_trays.mean()

@@ -127,9 +127,9 @@ def makeSummaryFigure(df, output_name):
     ax_time.legend(loc='best')
     ax_dist.legend(loc='best')
     ax_dev.legend(loc='best')
-    f_time.savefig(output_name + "-time.eps", dpi=100)
-    f_dist.savefig(output_name + "-dist.eps", dpi=100)
-    f_dev.savefig(output_name + "-dev.eps", dpi=100)
+    f_time.savefig(output_name + "-time.png", dpi=100)
+    f_dist.savefig(output_name + "-dist.png", dpi=100)
+    f_dev.savefig(output_name + "-dev.png", dpi=100)
 # plt.show()
 
 
