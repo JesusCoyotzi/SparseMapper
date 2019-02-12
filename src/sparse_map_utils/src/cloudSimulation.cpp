@@ -522,6 +522,8 @@ void cloudSimulation::getHistStats(std::vector<int> &hist,double &stdDev)
 double cloudSimulation::getDistorsion(sparse_map_msgs::codebook cdbk,
                                       std::vector<int> partition)
 {
+        //BUG codebook must be complete even if a code has no points
+        //Else error is not properly calculates
         double totalDistorsion=0;
         pointArray centroids = cdbk.centroids;
         for (unsigned int i = 0; i < cloud->points.size(); i++)

@@ -411,14 +411,11 @@ void spaceSegmenter::makeCodebookMsg(std::vector<geometry_msgs::Point> &msg,
         for (int i = 0; i < nClusters; i++)
         {
                 if (histogram[i]>0) {
-                        geometry_msgs::Point chg;
+                        geometry_msgs:: Point chg;
                         chg.x=codebook[i].x;
                         chg.y=codebook[i].y;
                         chg.z=codebook[i].z;
                         msg.push_back(chg);
-                        // msg[i].x=codebook[i].x;
-                        // msg[i].y=codebook[i].y;
-                        // msg[i].z=codebook[i].z;
                 }
         }
 }

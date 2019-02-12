@@ -1,0 +1,31 @@
+<launch>
+  <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
+  <arg name="name" default="apt.pcd"/>
+  <arg name="crop" default="-23.0"/>
+  <arg name="freeSpace" default="0.10"/>
+
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+    <param name="resolution" value="0.05"/>
+
+    <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
+    <param name="frame_id" type="string" value="map"/>
+
+    <!-- maximum range to integrate (speedup!) -->
+    <param name="sensor_model/max_range" value="30.0"/>
+    <param name="filter_ground " value="false" type="bool"/>
+    <param name="base_frame_id " value="head_rgbd_sensor_rgb_frame" type="str"/>
+
+    <!-- data source to integrate (PointCloud2) -->
+    <remap from="cloud_in" to="/hsrb/cloud"/>
+
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="map_broadcaster" args="0 0 25.9 0 0 0 1 map head_rgbd_sensor_rgb_frame 100"/>
+
+  <!-- head_rgbd_sensor_rgb_frame -->
+  <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name)" output="screen">
+    <remap from="cloud_pcd" to="/hsrb/cloud"/>
+    <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+  </node>
+
+</launch>

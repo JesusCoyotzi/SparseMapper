@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
-  <arg name="crop" default="4.0"/>
+  <arg name="crop" default="2.0"/>
   <arg name="freeSpace" default="0.2  "/>
   <arg name="name" default="sparse_map"/>
 
   <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
-   <param name="resolution" value="0.05"/>
+   <param name="resolution" value="0.03"/>
 
     <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
-    <param name="frame_id" type="string" value="map"/>
+    <param name="frame_id" type="string" value="base_link"/>
 
     <!-- maximum range to integrate (speedup!) -->
     <param name="sensor_model/max_range" value="$(arg crop)"/>

@@ -2,9 +2,9 @@
 <launch>
   <arg name="map_folder" default="$(find sparse_map_utils)/graphs/"/>
   <arg name="grid_folder" default="$(find sparse_map_utils)/maps/"/>
-  <arg name="map_name" default="$(arg map_folder)/apt.txt"/>
-  <arg name="grid_name" default="$(arg grid_folder)aptInf.yaml"/>
-  <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(arg grid_name)"/>
+  <arg name="map_name" default="$(arg map_folder)/bioroboticaV.txt"/>
+  <arg name="grid_name" default="$(arg grid_folder)bioroboticaV.yaml"/>
+  <!-- <node name="map_server" pkg="map_server" type="map_server" output="screen" args="$(arg grid_name)"/> -->
   <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">
     <param name="map_file" value="$(arg map_name)" type="str"/>
     <param name="k_neighboors" value="6" type="int"/>

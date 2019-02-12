@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 from scipy.signal import savgol_filter
+from collections import defaultdict
 
 
 def formatGrph(x, y_nav, y_spr, filter=False, samples=5):
@@ -40,7 +41,6 @@ def main():
     nav_error_ratio = nav_fails / n_paths
     sparse_error_ratio = sparse_fails / n_paths
 
-
     paths.dropna(inplace=True)
     paths.sort_values("direct_distance", inplace=True)
     valid_nav = paths["nav_tray"]
@@ -64,7 +64,7 @@ def main():
 
     msg_tray = "Navigation {} | Sparse: {}"
     print("File processed:" + filename)
-    print("Has {} paths {} are valid".format(n_paths,valid_paths))
+    print("Has {} paths {} are valid".format(n_paths, valid_paths))
     print("Path Errors")
     print(msg_tray.format(nav_fails, sparse_fails))
     print(msg_tray.format(nav_error_ratio, sparse_error_ratio))
@@ -126,7 +126,7 @@ def main():
         # outputFolder = os.path.dirname(sys.argv[1])
         plt.show()
     else:
-        payload = {}
+        payload = defaultdict(dict)
         micro = {}
         outputFolder = sys.argv[2]
         basename = os.path.basename(sys.argv[1]).split('.')[0]
@@ -144,31 +144,35 @@ def main():
         payload["sparse_errors"] = sparse_fails.item()
         payload["nav_error_ratio"] = nav_error_ratio
         payload["sparse_error_ratio"] = sparse_error_ratio
+        micro["nav_mean"] = nav_nodes.mean()
+        micro["nav_std"] = nav_nodes.std()
+        micro["sparse_mean"] = sparse_nodes.mean()
+        micro["sparse_std"] = sparse_nodes.std()
+        payload["nodes"] = dict(micro)
         micro["nav_mean"] = nav_trays.mean()
         micro["nav_std"] = nav_trays.std()
         micro["sparse_mean"] = sparse_trays.mean()
         micro["sparse_std"] = sparse_trays.std()
-        payload["length"] = micro
+        payload["length"] = dict(micro)
         micro["nav_mean"] = nav_times.mean()
         micro["nav_std"] = nav_times.std()
         micro["sparse_mean"] = sparse_times.mean()
         micro["sparse_std"] = sparse_times.std()
-        payload["runtime"] = micro
+        payload["runtime"] = dict(micro)
         micro["nav_mean"] = nav_twist.mean()
         micro["nav_std"] = nav_twist.std()
         micro["sparse_mean"] = sparse_twist.mean()
         micro["sparse_std"] = sparse_twist.std()
-        payload["twist"] = micro
+        payload["twist"] = dict(micro)
         micro["nav_mean"] = nav_std.mean()
         micro["nav_std"] = nav_std.std()
         micro["sparse_mean"] = sparse_std.mean()
         micro["sparse_std"] = sparse_std.std()
-        payload["std"] = micro
+        payload["std"] = dict(micro)
+        # print(payload)
 
-
-        with open(outputFolder + "estadisticos.json",'w') as statsFile:
-            json.dump(payload,statsFile,sort_keys=True, indent=4)
-
+        with open(outputFolder + basename + "estadisticos.json", 'w') as statsFile:
+            json.dump(payload, statsFile, sort_keys=True, indent=4)
 
     # f3.savefig(bs_name + "traj.eps")
     # f3.savefig(bs_name + "time.eps")

@@ -3,13 +3,13 @@
   <arg name="pcdName" default="nyuCaffe.pgm"/>
   <arg name="csvName" default="results"/>
 
-  <arg name="minClusters" default="16"/>
-  <arg name="maxClusters" default="64"/>
+  <arg name="minClusters" default="256"/>
+  <arg name="maxClusters" default="528"/>
   <arg name="simIterations" default="7"/>
-  <arg name="simMethod" default="kmeansCPU"/>
-  <arg name="experiments" default="5"/>
+  <arg name="simMethod" default="LBG"/>
+  <arg name="experiments" default="1"/>
   <arg name="clusterStep" default="16"/>
-  <arg name="cloudFolder" default="$(find sparse_map_utils)/clouds/test/separator"/>
+  <arg name="cloudFolder" default="$(find sparse_map_utils)/clouds/test/"/>
   <arg name="resultsFolder" default="$(find sparse_map_utils)/results"/>
 
 

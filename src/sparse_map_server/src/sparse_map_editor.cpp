@@ -15,9 +15,11 @@ sparseMapEditor::sparseMapEditor(ros::NodeHandle &nh)
         codesPublisher = nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         removeSub = nh_.subscribe("clicked_point",1,&sparseMapEditor::modifyCodes,this);
         savingSrv = nh_.advertiseService("save_map",&sparseMapEditor::saveNodes,this);
+        savingPCDSrv = nh_.advertiseService("save_map_as_pcd",&sparseMapEditor::saveNodesAsPCD,this);
         updateSrv = nh_.advertiseService("update_params",&sparseMapEditor::updateParameters,this);
 
         std::cout << "Starting with mode " << opMode << " on set " << opSet << '\n';
+        //check if pcd using boost
         codes.loadNodes(graphFileName);
         bool doPassThrough = ( (abs(pruneMax) > 0) ||  (abs(pruneMin) >0) );
         if (doPassThrough) {
@@ -133,6 +135,22 @@ bool sparseMapEditor::saveNodes(sparse_map_msgs::SaveMap::Request &req,
                                 sparse_map_msgs::SaveMap::Response &res)
 {
         res.success = codes.saveAsTxt(req.filename);
+        if (res.success)
+        {
+                std::cout << "File saving successfull " << req.filename << std::endl;
+        }
+        else
+        {
+                std::cout << "Error saving " << req.filename << std::endl;
+
+        }
+        return true;
+}
+
+bool sparseMapEditor::saveNodesAsPCD(sparse_map_msgs::SaveMap::Request &req,
+                                sparse_map_msgs::SaveMap::Response &res)
+{
+        res.success = codes.saveAsPCD(req.filename);
         if (res.success)
         {
                 std::cout << "File saving successfull " << req.filename << std::endl;

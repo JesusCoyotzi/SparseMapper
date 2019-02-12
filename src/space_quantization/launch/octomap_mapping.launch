@@ -28,7 +28,7 @@ www.ros.org/wiki/octomap_server for details -->
 		<remap from="/cloud" to="/hsrb/cloud"/>
 		<remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
 		<param name="cropDistance" value="-2.0" type="double"/>
-		<param name="voxelSize" value="0.01" type="double"/>
+		<param name="voxelSize" value="-0.01" type="double"/>
 		<param name="baseFrame" value="map" type="string"/>
 	</node>
 

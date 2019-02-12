@@ -16,12 +16,14 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher codesPublisher;
   ros::Subscriber removeSub;
-  ros::ServiceServer savingSrv, updateSrv;
+  ros::ServiceServer savingSrv, savingPCDSrv, updateSrv;
   std::string mapFrame, opMode ,opSet;
   graphIO codes;
   void modifyCodes(const geometry_msgs::PointStamped &msg);
   void makeCodesMarkerAndPublish(pointArray &codes, std_msgs::ColorRGBA color, int id=0);
   bool saveNodes(sparse_map_msgs::SaveMap::Request &req,
+                  sparse_map_msgs::SaveMap::Response &res);
+  bool saveNodesAsPCD(sparse_map_msgs::SaveMap::Request &req,
                   sparse_map_msgs::SaveMap::Response &res);
   bool updateParameters(std_srvs::Empty::Request& request,
                         std_srvs::Empty::Response& response );

@@ -90,6 +90,7 @@ bool removeOccupiedPoint(pointGeom p);
 
 class graphIO
 {
+//Basic in out for graphs  and nodes
 private:
 struct lessL1
 {
@@ -112,7 +113,9 @@ graphIO(std::string filename);
 pointGeom removeOccCode(pointGeom p);
 pointGeom removeFreeCode(pointGeom p);
 bool loadNodes(std::string filename);
+bool loadPCD(std::string filename)
 bool saveAsTxt(std::string filename);
+bool saveAsPCD(std::string filename);
 int simpleOccZPassThrough(double max, double min);
 int simpleFreeZPassThrough(double max, double min);
 int simpleZPassThrough(double max, double min);
@@ -120,6 +123,7 @@ void addFreeCode(pointGeom p);
 void addOccCode(pointGeom p);
 pointArray getFreeCodes();
 pointArray getOccCodes();
+void getNodes(std::list<pointGeom>& occNodes, std::list<pointGeom>& freeNodes);
 void loadToGraph(adjacencyMap &graph);
 };
 
