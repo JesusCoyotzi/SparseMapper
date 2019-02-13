@@ -89,7 +89,7 @@ bool graphIO::loadPCD(std::string filename)
         pointGeom code;
         std::getline(file,line);
         int type =0;
-        while (parseCodeLine(line,code,type)) {
+        while (parsePCDLine(line,code,type)) {
                 if (type == 0) {
                         occCodes.push_back(code);
                 }
@@ -97,9 +97,10 @@ bool graphIO::loadPCD(std::string filename)
                 {
                         freeCodes.push_back(code);
                 }
-                
+
                 std::getline(file,line);
         }
+        return true;
 }
 
 bool graphIO::saveAsPCD(std::string filename)
@@ -195,12 +196,11 @@ bool graphIO::parseCodeLine(std::string line,  pointGeom &g)
         return sux;
 }
 
-int graphIO::parsePCDLine(std::string line,  pointGeom &g, int & label)
+bool graphIO::parsePCDLine(std::string line,  pointGeom &g, int & label)
 {
         std::istringstream iss(line);
         std::string tmp;
         float x,y,z;
-        int label;
         bool sux = true;
         try {
                 std::getline(iss,tmp,' ');

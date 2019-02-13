@@ -105,6 +105,7 @@ std::list<pointGeom> freeCodes;
 std::list<pointGeom> occCodes;
 bool nodesLoaded;
 bool parseCodeLine(std::string, pointGeom &g);
+bool parsePCDLine(std::string line, pointGeom &g,int & label);
 
 public:
 double thres;
@@ -113,7 +114,7 @@ graphIO(std::string filename);
 pointGeom removeOccCode(pointGeom p);
 pointGeom removeFreeCode(pointGeom p);
 bool loadNodes(std::string filename);
-bool loadPCD(std::string filename)
+bool loadPCD(std::string filename);
 bool saveAsTxt(std::string filename);
 bool saveAsPCD(std::string filename);
 int simpleOccZPassThrough(double max, double min);
