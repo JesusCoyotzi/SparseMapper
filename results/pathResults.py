@@ -81,6 +81,7 @@ def main():
     print("*" * 15)
 
     plt.style.use("seaborn-whitegrid")
+    plt.rcParams.update({'font.size': 14})
     x = paths["direct_distance"]
 
     f1 = formatGrph(x, nav_trays, sparse_trays)
