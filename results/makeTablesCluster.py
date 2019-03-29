@@ -9,7 +9,7 @@ def main():
     cluster_df = pd.read_csv(sys.argv[1], index_col=0)
     cluster_tupl = (16,32,64,128,256,512)
     mtd_tpl = ("kmeansCPU","inner","kpp","LBG")
-    ltx_ln =  " {clusters} & {kmeansCPU:.4f}  & {inner:.4f}  & {LBG:.4f}  & {kpp:.4f} \\\\"
+    ltx_ln =  " & {clusters} & {kmeansCPU:.4f}  & {inner:.4f}  & {LBG:.4f}  & {kpp:.4f} \\\\"
     info_dist =[]
     info_time =[]
     for clt  in cluster_tupl:
@@ -25,11 +25,14 @@ def main():
         info_dist.append(dic_dist)
         info_time.append(dic_time)
 
+
     print("Distorsion"*5)
+    print(" clusters \t kmeansCPU \t inner \t LBG \t kpp")
     for d in info_dist:
         print(ltx_ln.format(**d))
 
     print("Time"*5)
+    print(" clusters \t kmeansCPU \t inner \t LBG \t kpp")
     for d in info_time:
         print(ltx_ln.format(**d))
 
