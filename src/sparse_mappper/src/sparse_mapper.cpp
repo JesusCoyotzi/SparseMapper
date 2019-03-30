@@ -13,12 +13,12 @@ sparseMapper::sparseMapper(ros::NodeHandle &nh)
         codebookMarkerPub=
                 nh_.advertise<visualization_msgs::Marker>("centroids_marker",2);
         std::cout << "Starting sparse_mapper node by CoyoSoft" << '\n';
-        
+
 }
 
 void sparseMapper::clearGraph(const std_msgs::Empty &msg)
 {
-        std::cout << "!!!Clearing all codebooks!!!!" << '\n';
+        std::cout << "!!!Clearing all codes!!!!" << '\n';
         occCodebook.clear();
         freeCodebook.clear();
         //makeCentroidsMarkerAndPublish(freeCodebook,true);

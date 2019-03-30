@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <!-- Folder of topological map -->
+  <arg name="map_folder" default="$(find sparse_map_utils)/graphs/"/>
+  <!-- Name of specific file -->
+  <arg name="map_name" default="$(arg map_folder)/bioroboticaV.txt"/>
+  <!-- sparse server node, provides visualization and allows to request a path for the robot -->
+  <node name="sparse_server" pkg="sparse_map_server" type="sparse_map_server_node" output="screen">
+    <!-- Which map to load -->
+    <param name="map_file" value="$(arg map_name)" type="str"/>
+    <!-- How many neighboors peer node  -->
+    <param name="k_neighboors" value="6" type="int"/>
+    <!-- Max and min distance between nodes  -->
+    <!-- If nodes are further than max_dist thye wont be connected -->
+    <param name="max_dist" value="1.2" type="double"/>
+    <!-- If nodes are closer than min_dist they will be replaced by centroid -->
+    <param name="min_dist" value="0.20" type="double"/>
+    <!-- Size of the robot, when checking for collisions all occupied nodes should be outside
+    a cylinder of safetyHeight and safetyRadius -->
+    <!-- Heigth of the robot, any occupied node higher than this wont be used in collision detection -->
+    <param name="safety_height" value="1.2" type="double"/>
+    <!-- Radius of robot should completely encircle agent-->
+    <param name="safety_radius" value="0.30" type="double"/>
+    <!-- If any occupied node is inside a cylinder between two adyacent free nodes of this
+     radius  tehy wont be linked-->
+    <param name="connection_radius" value="0.30" type="double"/>
+    <!-- Topics -->
+    <!-- Visualization of graphs and paths-->
+    <remap from="graph_marker" to="/hsrb/graph_marker"/>
+    <remap from="make_plan" to="/sparse_map/make_plan"/>
+  </node>
+</launch>

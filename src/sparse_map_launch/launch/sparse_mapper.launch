@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="crop" default="2.0"/>
+  <arg name="freeSpace" default="0.2  "/>
+  <arg name="name" default="sparse_map"/>
+
+  <!-- This node is in charge of tracking the pose f the robot and only pushes the pointcloud
+  when sufficient motion angular or linear has been detected -->
+  <node name="pose_chk" pkg="space_quantization" type="pose_chck" output="screen">
+    <!-- The source of localization, can be either slam or AMCL  -->
+    <remap from="/localization_pose" to="/amcl_pose"/>
+    <!-- <remap from="/slam_pose" to="/slam_out_pose"/> -->
+    <!-- name of data source  -->
+    <remap from="/cloud_in" to="/hsrb/head_rgbd_sensor/depth_registered/rectified_points"/>
+    <!-- Name of output cloud  -->
+    <remap from="/cloud_out" to="/hsrb/cloud"/>
+    <!-- Minimal linear or angular motion required to push pointcloud into pipeline -->
+    <param name="angular_update" value="45"/>
+    <param name="linear_update" value="0.50"/>
+  </node>
+
+  <!-- The preprocessor takes the raw pointcloud and crops it, applies a vozel filter and
+  convert it to a more convenient reference frame -->
+  <node name="preprocessor" pkg="space_quantization" type="cloud_preprocessor" output="screen">
+    <remap from="/cloud" to="/hsrb/cloud"/>
+    <remap from="/processed_cloud" to="/hsrb/processed_cloud"/>
+    <!-- All points outside min,max range are ignored, usefull as most sensor have high uncertainty
+    of far off and very near points -->
+    <param name="crop_max_distance" value="$(arg crop)" type="double"/>
+    <param name="crop_min_distance" value="0" type="double"/>
+    <!-- Cloud is subsampled using a simple voxel filter, this set the voxel size  -->
+    <param name="voxelSize" value="0.01" type="double"/>
+    <!-- This is the base frame where the map will be created if no localization system is in place 
+    you can set to base_link or odom -->
+    <param name="baseFrame" value="map" type="string"/>
+  </node>
+
+  <!-- This node is in chage of the quantization it takes the processed_cloud and return a codebook -->
+  <node name="segmenter" pkg="space_quantization" type="segmentation_node" args="" output="screen">
+    <!-- processed_cloud name  can use raw cloud if desired-->
+    <remap from="cloud" to="/hsrb/processed_cloud"/>
+    <!-- Same cloud with every point labeled to correspond to each code -->
+    <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
+    <!-- Codebook generated same frame as cloud -->
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <!-- Number of codes to compute -->
+    <param name="nClusters" value="32" type="int"/>
+    <!-- How many runs of lloyd algorithm to create the codebook -->
+    <param name="iterations" value="10" type="int"/>
+  </node>
+
+  <!-- The mapping node accumulates all codebook to form a global map, also separates space on
+  free and occupied -->
+  <node name="sparseMapper" pkg="sparse_mapper" type="sparse_mapper_node" output="screen">
+    <remap from="codebook" to="/hsrb/codebook"/>
+    <!-- codebook markers this is only for visualization  -->
+    <remap from="graph_marker" to="/hsrb/graph_marker"/>
+    <!-- Space separation is based on code heigth any node higher than free_thr is considered occupied
+    and free otherwise -->
+    <param name="free_thr" value="$(arg freeSpace)" type="double"/>
+  </node>
+
+</launch>

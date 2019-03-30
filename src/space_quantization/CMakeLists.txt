@@ -19,6 +19,9 @@ find_package(CUDA REQUIRED)
 find_package(catkin REQUIRED cmake_modules)
 find_package(Eigen REQUIRED)
 
+#This is required if PCL to be compiled as part of the package, it is a bug
+# On cuda 9.1 and PCL 1.7.1 erase it and this package won't compile
+#Hopefully on melodic and pcl 1.8 it wont matter.
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -32,8 +35,8 @@ find_package(catkin REQUIRED COMPONENTS
    message_generation
    )
 
-
-
+#This is important set to your require compute capability, this was compiled
+#for a Gforce 1050 this compute capability 61
 set(
  CUDA_NVCC_FLAGS
  ${CUDA_NVCC_FLAGS};
@@ -99,7 +102,6 @@ cuda_add_library(segmentationLib STATIC src/operations.cu src/quantization.cu  s
 
 # add_executable(adjacency_graph_node src/adjacency_graph_node.cpp src/adjacency_graph.cpp)
  #target_link_libraries(adjacency_graph_node ${catkin_LIBRARIES})
-
 
 #add_executable(testColor src/space_seg.cpp include/space_seg.h test/colortest.cpp)
 # target_link_libraries(testColor segmentationLib ${catkin_LIBRARIES})
