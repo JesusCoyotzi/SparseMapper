@@ -1,8 +1,0 @@
-Parent
-map
-Child
-baselink
-Translation
-1.12806 0.019129 0
-Quaternion
--0 -0 0.0599746 0.9982

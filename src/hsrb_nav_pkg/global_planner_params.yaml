@@ -1,5 +1,0 @@
-GlobalPlanner:
-  use_dijkstra: false
-  visualize_potential: true
-  use_grid_path: true
-  default_tolerance: 0.25

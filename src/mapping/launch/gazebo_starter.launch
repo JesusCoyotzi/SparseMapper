@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <include file="$(find hsrb_gazebo_bringup)/launch/hsrb_empty_world.launch">
-    <arg name="world_name" value="$(find hearts_launcher)/worlds/thesis_apartment_mod.world" />
-    <arg name="robot_pos" value="-x 11 -y 12 -z 0 -Y 3.1416" />
-    <arg name="use_laser_odom" value="false" />
-  </include>
-</launch>

@@ -63,10 +63,26 @@ roslaunch sparse_map_launch map_server.launch
 ```
 
 And call the make_plan service to request a path. It is recommended that you also run a
-AMCL localization as it both helps with visualization and if you desire to actually follow
-the paths you need a source of localization.
+AMCL localization as it both helps with visualization and if you need to actually follow
+the paths you need a source of localization. For convenience a localization launch based
+on AMCL is provided.
+
+```bash
+roslaunch sparse_map_launch robot_locator.launch
+```
+
+Finally some launches require Octomap to work. You can either install it via
+ apt or use the supplied submodule to donwload and compile with everything else
 
 You can find the description of the relevant parameters and topic on the roslaunch files.
+
+## HSR compatibility
+
+This apporach was tested using a Toyota HSR robot. Launch file named
+hsrb_something.launch are HSR ready and should run out of the box.
+Just check that file locations point to somewhere on your computer.
+
+## Nodes
 
 ### Space_Quantization
 
@@ -129,10 +145,10 @@ and GPU.
 -   labeled_cloud (sensor_msgs/PointCloud2): Point Cloud where evey point has a level corresponding to a code.
 -   codebook(sparse_map_msgs/codebook): The generated codebook as array of Point Messages
 
-#### Services provides
+#### Services provided
 
-It is worth nothing that both these services were created for testing and are not recommended to use while mapping.
-But are nevertheless provided.
+It is worth nothing that both these services were created for testing and are not
+recommended to use while mapping. But are nevertheless provided.
 
 -   segmentation_reconfigure (sparse_map_msgs/Reconfigure): Allows to change number of centroids and lloyd iterations on runtime.
 -   quantize_space(sparse_map_msgs/QuantizeCloud): Quantize a cloud via service.
@@ -168,6 +184,42 @@ node that also separates space into free and occupied.
 -   ~free_thr <float> : All codes higher than this will be declared occupied, it represents largest
     valid height to be considered a free node.
 
+### Sparse-Map server: map_server
+
+This nodes is responsible for reading maps from disk, visualziation on RVIZ
+and serving path requests. It is worth noting this takes a few seconds to
+load as it constructs the graph after reading the node from disk.
+
+#### Subscribed topics
+
+-   None
+
+#### Published topics
+
+-   centroids_marker(visualization_msgs/Marker): Markers used to visualize current nodes.
+-   graph_marker(visualization_msgs/Marker): Markers used to visualize current map.
+-   label_marker(visualization_msgs/Marker): Markers used to visualize node id.
+-   terminal_marker(visualization_msgs/Marker): Marker used to represents robot initial and final state.
+-
+
+#### Services provided
+
+-   make_plan (sparse_map_msgs/MakePlan): Given start and end locations, known
+    as terminals, compute a plan. Currently only supports points as terminals.
+     Not poses.
+
+#### Parameters
+
+-   ~map_file <string> : Name of topological map file on disk.
+-   ~map_frame <string> : Reference frame of map.
+-   ~safety_height <float> : Height of robot, all nodes over this height are ignored
+-   ~safety_radius <float> : Radius of robot. Robot radius for 3D collision detection
+-   ~max_dist <float> : Maximum permisible distance between neighboor nodes. If larger they won't connect
+-   ~min_dist <float> : Minimium distance between free nodes, if smaller nodes are considered redundant and reduced to centroid.
+-   ~max_dist_terminal <float> : Maximum distance between terminal and closest free node if larger planner will report a failure.
+-   ~k_neighboors <int> : How many neighboors each node has.
+-   ~visualize_terminals <bool> : Wether or not paint terminals on RVIz.
+-   ~validate_terminals <bool> : Wether to do collision detection on start and final points when requesting a plan. If set to false won't do any collision detection and a crash on start or stop might occurr!!
 
 [1]: https://octomap.github.io/
 

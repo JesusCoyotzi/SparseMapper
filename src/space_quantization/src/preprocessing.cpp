@@ -1,5 +1,7 @@
 #include "preprocessing.h"
 
+//TODO Adding some statistical outlier removal before subsampling would be nice
+//http://pointclouds.org/documentation/tutorials/statistical_outlier.php
 cloudPreprocessor::cloudPreprocessor(ros::NodeHandle &nh)
 {
         nh_ = nh;
