@@ -24,7 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 # INCLUDE_DIRS include
 #  LIBRARIES sparse_map_server
-#  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs visualization_msgs
+  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs visualization_msgs
+  sparse_map_msgs
   DEPENDS eigen
 )
 

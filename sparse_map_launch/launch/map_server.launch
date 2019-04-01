@@ -1,4 +1,4 @@
-s<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!-- Folder of topological map -->
   <arg name="map_folder" default="$(find sparse_map_utils)/graphs/"/>
@@ -14,13 +14,13 @@ s<?xml version="1.0" encoding="UTF-8"?>
     <!-- If nodes are further than max_dist thye wont be connected -->
     <param name="max_dist" value="1.2" type="double"/>
     <!-- If nodes are closer than min_dist they will be replaced by centroid -->
-    <param name="min_dist" value="0.30" type="double"/>
+    <param name="min_dist" value="0.25" type="double"/>
     <!-- Size of the robot, when checking for collisions all occupied nodes should be outside
     a cylinder of safetyHeight and safetyRadius -->
     <!-- Heigth of the robot, any occupied node higher than this wont be used in collision detection -->
     <param name="safety_height" value="1.2" type="double"/>
     <!-- Radius of robot should completely encircle agent-->
-    <param name="safety_radius" value="0.250" type="double"/>
+    <param name="safety_radius" value="0.25" type="double"/>
     <!-- If any occupied node is inside a cylinder between two adyacent free nodes of this
      radius  tehy wont be linked-->
     <param name="connection_radius" value="0.30" type="double"/>
