@@ -1,6 +1,6 @@
 <launch>
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
-  <arg name="name" default="apt"/>
+  <arg name="name" default="bioroboticaV"/>
   <arg name="crop" default="-23.0"/>
   <arg name="freeSpace" default="0.10"/>
 
@@ -32,7 +32,9 @@
     <param name="graph_file" value="$(find sparse_map_utils)/graphs/$(arg name)Full.txt" type="str"/>
   </node>
 
-  <node pkg="tf" type="static_transform_publisher" name="map_broadcaster" args="0 0 25.9 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
+  <node pkg="tf" type="static_transform_publisher" name="map_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" />
+
+  <!-- 25.9 -->
 
   <!-- head_rgbd_sensor_rgb_frame -->
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">

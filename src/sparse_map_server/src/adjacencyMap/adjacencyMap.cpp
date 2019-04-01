@@ -55,7 +55,17 @@ adjacencyMap::adjacencyMap(std::string mapFile,
         std::cout << "Min distance: " << minDist  << '\n';
         std::cout << "K neighbors: " << this->kNeighboors  << '\n';
 
-        loadMap(mapFile);
+        size_t fnd = mapFile.find(".");
+        std::string extension = mapFile.substr(fnd+1,mapFile.size());
+
+        if (!extension.compare("pcd")) {
+                std::cout << "Reading as PCD file" << '\n';
+                loadFromPCD(mapFile);
+        }
+        else {
+                std::cout << "Read as legacy txt graph" << '\n';
+                loadMap(mapFile);
+        }
         return;
 }
 
@@ -72,6 +82,44 @@ void adjacencyMap::setParams(float safeHeight,float safeRadius,
         this->minDist = minDist;
         this->kNeighboors = kNeighboors;
         return;
+}
+
+bool adjacencyMap::loadFromPCD(std::string filename)
+{
+        //Loads nodes from PCD file
+        graphIO graphReader;
+        if(!graphReader.loadPCD(filename))
+        {
+                return false;
+        }
+
+        std::list<pointGeom> tmpFree, tmpOcc;
+        pointArray reducedNodes;
+        graphReader.getNodes(tmpOcc,tmpFree);
+        std::cout << "Read: " << tmpOcc.size() << "occupied nodes from file\n";
+        std::cout << "Read: " << tmpFree.size() << "free nodes from file\n";
+        //Prune all nodes higher than robot height
+        for (pointGeom  &p : tmpOcc)
+        {
+                if (p.z<=safetyHeight) {
+                        occupiedNodes.push_back(p);
+                }
+        }
+        std::cout << "Only: " << occupiedNodes.size() <<"significant occupied nodes remain\n";
+        //Reduce redundant free nodes
+        reduceNodes(tmpFree,reducedNodes);
+        std::cout << "Only: " << reducedNodes.size() <<"non-redundant free nodes remain\n";
+
+        for (size_t i = 0; i < reducedNodes.size(); i++) {
+                bool isValidNode = !validateNode(reducedNodes[i]);
+                if (isValidNode)
+                {
+                        freeNodes.push_back(reducedNodes[i]);
+                }
+        }
+
+        std::cout << "Only " << freeNodes.size() <<" valid nodes remain\n";
+        return true;
 }
 
 bool adjacencyMap::loadMap(std::string filename)

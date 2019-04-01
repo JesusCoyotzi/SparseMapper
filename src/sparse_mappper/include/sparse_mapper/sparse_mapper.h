@@ -36,7 +36,7 @@ class sparseMapper {
 private:
 ros::NodeHandle nh_;
 ros::Subscriber codebookSub, graphClearSub;
-ros::ServiceServer graphMakeSub;
+ros::ServiceServer graphMakeSub, pcdMakeSub;
 ros::Publisher codebookMarkerPub;
 std::vector<geometry_msgs::Point> freeCodebook, occCodebook;
 float freeThr;
@@ -51,6 +51,8 @@ std_msgs::ColorRGBA makeColor(float r,float g, float b, float a);
 
 bool saveSparseMap(std::string filename);
 bool saveMapSrv(sparse_map_msgs::SaveMap::Request &req,
+                   sparse_map_msgs::SaveMap::Response &res);
+bool saveMapPCD(sparse_map_msgs::SaveMap::Request &req,
                    sparse_map_msgs::SaveMap::Response &res);
 void clearGraph(const std_msgs::Empty &msg);
 double normL1(pointGeom p);

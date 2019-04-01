@@ -8,7 +8,8 @@ sparseMapper::sparseMapper(ros::NodeHandle &nh)
         // nh_priv.param<std::string>("graph_file",graphFile,"adjGraph.txt");
 
         codebookSub = nh_.subscribe("codebook",10, &sparseMapper::codebookCallback, this);
-        graphMakeSub = nh_.advertiseService("make_graph", &sparseMapper::saveMapSrv,this);
+        graphMakeSub = nh_.advertiseService("make_map", &sparseMapper::saveMapSrv,this);
+        pcdMakeSub = nh_.advertiseService("make_pcd", &sparseMapper::saveMapPCD,this);
         graphClearSub = nh_.subscribe("clear_graph",1, &sparseMapper::clearGraph,this);
         codebookMarkerPub=
                 nh_.advertise<visualization_msgs::Marker>("centroids_marker",2);
@@ -135,7 +136,7 @@ bool sparseMapper::saveSparseMap(std::string filename)
 }
 
 bool sparseMapper::saveMapSrv(sparse_map_msgs::SaveMap::Request &req,
-                                 sparse_map_msgs::SaveMap::Response &res)
+                              sparse_map_msgs::SaveMap::Response &res)
 {
         res.success = saveSparseMap(req.filename);
         if (res.success)
@@ -150,6 +151,44 @@ bool sparseMapper::saveMapSrv(sparse_map_msgs::SaveMap::Request &req,
         return true;
 }
 
+bool sparseMapper::saveMapPCD(sparse_map_msgs::SaveMap::Request &req,
+                              sparse_map_msgs::SaveMap::Response &res)
+{
+        //Writes as ascii pcd file
+        std::string filename = req.filename.c_str();
+        std::ofstream file(filename);
+        if(!file.is_open())
+        {
+                std::cout << "Error writing to file file:" << filename <<'\n';
+                res.success = false;
+                return true;
+        }
+        //Write pcd header
+        file << "# Quantization nodes!\n";
+        file << "VERSION .7\n";
+        file << "FIELDS x y z label\n";
+        file << "SIZE 4 4 4 4\n";
+        file << "TYPE F F F I\n";
+        file << "COUNT 1 1 1 1\n";
+        file << "WIDTH " << freeCodebook.size() + occCodebook.size() << std::endl;
+        file << "HEIGHT 1\n";
+        file << "VIEWPOINT 0 0 0 1 0 0 0\n";
+        file << "POINTS " << freeCodebook.size() + occCodebook.size()  << std::endl;
+        file << "DATA ascii\n";
+        //DATA
+        for (pointGeom const &p : occCodebook) {
+                file<<p.x << " " << p.y << " " << p.z << " 0" << std::endl;
+        }
+
+        for (pointGeom const &p : freeCodebook) {
+                file<<p.x << " " << p.y << " " << p.z << " 1" << std::endl;
+        }
+
+        file.close();
+        std::cout << "File saved successfully" << '\n';
+        res.success = true;
+        return true;
+}
 double sparseMapper::normL1(pointGeom p)
 {
         return p.x*p.x+p.y*p.y+p.z*p.z;

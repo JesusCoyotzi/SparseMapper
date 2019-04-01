@@ -21,6 +21,7 @@ class adjacencyMap {
 private:
 
 struct graphNode {
+        //Graph node used for priority queu
         int vertex;
         double cost;
 
@@ -30,6 +31,7 @@ struct graphNode {
 };
 
 struct distanceLabel {
+        //Helper struct for knn algorithm
         float dist;
         int label;
         bool operator<(const distanceLabel& a) const;
@@ -76,6 +78,7 @@ void setParams(float safeHeight,float safeRadius, float cRadius,
                float mxDist,float minDist,int kNeighboors);
 bool Astar(int goal,int start, pointArray &fullPath);
 bool loadMap(std::string filename);
+bool loadFromPCD(std::string filename);
 pointArray getFreeNodes();
 pointArray getOccNodes();
 adjacencyList getGraph();
