@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES sparse_mappper
-#  CATKIN_DEPENDS geometry_msgs std_msgs visualization_msgs sparse_map_msgs
+  CATKIN_DEPENDS geometry_msgs std_msgs visualization_msgs sparse_map_msgs
 #  DEPENDS system_lib
 )
 
@@ -29,6 +29,7 @@ include_directories(
 )
 
 add_executable(${PROJECT_NAME}_node src/sparse_mapper_node.cpp src/sparse_mapper.cpp)
+add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
 )
