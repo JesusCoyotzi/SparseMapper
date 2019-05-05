@@ -18,7 +18,7 @@
     <remap from="labeled_cloud" to="/hsrb/labeled_cloud"/>
     <remap from="quantized_space" to="/hsrb/quantized_space"/>
     <remap from="codebook" to="/hsrb/codebook"/>
-    <param name="nClusters" value="2048" type="int"/>
+    <param name="nClusters" value="1024" type="int"/>
     <param name="iterations" value="10" type="int"/>
     <param name="method" value="kpp" type="str"/>
     <param name="publish_label_space" value="true" type="bool"/>

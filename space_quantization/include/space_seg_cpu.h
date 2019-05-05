@@ -1,7 +1,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/PointCloud2.h"
 #include "sensor_msgs/PointField.h"
-#include "quantization.h"
+#include "cpuQuantization.h"
 
 #include "pcl_ros/point_cloud.h"
 #include "pcl_ros/transforms.h"

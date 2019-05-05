@@ -29,9 +29,7 @@ __device__ __host__ point3 addPoint3(point3 p1,point3 p2);
 __device__ __host__ point3 mulPoint3(point3 p, float s);
 
 //quantization
-
 __device__ __host__ point3 addPoint3(point3 p1,point3 p2);
-
 
 __global__ void setup_kernel(curandState *state);
 __device__ point3 randomPoint3(curandState *randState);

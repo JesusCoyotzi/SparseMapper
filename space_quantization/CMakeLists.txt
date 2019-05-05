@@ -33,40 +33,21 @@ find_package(catkin REQUIRED COMPONENTS
    pcl_ros
    visualization_msgs
    message_generation
-   )
-
-#This is important set to your require compute capability, this was compiled
-#for a Gforce 1050 this compute capability 61
-set(
- CUDA_NVCC_FLAGS
- ${CUDA_NVCC_FLAGS};
- -O3 -lineinfo -gencode arch=compute_61,code=sm_61 -std=c++11
- )
- SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
-
- SET(CUDA_SEPARABLE_COMPILATION ON)
-
-set(CUDA_VERBOSE_BUILD OFF)
-
- # Declare the message files to be built
-add_message_files(FILES
-   quantizedSpace.msg
-   codebook.msg
 )
 
- # Declare the service files to be built
- #add_service_files(FILES
-#   MyService.srv
-# )
+# Declare the message files to be built
+add_message_files(FILES
+  quantizedSpace.msg
+  codebook.msg
+)
 
- # Actually generate the language-specific message and service files
-
- generate_messages(
-   DEPENDENCIES
-   std_msgs
-   sensor_msgs
-   geometry_msgs
-   )
+# Actually generate the language-specific message and service files
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  )
 
  # Declare that this catkin package's runtime dependencies
  catkin_package(
@@ -83,25 +64,39 @@ add_message_files(FILES
  )
 
  #Cuda stuff
-cuda_add_library(segmentationLib STATIC src/operations.cu src/quantization.cu  src/cpuQuantization.cu)
+ #This is important set to your require compute capability, this was compiled
+ #for a Gforce 1050 this compute capability 61
+ if(CUDA_FOUND)
+ set(
+   CUDA_NVCC_FLAGS
+   ${CUDA_NVCC_FLAGS};
+   -O3 -lineinfo -gencode arch=compute_61,code=sm_61 -std=c++11
+   )
+   set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+   set(CUDA_SEPARABLE_COMPILATION ON)
+   set(CUDA_VERBOSE_BUILD OFF)
+   cuda_add_library(segmentationLib STATIC src/gpu/operations.cu src/gpu/quantization.cu  src/gpu/cpuQuantization.cu)
+
+   add_executable(segmentation_node src/gpu/space_seg.cpp include/space_seg.h src/seg_node.cpp)
+   add_dependencies(segmentation_node segmentationLib ${catkin_EXPORTED_TARGETS})
+   target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})# segmentationLib)
+ else()
+  add_library(segmentationLib STATIC src/cpu/operations.cpp src/cpu/cpuQuantization.cpp)
+  add_executable(segmentation_node src/cpu/space_seg_cpu.cpp include/space_seg_cpu.h src/seg_node.cpp)
+  add_dependencies(segmentation_node segmentationLib ${catkin_EXPORTED_TARGETS})
+  target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})
+endif()
+
 
  # define executable using MyMessage1 etc.
  #add_executable(message_program src/main.cpp)
  #add_dependencies(message_program ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
  # define executable not using any messages/services provided by this package
- add_executable(segmentation_node src/space_seg.cpp include/space_seg.h src/seg_node.cpp)
- add_dependencies(segmentation_node segmentationLib ${catkin_EXPORTED_TARGETS})
- target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})# segmentationLib)
+
 
  add_executable(pose_chck src/pose_chck_node.cpp src/pose_chck.cpp)
  target_link_libraries(pose_chck ${catkin_LIBRARIES})
 
  add_executable(cloud_preprocessor src/preprocessing_node.cpp src/preprocessing.cpp)
  target_link_libraries(cloud_preprocessor ${catkin_LIBRARIES} ${PCL_LIBRARIES})
-
-# add_executable(adjacency_graph_node src/adjacency_graph_node.cpp src/adjacency_graph.cpp)
- #target_link_libraries(adjacency_graph_node ${catkin_LIBRARIES})
-
-#add_executable(testColor src/space_seg.cpp include/space_seg.h test/colortest.cpp)
-# target_link_libraries(testColor segmentationLib ${catkin_LIBRARIES})
