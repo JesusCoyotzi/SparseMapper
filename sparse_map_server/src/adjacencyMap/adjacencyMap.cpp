@@ -345,39 +345,6 @@ bool adjacencyMap::removeOccupiedPoint(pointGeom p)
         return suxes;
 }
 
-bool adjacencyMap::saveGraph(std::string filename)
-{
-        //Save pruned points and Grpah as txt
-        std::cout << "Writing to "<<filename<<"\n";
-        std::ofstream graphOut;
-        unsigned int freeNds = freeNodes.size();
-        unsigned int occNds =  occupiedNodes.size();
-        int totalNodes = freeNds+occNds;
-        graphOut.open(filename);
-        if (!graphOut.is_open()) {
-                return false;
-        }
-        graphOut<<"Clusters: " << totalNodes << "\n";
-        graphOut<<"Codebook: x,y,z,label\n";
-        graphOut << "Occupied Nodes: " << occNds <<"\n";
-        for(int i=0; i<occupiedNodes.size(); i++)
-        {
-                graphOut<<occupiedNodes[i].x<<",";
-                graphOut<<occupiedNodes[i].y<<",";
-                graphOut<<occupiedNodes[i].z<<",";
-                graphOut<<i<<"\n";
-        }
-        graphOut << "Free Nodes:" << freeNds<<"\n";
-        for(int i=0; i<freeNodes.size(); i++)
-        {
-                graphOut<<freeNodes[i].x<<",";
-                graphOut<<freeNodes[i].y<<",";
-                graphOut<<freeNodes[i].z<<",";
-                graphOut<<i<<"\n";
-        }
-        return true;
-}
-
 pointGeom adjacencyMap::makePointGeom(float x, float y, float z)
 {
         pointGeom g;
@@ -397,7 +364,7 @@ pointArray adjacencyMap::getOccNodes()
         return this->occupiedNodes;
 }
 
-adjacencyList adjacencyMap::getGraph()
+adjacencyList adjacencyMap::getEdges()
 {
         return this->adjGraph;
 }

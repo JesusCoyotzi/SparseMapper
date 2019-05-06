@@ -2,7 +2,7 @@
 <package format="2">
   <name>space_quantization</name>
   <version>0.0.0</version>
-  <description>The segmentQuantization package</description>
+  <description>The space_quantization package for sparse_mapper</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example: -->
@@ -34,6 +34,7 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>sparse_map_msgs</depend>
   <build_depend>message_generation</build_depend>
   <build_depend>cmake_modules</build_depend>
   <exec_depend>message_runtime</exec_depend>

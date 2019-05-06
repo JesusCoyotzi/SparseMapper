@@ -17,7 +17,6 @@ message(AUTHOR_WARNING "Los directions de PCL son:" ${PCL_LIBRARY_DIRS} )
 
 find_package(CUDA REQUIRED)
 find_package(catkin REQUIRED cmake_modules)
-find_package(Eigen REQUIRED)
 
 #This is required if PCL to be compiled as part of the package, it is a bug
 # On cuda 9.1 and PCL 1.7.1 erase it and this package won't compile
@@ -32,35 +31,19 @@ find_package(catkin REQUIRED COMPONENTS
    pcl_conversions
    pcl_ros
    visualization_msgs
-   message_generation
+   sparse_map_msgs
 )
 
-# Declare the message files to be built
-add_message_files(FILES
-  quantizedSpace.msg
-  codebook.msg
-)
-
-# Actually generate the language-specific message and service files
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  sensor_msgs
-  geometry_msgs
-  )
 
  # Declare that this catkin package's runtime dependencies
  catkin_package(
-  CATKIN_DEPENDS  std_msgs sensor_msgs geometry_msgs
-  message_runtime
-  DEPENDS Eigen
+  CATKIN_DEPENDS  std_msgs sensor_msgs geometry_msgs sparse_map_msgs
  )
 
 
  include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${Eigen_INCLUDE_DIRS}
  )
 
  #Cuda stuff

@@ -109,7 +109,7 @@ bool graphIO::saveAsPCD(std::string filename)
         std::ofstream file(filename.c_str());
         if(!file.is_open())
         {
-                std::cout << "Error writing to file file:" << filename <<'\n';
+                std::cout << "Error writing to file:" << filename <<'\n';
                 return false;
         }
         //Write pcd header
@@ -144,9 +144,54 @@ void graphIO::getNodes(std::list<pointGeom>& occNodes, std::list<pointGeom>& fre
         freeNodes = this->freeCodes;
 }
 
-void graphIO::loadToGraph(adjacencyMap &graph)
+void graphIO::loadGraph(adjacencyMap &graph)
 {
+        pointArray occ = graph.getOccNodes();
+        std::copy( occ.begin(), occ.end(), std::back_inserter( occCodes  ) );
+        pointArray fre = graph.getFreeNodes();
+        std::copy( fre.begin(), fre.end(), std::back_inserter( freeCodes ) );
+
+        this->graph = graph.getEdges();
         return;
+}
+
+bool graphIO::saveGraph(std::string filename)
+{
+        //Saves nodes and graph strcuture to disk
+        size_t fnd = filename.find(".");
+        std::string pcdName = filename.substr(0,fnd)+".pcd";
+        bool sux = saveAsPCD(pcdName);
+        if (!sux)
+        {
+                std::cout << "Error could not save nodes to file" << pcdName<< '\n';
+                return false;
+        }
+
+        std::ofstream file(filename.c_str());
+        if(!file.is_open())
+        {
+                std::cout << "Error writing to graph file:" << filename <<'\n';
+                return false;
+        }
+
+        file << "Graph file v 2\n";
+        file << "Nodes file: " << pcdName << "\n";
+
+        for (size_t i = 0; i < graph.size(); i++)
+        {
+                file << i << " ";
+                for (int const & dstNode : graph[i])
+                {
+                        file<< dstNode << " ";
+                }
+                file << "\n";
+        }
+
+
+        file.close();
+        return true;
+
+
 }
 
 pointArray graphIO::getFreeCodes()

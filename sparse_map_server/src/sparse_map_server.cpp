@@ -26,6 +26,7 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         terminalPub  = nh_.advertise<visualization_msgs::MarkerArray>("terminal_marker",1,true);
 
         pathServer = nh_.advertiseService("make_plan",&sparseMapServer::getPlan,this);
+        graphSaverServer = nh_.advertiseService("save_graph",&sparseMapServer::saveGraph,this);
 
         pathPub=nh_.advertise<nav_msgs::Path>("sparse_plan",1);
 
@@ -50,7 +51,7 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
                 std_msgs::ColorRGBA occColor  = makeColor(1,0.0,0.5,1.0);
                 pointArray occ = sparseMap.getOccNodes();
                 pointArray libre = sparseMap.getFreeNodes();
-                adjacencyList adjL = sparseMap.getGraph();
+                adjacencyList adjL = sparseMap.getEdges();
                 makeCentroidsMarkerAndPublish(occ,occColor,0);
                 makeCentroidsMarkerAndPublish(libre,freeColor,1);
                 makeVizGraphAndPublish(adjL,libre);
@@ -79,10 +80,13 @@ void sparseMapServer::removePoint(const geometry_msgs::PointStamped &msg)
         return;
 }
 
-void sparseMapServer::saveGraph(const std_msgs::Empty &msg)
+bool sparseMapServer::saveGraph(sparse_map_msgs::SaveMap::Request &req,
+                                sparse_map_msgs::SaveMap::Response &res)
 {
-        sparseMap.saveGraph(graphFile);
-        return;
+        graphIO graphSaver;
+        graphSaver.loadGraph(sparseMap);
+        res.success = graphSaver.saveGraph(req.filename);
+        return true;
 }
 
 void sparseMapServer::makeTerminalsAndPublish(pointGeom start, pointGeom goal)
@@ -309,7 +313,7 @@ void sparseMapServer::remakeGraph(const std_msgs::Empty &msg)
 
         pointArray occ = sparseMap.getOccNodes();
         pointArray libre = sparseMap.getFreeNodes();
-        adjacencyList adjL = sparseMap.getGraph();
+        adjacencyList adjL = sparseMap.getEdges();
         std_msgs::ColorRGBA freeColor = makeColor(0.5,1.0,0.50,1.0);
         std_msgs::ColorRGBA occColor  = makeColor(1,0.0,0.5,1.0);
         makeCentroidsMarkerAndPublish(occ,occColor,0);

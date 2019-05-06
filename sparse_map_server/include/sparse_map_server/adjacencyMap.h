@@ -81,7 +81,7 @@ bool loadMap(std::string filename);
 bool loadFromPCD(std::string filename);
 pointArray getFreeNodes();
 pointArray getOccNodes();
-adjacencyList getGraph();
+adjacencyList getEdges();
 bool validateSingleTerminal(pointGeom p, int &nodeIdx, pointArray &codesToCheck);
 bool validateTerminals(pointGeom strt,pointGeom goal,
                        int &closetsNodeStrtIdx, int &closestNodeGoalIdx);
@@ -106,6 +106,7 @@ struct lessL1
 };
 std::list<pointGeom> freeCodes;
 std::list<pointGeom> occCodes;
+adjacencyList graph;
 bool nodesLoaded;
 bool parseCodeLine(std::string, pointGeom &g);
 bool parsePCDLine(std::string line, pointGeom &g,int & label);
@@ -120,6 +121,7 @@ bool loadNodes(std::string filename);
 bool loadPCD(std::string filename);
 bool saveAsTxt(std::string filename);
 bool saveAsPCD(std::string filename);
+bool saveGraph(std::string filename);
 int simpleOccZPassThrough(double max, double min);
 int simpleFreeZPassThrough(double max, double min);
 int simpleZPassThrough(double max, double min);
@@ -128,11 +130,11 @@ void addOccCode(pointGeom p);
 pointArray getFreeCodes();
 pointArray getOccCodes();
 void getNodes(std::list<pointGeom>& occNodes, std::list<pointGeom>& freeNodes);
-void loadToGraph(adjacencyMap &graph);
+void loadGraph(adjacencyMap &graph);
 };
 
 class voxelGrid {
-//Creates an axis oriented voxel grid for fast acces to elements
+//Creates an axis oriented voxel grid for fast acces to centroids
 private:
 typedef   std::list <pointGeom> voxel;
 typedef   std::vector<voxel> voxelArray;
