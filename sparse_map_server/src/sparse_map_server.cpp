@@ -20,12 +20,11 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         nh_priv.param<bool>("visualize_terminals",visTerminals,true);
         nh_priv.param<bool>("validate_terminals",validateTerminals,true);
 
-
-
         codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1,true);
         labelPub = nh_.advertise<visualization_msgs::MarkerArray>("label_marker",1,true);
         terminalPub  = nh_.advertise<visualization_msgs::MarkerArray>("terminal_marker",1,true);
+        voxelPub= nh_.advertise<visualization_msgs::Marker>("voxel_marker",1,true);
 
         pathServer = nh_.advertiseService("make_plan",&sparseMapServer::getPlan,this);
         graphSaverServer = nh_.advertiseService("save_graph",&sparseMapServer::saveGraph,this);
@@ -54,7 +53,7 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         //Voxel Grid
         occupiedGrid.setStep(safetyRadius*2); //for diameter
         occupiedGrid.voxelize(sparseMap.getOccNodes());
-        occupiedGrid.printVoxGrid();
+        //occupiedGrid.printVoxGrid();
         //To let advertisers enable
         ros::Duration(1).sleep();
         if(visNodes)
@@ -232,6 +231,27 @@ void sparseMapServer::makeVizGraphAndPublish(adjacencyList l, pointArray codeboo
         graphMarkerPub.publish(connections);
 }
 
+void sparseMapServer::makeVoxelsAndPublish( pointArray voxels, float size)
+{
+        visualization_msgs::Marker voxelsMarker;
+        voxelsMarker.header.frame_id=mapFrame;
+        voxelsMarker.header.stamp=ros::Time::now();
+        voxelsMarker.ns = "voxelsMarker_static";
+        voxelsMarker.action = visualization_msgs::Marker::ADD;
+        voxelsMarker.pose.orientation.w = 1.0;
+        voxelsMarker.id = 4;
+        voxelsMarker.type = visualization_msgs::Marker::CUBE_LIST;
+        voxelsMarker.scale.x = size;
+        voxelsMarker.scale.y = size;
+        voxelsMarker.scale.z = size;
+        voxelsMarker.color.r=1.0;
+        voxelsMarker.color.b=0.0;
+        voxelsMarker.color.g=1.0;
+        voxelsMarker.color.a=0.75;
+        voxelsMarker.points=voxels;
+        voxelPub.publish(voxelsMarker);
+}
+
 std_msgs::ColorRGBA sparseMapServer::makeColor(float r,float g, float b, float a)
 {
         std_msgs::ColorRGBA color;
@@ -257,15 +277,17 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
         bool isValid;
         if (validateTerminals)
         {
-                //BUG: Not doing proper validation.
-                //std::cout << "Using full validation" << '\n';
+                std::cout << "Using full validation" << '\n';
                 pointArray checkingCodes = occupiedGrid.getPointsInVoxel(req.startPose);
-                std::cout << checkingCodes.size() << '\n';
                 bool isValidStrt = sparseMap.validateSingleTerminal(req.startPose,start,checkingCodes);
                 checkingCodes = occupiedGrid.getPointsInVoxel(req.goalPose);
-                std::cout << checkingCodes.size() << '\n';
                 bool isValidGoal = sparseMap.validateSingleTerminal(req.goalPose,goal,checkingCodes);
                 isValid = isValidStrt && isValidGoal;
+
+                //To debug voxel grid
+                // pointArray voxelCenters = occupiedGrid.getVoxelCentroids(req.goalPose);
+                // makeVoxelsAndPublish(voxelCenters,safetyRadius*2);
+
         }
         else
         {

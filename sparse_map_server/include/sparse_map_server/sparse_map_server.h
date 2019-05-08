@@ -13,7 +13,7 @@
 class sparseMapServer {
 private:
 ros::NodeHandle nh_;
-ros::Publisher codebookMarkerPub, graphMarkerPub, pathPub, labelPub, terminalPub;
+ros::Publisher codebookMarkerPub, graphMarkerPub, pathPub, labelPub, terminalPub, voxelPub;
 ros::Subscriber rebuildPub;
 ros::ServiceServer pathServer, graphSaverServer;
 std::string mapFileName, graphFile, nodeFile, edgeFile, mapFrame;
@@ -28,6 +28,7 @@ void makeCentroidsMarkerAndPublish( pointArray &codebook,std_msgs::ColorRGBA col
 void makeVizGraphAndPublish(adjacencyList l, pointArray codebook);
 void makeLabelMsgAndPublish(pointArray &codebook,int id);
 void makeTerminalsAndPublish(pointGeom start, pointGeom goal);
+void makeVoxelsAndPublish(pointArray voxels,float size);
 std_msgs::ColorRGBA makeColor(float r,float g, float b, float a);
 void removePoint(const geometry_msgs::PointStamped &msg);
 bool getPlan(sparse_map_msgs::MakePlan::Request &req,

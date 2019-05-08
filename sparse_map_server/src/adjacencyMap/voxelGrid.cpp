@@ -131,11 +131,48 @@ void voxelGrid::voxelize(std::vector<pointGeom> points)
         return;
 }
 
+pointArray voxelGrid::getVoxelCentroids(pointGeom q, bool eigthN)
+{
+        //REturn the voxel centroid for a query point q in a 8 neighboorhood or single voxel
+        if (!isReady) {
+                std::cout << "Error: voxel grid not constructed, call voxelize" << '\n';
+        }
+        int i = (q.x - minPoint.x)/stepX;
+        int j = (q.y - minPoint.y)/stepY;
+        int k = (q.z - minPoint.z)/stepZ;
+        pointArray closePoints;
+        if (eigthN) {
+                int maxI = i+1, minI = i-1;
+                int maxJ = j+1, minJ = j-1;
+                //Return all codes in a 8-neighboord around q voxel
+                for (i=minI; i <= maxI; i++)
+                {
+                        for (j = minJ; j <= maxJ; j++)
+                        {
+                                pointGeom cnt;
+                                cnt.x = minPoint.x + stepX * i + stepX/2; //<offset to get to center
+                                cnt.y = minPoint.y + stepY * j + stepY/2;
+                                cnt.z = minPoint.z + stepZ * k + stepZ/2;
+                                closePoints.push_back(cnt);
+                        }
+                }
+        }
+        else
+        {
+                pointGeom cnt;
+                cnt.x = minPoint.x + stepX * i + stepX/2; //<offset to get to center
+                cnt.y = minPoint.y + stepY * j + stepY/2;
+                cnt.z = minPoint.z + stepZ * k + stepZ/2;
+                closePoints.push_back(cnt);
+        }
+        return closePoints;
+}
+
 pointArray voxelGrid::getPointsInVoxel(pointGeom q, bool eigthN)
 {
         //return all points in a 27 neighboor around point q
         if (!isReady) {
-                std::cout << "Error: voxel grid not made, call voxelize" << '\n';
+                std::cout << "Error: voxel grid not constructed, call voxelize" << '\n';
         }
         int i = (q.x -minPoint.x)/stepX;
         int j = (q.y -minPoint.y)/stepY;
@@ -145,11 +182,11 @@ pointArray voxelGrid::getPointsInVoxel(pointGeom q, bool eigthN)
         if (eigthN)
         {
                 int maxI = i+1, minI = i-1;
-                int maxJ = i+1, minJ = i-1;
+                int maxJ = j+1, minJ = j-1;
                 //Return all codes in a 8-neighboord around q voxel
-                for (i=minJ; i < maxJ; i++)
+                for (i=minI; i <= maxI; i++)
                 {
-                        for (j = minI; i < maxI; i++)
+                        for (j = minJ; j <= maxJ; j++)
                         {
                                 int idxQ = i + j * cellsX + k * cellsY;
                                 if (( idxQ < voxelGrd.size() ) && ( idxQ > 0 )) {

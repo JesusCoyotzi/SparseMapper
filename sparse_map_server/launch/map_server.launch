@@ -13,7 +13,7 @@
     <param name="safety_height" value="1.2" type="double"/>
     <param name="safety_radius" value="0.3" type="double"/>
     <param name="connection_radius" value="0.30" type="double"/>
-    <param name="validate_terminals" value="false"/>
+    <param name="validate_terminals" value="true"/>
     <param name="use_existing_graph" value="True" type="bool"/>
     <param name="nodes_file" value="$(find sparse_map_utils)/graphs/bioroboticaVGraph.pcd" type="str"/>
     <param name="edges_file" value="$(find sparse_map_utils)/graphs/bioroboticaVGraph.txt" type="str"/>
