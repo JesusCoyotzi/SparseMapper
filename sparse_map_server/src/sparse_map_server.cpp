@@ -20,6 +20,8 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         nh_priv.param<bool>("visualize_terminals",visTerminals,true);
         nh_priv.param<bool>("validate_terminals",validateTerminals,true);
 
+
+
         codebookMarkerPub= nh_.advertise<visualization_msgs::Marker>("centroids_marker",1,true);
         graphMarkerPub= nh_.advertise<visualization_msgs::Marker>("graph_marker",1,true);
         labelPub = nh_.advertise<visualization_msgs::MarkerArray>("label_marker",1,true);
@@ -33,16 +35,26 @@ sparseMapServer::sparseMapServer(ros::NodeHandle &nh)
         rebuildPub = nh_.subscribe("remake_graph",1,&sparseMapServer::remakeGraph,this);
         //rebuildPub = nh_.subscribe("clicked_point",1,&sparseMapServer::removePoint,this);
 
+        //If desired can provide precomputed nodes and edges file
+        nh_priv.param<bool>("use_existing_graph",useExisting,false);
+        if (useExisting) {
+                nh_priv.param<std::string>("nodes_file",nodeFile,"nodes.pcd");
+                nh_priv.param<std::string>("edges_file",edgeFile,"edges.grph");
+                sparseMap = adjacencyMap(nodeFile,edgeFile,safetyHeight,safetyRadius,maxDistTerm);
+        }
+        else
+        {
+                sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,
+                                         connectionRadius,
+                                         maxDist,minDist,maxDistTerm,kNeighboors);
+                sparseMap.makeGraph();
+        }
 
-        sparseMap = adjacencyMap(mapFileName,safetyHeight,safetyRadius,
-                                 connectionRadius,
-                                 maxDist,minDist,maxDistTerm,kNeighboors);
-        sparseMap.makeGraph();
 
         //Voxel Grid
         occupiedGrid.setStep(safetyRadius*2); //for diameter
         occupiedGrid.voxelize(sparseMap.getOccNodes());
-        //occupiedGrid.printVoxGrid();
+        occupiedGrid.printVoxGrid();
         //To let advertisers enable
         ros::Duration(1).sleep();
         if(visNodes)
@@ -84,7 +96,7 @@ bool sparseMapServer::saveGraph(sparse_map_msgs::SaveMap::Request &req,
                                 sparse_map_msgs::SaveMap::Response &res)
 {
         graphIO graphSaver;
-        graphSaver.loadGraph(sparseMap);
+        graphSaver.loadMap(sparseMap);
         res.success = graphSaver.saveGraph(req.filename);
         return true;
 }
@@ -245,11 +257,13 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
         bool isValid;
         if (validateTerminals)
         {
+                //BUG: Not doing proper validation.
                 //std::cout << "Using full validation" << '\n';
                 pointArray checkingCodes = occupiedGrid.getPointsInVoxel(req.startPose);
+                std::cout << checkingCodes.size() << '\n';
                 bool isValidStrt = sparseMap.validateSingleTerminal(req.startPose,start,checkingCodes);
                 checkingCodes = occupiedGrid.getPointsInVoxel(req.goalPose);
-                //std::cout << checkingCodes.size() << '\n';
+                std::cout << checkingCodes.size() << '\n';
                 bool isValidGoal = sparseMap.validateSingleTerminal(req.goalPose,goal,checkingCodes);
                 isValid = isValidStrt && isValidGoal;
         }

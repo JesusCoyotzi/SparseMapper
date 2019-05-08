@@ -25,6 +25,25 @@ bool adjacencyMap::distanceLabel::operator<(const distanceLabel& a) const
         return this->dist < a.dist;
 }
 
+adjacencyMap::adjacencyMap(std::string pcdFile, std::string edgesFiles,
+                           float safeHeight,float safeRadius,
+                           float mxDistTerm)
+{
+
+        //Setter for params
+        this->safetyHeight = safeHeight;
+        this->safetyRadius = safeRadius;
+        this->maxDistTerm = mxDistTerm;
+        std::cout << "Parameters set for adj map:" << '\n';
+        std::cout << "Safety Heigth: " << safetyHeight  << '\n';
+        std::cout << "Safety Radius: " << safetyRadius  << '\n';
+        std::cout << "Max distance to terminal: " << maxDistTerm  << '\n';
+        loadFullGraph(pcdFile,edgesFiles);
+        std::cout << "**********" <<  '\n';
+        printAdjacencyList(adjGraph);
+        std::cout << "**********" <<  '\n';
+        return;
+}
 
 adjacencyMap::adjacencyMap(std::string mapFileName)
 {
@@ -82,6 +101,21 @@ void adjacencyMap::setParams(float safeHeight,float safeRadius,
         this->minDist = minDist;
         this->kNeighboors = kNeighboors;
         return;
+}
+
+bool adjacencyMap::loadFullGraph(std::string pcdFile, std::string edgeFile)
+{
+        graphIO graphReader;
+        if (!graphReader.readGraphFiles(pcdFile,edgeFile))
+        {
+                return false;
+        }
+        freeNodes = graphReader.getFreeCodes();
+        occupiedNodes = graphReader.getOccCodes();
+        std::cout << "Read: " << occupiedNodes.size() << "occupied nodes from file\n";
+        std::cout << "Read: " << freeNodes.size() << "free nodes from file\n";
+        adjGraph = graphReader.getEdges();
+        return true;
 }
 
 bool adjacencyMap::loadFromPCD(std::string filename)
@@ -575,7 +609,6 @@ void adjacencyMap::Knn(pointArray &centroids, adjacencyList & adjL)
         //And return the adjacency graph
         int nCnt = centroids.size();
         std::vector<distanceLabel> distances(nCnt);
-        std::cout << maxDist << '\n';
         for (int i = 0; i <nCnt; i++)
         {
                 for (int j = 0; j < nCnt; j++)

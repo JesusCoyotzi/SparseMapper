@@ -50,7 +50,7 @@ void voxelGrid::voxelize(std::vector<pointGeom> points)
         voxelGrd.resize(cellsX*cellsY*cellsZ);
 
         std::list<pointGeom> pointList(points.begin(),points.end());
-        std::cout << "Voxelizing a volume of  " << voxelGrd.size() << "cells\n";
+        std::cout << "Voxelizing a volume of  " << voxelGrd.size() << " cells\n";
         printf("With [%d,%d,%d] cells\n",cellsX,cellsY,cellsZ);
         printf("Cell Size [%f,%f,%f]\n \n", stepX,stepY,stepZ);
         printf("With %ld points \n", pointList.size());

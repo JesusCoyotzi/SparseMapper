@@ -76,7 +76,7 @@ bool graphIO::loadPCD(std::string filename)
                 std::cout << "Error reading file:" << filename <<'\n';
                 return false;
         }
-        std::string line, tmp;
+        std::string line;
         std::istringstream iss(line);
 
         for (size_t i = 0; i < 11; i++) {
@@ -100,6 +100,8 @@ bool graphIO::loadPCD(std::string filename)
 
                 std::getline(file,line);
         }
+        //Once nodes are loaded resize adjacency list
+        graph.resize(freeCodes.size());
         return true;
 }
 
@@ -144,20 +146,89 @@ void graphIO::getNodes(std::list<pointGeom>& occNodes, std::list<pointGeom>& fre
         freeNodes = this->freeCodes;
 }
 
-void graphIO::loadGraph(adjacencyMap &graph)
+adjacencyList graphIO::getEdges()
 {
+        return graph;
+}
+
+void graphIO::loadMap(adjacencyMap &graph)
+{
+        //Loads adjacency graph into a graphIO object to save to disk
         pointArray occ = graph.getOccNodes();
         std::copy( occ.begin(), occ.end(), std::back_inserter( occCodes  ) );
         pointArray fre = graph.getFreeNodes();
         std::copy( fre.begin(), fre.end(), std::back_inserter( freeCodes ) );
-
         this->graph = graph.getEdges();
         return;
+}
+
+bool graphIO::loadEdges(std::string graphFile)
+{
+        //Load edges from a plain text grph file
+        std::ifstream file(graphFile.c_str());
+        if(!file.is_open())
+        {
+                std::cout << "Error reading from edges file:" << graphFile <<'\n';
+                return false;
+        }
+
+        //Skip header and location
+        std::string line;
+        std::istringstream iss(line);
+        for (size_t i = 0; i < 2; i++)
+        {
+                std::getline(file,line);
+        }
+
+        iss.clear();
+        iss.str(std::string());
+        iss.str(line);
+
+        int src = 0;
+        std::vector<int> dst;
+        std::cout << "Parsing edges" << '\n';
+        std::getline(file,line);
+        while (parseEdgeLine(line,src,dst)) {
+                graph[src]=dst;
+                std::getline(file,line);
+
+        }
+        file.close();
+        return true;
+}
+
+bool graphIO::readGraphFiles(std::string pcdFile, std::string graphFile)
+{
+        //Loads an adjacency map from disk
+        /*
+           Takes a PCD and a .grph file from disk to ensemble the graphIO object
+           pcdFile PCD file containing graph nodes.
+           graphFile grph file containing the edges.
+         */
+        if (!loadPCD(pcdFile))
+        {
+                return false;
+        }
+
+        if(!loadEdges(graphFile))
+        {
+                return false;
+        }
+        if (freeCodes.size() != graph.size()) {
+                std::cout << "WARNING: mismatch between nodes and edges size:" << '\n';
+                std::cout << "# of Nodes: " << freeCodes.size()  <<'\n';
+                std::cout << "# of Edges: " << graph.size()  <<'\n';
+                return false;
+        }
+
+        return true;
+
 }
 
 bool graphIO::saveGraph(std::string filename)
 {
         //Saves nodes and graph strcuture to disk
+
         size_t fnd = filename.find(".");
         std::string pcdName = filename.substr(0,fnd)+".pcd";
         bool sux = saveAsPCD(pcdName);
@@ -167,6 +238,7 @@ bool graphIO::saveGraph(std::string filename)
                 return false;
         }
 
+        //TODO: create extra saveEdges function with this:
         std::ofstream file(filename.c_str());
         if(!file.is_open())
         {
@@ -269,6 +341,30 @@ bool graphIO::parsePCDLine(std::string line,  pointGeom &g, int & label)
         return sux;
 }
 
+bool graphIO::parseEdgeLine(std::string line,int &src, std::vector<int> &dst)
+{
+        std::istringstream iss(line);
+        dst.clear();
+        std::string tmp;
+        bool sux = true;
+        try {                
+                std::getline(iss,tmp,' ');
+                src=std::stoi(tmp.c_str());
+                while (std::getline(iss,tmp,' '))
+                {
+                        int destiny = std::stoi(tmp.c_str());
+                        dst.push_back(destiny);
+
+                }
+        }
+        catch (std::invalid_argument e)
+        {
+                std::cout << "An exception occurred: " << e.what() << '\n';
+                sux = false;
+        }
+
+        return sux;
+}
 
 
 pointGeom graphIO::removeOccCode(pointGeom p)

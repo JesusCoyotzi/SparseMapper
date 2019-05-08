@@ -65,6 +65,9 @@ bool validateNode(pointGeom p1,pointArray &codes);
 int reduceNodes(std::list<pointGeom> &nodes, std::vector<pointGeom> &oNodes );
 
 public:
+adjacencyMap(std::string pcdFile, std::string edgesFiles,
+             float safeHeight,float safeRadius,
+             float mxDistTerm);
 adjacencyMap(std::string mapFile,
              float safeHeight,float safeRadius,
              float cRadius, float mxDist, float minDist, float maxDistTerm,
@@ -79,6 +82,7 @@ void setParams(float safeHeight,float safeRadius, float cRadius,
 bool Astar(int goal,int start, pointArray &fullPath);
 bool loadMap(std::string filename);
 bool loadFromPCD(std::string filename);
+bool loadFullGraph(std::string pcdFile, std::string edgeFiles);
 pointArray getFreeNodes();
 pointArray getOccNodes();
 adjacencyList getEdges();
@@ -110,6 +114,7 @@ adjacencyList graph;
 bool nodesLoaded;
 bool parseCodeLine(std::string, pointGeom &g);
 bool parsePCDLine(std::string line, pointGeom &g,int & label);
+bool parseEdgeLine(std::string line, int &src, std::vector<int> &dst);
 
 public:
 double thres;
@@ -119,9 +124,12 @@ pointGeom removeOccCode(pointGeom p);
 pointGeom removeFreeCode(pointGeom p);
 bool loadNodes(std::string filename);
 bool loadPCD(std::string filename);
+bool loadEdges(std::string graphFile);
+void loadMap(adjacencyMap &graph);
 bool saveAsTxt(std::string filename);
 bool saveAsPCD(std::string filename);
 bool saveGraph(std::string filename);
+bool readGraphFiles(std::string pcdFile, std::string graphFile);
 int simpleOccZPassThrough(double max, double min);
 int simpleFreeZPassThrough(double max, double min);
 int simpleZPassThrough(double max, double min);
@@ -130,10 +138,11 @@ void addOccCode(pointGeom p);
 pointArray getFreeCodes();
 pointArray getOccCodes();
 void getNodes(std::list<pointGeom>& occNodes, std::list<pointGeom>& freeNodes);
-void loadGraph(adjacencyMap &graph);
+adjacencyList getEdges();
 };
 
-class voxelGrid {
+class voxelGrid
+{
 //Creates an axis oriented voxel grid for fast acces to centroids
 private:
 typedef   std::list <pointGeom> voxel;
@@ -152,4 +161,6 @@ void setStep(float stepx,float stepy,float stepz);
 void voxelize(std::vector<pointGeom> points);
 void printVoxGrid();
 pointArray getPointsInVoxel(pointGeom q, bool eigthN=true);
+pointArray getVoxelCentroids();
+
 };
