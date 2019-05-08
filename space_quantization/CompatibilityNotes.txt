@@ -1,4 +1,3 @@
-Ok this is slightly ridiculous.
 Ros kinetic uses  PCL 1.7 by default and in all its nodes
 from package pcl_ros and such.
 PCL 1.7 is incompatible with c++11 so that is not nice. But pcl 1.8 is!.
@@ -10,5 +9,3 @@ After all nvcc is a gcc fork
 The PCD file estructure varies from 1.7 to 1.8 that is why all the colors are messed up!
 On top of that my source installation of PCL 1.8 shadows
 PCL 1.7
-
-Please kill me...
