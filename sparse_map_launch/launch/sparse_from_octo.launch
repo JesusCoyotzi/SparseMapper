@@ -17,7 +17,7 @@
     <param name="frame_id" type="string" value="map"/>
     <param name="base_frame_id " value="base_link" type="str"/>
     <param name="occupancy_min_z" value="-0.125" type="double"/>
-    <param name="occupancy_max_z" value="3.0" type="double"/>
+    <param name="occupancy_max_z" value="1.5" type="double"/>
     <remap from="octomap_point_cloud_centers" to="/hsrb/cloud" />
     <!-- data source to integrate (PointCloud2) -->
   </node>

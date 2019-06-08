@@ -8,7 +8,7 @@ Master Thesis in Biorobotics Laboratory UNAM.
 Sparse-mapper is a novel architecture for robotic mapping with known poses
 on 3D environments.
 This approach uses unsupervised learning over unstructured point clouds to
-automatically generate static topological maps suitable for robot Navigation.
+automatically generate static topological maps suitable for robot navigation.
 Unlike laser based occupancy grid-maps Sparse-Map maintains a sparse 3D representation
 of the environment allowing to model much more complex spaces yet it has a smaller
 memory footprint compared to other approaches such as [Octomap][1].
@@ -19,9 +19,10 @@ run on GPU to accelerate its processing speed.
 ## Installation
 
 This program depends on PCL 1.7.2 or higher, Eigen 3 or higher, CUDA runtime boost and ROS.
-It has been tested with ROS Kinetic but can work on Melodic
+It has been tested with ROS Kinetic but can work on Melodic and PCL 1.8.
 You will need to install all of them for the compilation to work, there are functions designed
-to work exclusively on CPU non-nvcc compilation is still not supported. You can
+to work exclusively on CPU and non nvcc compilation is still supported but not extensively tested.
+You can
 follow the ROS installation [tutorial](http://wiki.ros.org/ROS/Installation) which should
 install a working version of PCL too. It is not recommended to install PCL separately
 as the ROS installation is different from the source and the dpkg install folder
@@ -91,7 +92,7 @@ The pose checker, the preprocessor and the quantization:
 
 #### pose_chck
 
-Sparse_mapper build a global map based on several different scenes. To prevent adding lots
+Sparse_mapper builds a global map based on several different scenes. To prevent adding lots
 redundant information when the robot is not moving we only push the point cloud into the pipeline
 if the robot has move or rotated a certain amount. This node keeps track of the traveled distance and
 pushes the point cloud when specified.
@@ -113,7 +114,7 @@ pushes the point cloud when specified.
 ### Preprocessor
 
 The raw point cloud should be preprocessed before quantization, this implies removing point
-too far and too close, from the sensor as those have a lot of noise then apply a voxelization
+too far and too close, from the sensor as those have a lot of noise, then apply a voxelization
 filter to downsample the cloud and finally transform all point to a more convenient reference frame,
 usually the robot base or if available the map.
 
@@ -158,7 +159,7 @@ recommended to use while mapping. But are nevertheless provided.
 -   ~nClusters <int> : Number of clusters to compute. LBG only supports powers of 2.
 -   ~iterations <int>: Number of times to run Lloyd algorithm on clustering.
 -   ~method <string> : [inner/kpp/kmeansCPU/LBG] method to use.
--   ~publish_label_space <bool>; Whether to publish the labeled cloud, if disable with false the program should run
+-   ~publish_label_space <bool>; Whether to publish the labeled cloud, if set to false the program should run
     faster but it is helpful to see the cloud for debugging purposes.
 
 ### Mapper: sparse_mapper_node
@@ -199,19 +200,22 @@ load as it constructs the graph after reading the node from disk.
 -   centroids_marker(visualization_msgs/Marker): Markers used to visualize current nodes.
 -   graph_marker(visualization_msgs/Marker): Markers used to visualize current map.
 -   label_marker(visualization_msgs/Marker): Markers used to visualize node id.
--   terminal_marker(visualization_msgs/Marker): Marker used to represents robot initial and final state.
--
+-   terminal_marker(visualization_msgs/Marker): Marker used to represents robot initial and final state as cylinders.
 
 #### Services provided
 
 -   make_plan (sparse_map_msgs/MakePlan): Given start and end locations, known
     as terminals, compute a plan. Currently only supports points as terminals.
      Not poses.
+-   save_graph (sparse_map_msgs/SaveMap): Save the processed sparse_map and edge list
+    as a pcd file and a plaint text txt edges files. Simply provide the path to the
+    edges file, no extension, and a pcd name will be generated with the same name.
 
 #### Parameters
 
--   ~map_file <string> : Name of topological map file on disk.
--   ~map_frame <string> : Reference frame of map.
+-   ~map_file <string> : Name of topological map file on disk can be legacy txt file or a
+    pcd file .
+-   ~map_frame <string> : Reference frame of map, default is "map".
 -   ~safety_height <float> : Height of robot, all nodes over this height are ignored
 -   ~safety_radius <float> : Radius of robot. Robot radius for 3D collision detection
 -   ~max_dist <float> : Maximum permissible distance between neighbor nodes. If larger they won't connect
@@ -219,7 +223,14 @@ load as it constructs the graph after reading the node from disk.
 -   ~max_dist_terminal <float> : Maximum distance between terminal and closest free node if larger planner will report a failure.
 -   ~k_neighbors <int> : How many neighbors each node has.
 -   ~visualize_terminals <bool> : Whether or not paint terminals on RVIz.
--   ~validate_terminals <bool> : Whether to do collision detection on start and final points when requesting a plan. If set to false won't do any collision detection and a crash on start or stop might occur!!
+-   ~validate_terminals <bool> : Whether to do collision detection on start and final
+    points when requesting a plan. If set to false won't do any collision detection
+    and a crash on start or stop position might occur!!
+-   ~use_existing_graph (bool) : Set to true if you want to provide
+    existing .txt and pcd files for the graph and false if you want to ensemble the
+     topological map from scratch
+-   ~nodes_file (string) : path to pcd file containtning the sparse_map centroids.
+-   ~edges_file (string) : path to plaintext file containtning graph edges.
 
 [1]: https://octomap.github.io/
 

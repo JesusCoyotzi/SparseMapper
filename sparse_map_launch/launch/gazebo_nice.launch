@@ -3,9 +3,9 @@
   <include file="$(find hsrb_gazebo_bringup)/launch/hsrb_empty_world.launch">
     <!-- <arg name="world_name" value="$(find tmc_gazebo_worlds)/worlds/apartment_fast.world" /> -->
     <arg name="world_name" value="/home/jesus/maestria/tesis/worlds/thesis_apartment_mod.world" />
-    <arg name="robot_pos" value="-x 9 -y 9 -z 0 -Y 3.1416" />
+    <arg name="robot_pos" value="-x 9 -y 8 -z 0 -Y 3.1416" />
     <arg name="use_laser_odom" value="false" />
-    <arg name="gui" value="false" />
-    <arg name="paused" value="false" />
+    <arg name="gui" value="true" />
+    <arg name="paused" value="true" />
   </include>
 </launch>

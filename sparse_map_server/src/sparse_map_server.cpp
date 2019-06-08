@@ -331,6 +331,7 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
         //ros::Duration planRun = ros::Time::now() - planStart;
 
         std::cout << "Path planning succesfull: Nodes visited: " << pth.size()+2 <<'\n';
+        //Number of nodes in graph + 2 terminals
         // std::cout << "Validation time: " << validRun << '\n';
         // std::cout << "Planning time: " << planRun << '\n';
         pathPub.publish(res.plan);
