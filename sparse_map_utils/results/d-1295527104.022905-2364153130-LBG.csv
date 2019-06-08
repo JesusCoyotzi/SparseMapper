@@ -1,7 +1,0 @@
-# Meta-Data
-filename,method,iterations,points
-/home/jesus/thesis_ws/src/sparse_map_utils/clouds/test/d-1295527104.022905-2364153130.pgm,LBG,7,307200
-# Data
-simulation,time,distorsion,stddev,clusters,requested
-0,2.533,370481.981,629.432,256,256
-1,4.971,257913.449,327.486,512,512

@@ -54,7 +54,8 @@ roslaunch sparse_map_launch sparse_mapper.launch
 ```
 
 Then move your robot around until you ensemble your map. You can then call the /make_graph
-service to save the map to a plain text file.
+service to save the map to a plain text file. Or you can publish a previously ensembled
+pointcloud reconstruction, from a 3D SLAM framework as [RTAB-Map][4] for example, to the same /cloud_in topic this will generate the sparse map from that cloud only.
 
 Once the map is saved on disk you can run the map server to request paths for the robot using the map.
 Again it is faster and easier to use the launch file provided.
@@ -65,7 +66,7 @@ roslaunch sparse_map_launch map_server.launch
 
 And call the make_plan service to request a path. It is recommended that you also run a
 AMCL localization as it both helps with visualization and if you need to actually follow
-the paths you need a source of localization. For convenience a localization launch based
+the paths you need some source of localization. For convenience a localization launch based
 on AMCL is provided.
 
 ```bash
@@ -76,6 +77,10 @@ Finally some launches require Octomap to work. You can either install it via
  apt or use the supplied submodule to download and compile with everything else
 
 You can find the description of the relevant parameters and topic on the roslaunch files.
+
+Also in testGraphs you can find some previously ensembled occupancy grids, sparse maps
+and graphs acquired by me in the Biorobotics Laboratory @ UNAM in case you can to try
+ this package out of the box.
 
 ## HSR compatibility
 
@@ -237,3 +242,5 @@ load as it constructs the graph after reading the node from disk.
 [2]: http://www.ros.org/
 
 [3]: http://pointclouds.org/
+
+[4]: http://introlab.github.io/rtabmap/
