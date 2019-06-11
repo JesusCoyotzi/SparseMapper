@@ -13,15 +13,15 @@ include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 #Esto ya es ocio
-message(AUTHOR_WARNING "Los directions de PCL son:" ${PCL_LIBRARY_DIRS} )
+#message(AUTHOR_WARNING "Los directorios de PCL son:" ${PCL_LIBRARY_DIRS} )
 
 find_package(CUDA REQUIRED)
 find_package(catkin REQUIRED cmake_modules)
 
 #This is required if PCL to be compiled as part of the package, it is a bug
+set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
 # On cuda 9.1 and PCL 1.7.1 erase it and this package won't compile
 #Hopefully on melodic and pcl 1.8 it wont matter.
-set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
 
 find_package(catkin REQUIRED COMPONENTS
    std_msgs
@@ -33,7 +33,6 @@ find_package(catkin REQUIRED COMPONENTS
    visualization_msgs
    sparse_map_msgs
 )
-
 
  # Declare that this catkin package's runtime dependencies
  catkin_package(

@@ -28,7 +28,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES sparse_map_utils
-  CATKIN_DEPENDS geometry_msgs pcl roscpp rospy sensor_msgs std_msgs tf
+  CATKIN_DEPENDS geometry_msgs pcl roscpp rospy sensor_msgs std_msgs tf sparse_map_msgs
 #  DEPENDS system_lib
 )
 
@@ -46,4 +46,5 @@ include_directories(
 )
 
 add_executable(cloudSimulation_node src/cloudSimulation.cpp  src/cloudSimulation_node.cpp)
+add_dependencies(cloudSimulation_node ${catkin_EXPORTED_TARGETS})
 target_link_libraries(cloudSimulation_node  ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBRARIES})

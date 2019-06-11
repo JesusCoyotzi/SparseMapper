@@ -18,15 +18,14 @@ run on GPU to accelerate its processing speed.
 
 ## Installation
 
-This program depends on PCL 1.7.2 or higher, Eigen 3 or higher, CUDA runtime boost and ROS.
-It has been tested with ROS Kinetic but can work on Melodic and PCL 1.8.
+This program depends on PCL 1.7.2 or higher, Eigen 3 or higher, CUDA runtime, boost and ROS.
+This has been tested with ROS Kinetic but can work on Melodic and PCL 1.8.
 You will need to install all of them for the compilation to work, there are functions designed
-to work exclusively on CPU and non nvcc compilation is still supported but not extensively tested.
+to work exclusively on CPU and non nvcc compilation is supported but not extensively tested.
 You can
 follow the ROS installation [tutorial](http://wiki.ros.org/ROS/Installation) which should
 install a working version of PCL too. It is not recommended to install PCL separately
-as the ROS installation is different from the source and the dpkg install folder
-resulting on duplicate installations.
+as the ROS installation is different and you might end with duplicate installations.
 
 Once that is done simply compiling the package with catkin_make should suffice.
 
@@ -34,6 +33,31 @@ Once that is done simply compiling the package with catkin_make should suffice.
 catkin_make
 source devel/setup/bash
 ```
+
+Also do not forget to specify you correct architecture in case of CUDA compilation.
+By default it is set to compute_61 for GTX 1050, check the NVIDIA website to check for
+your architecture and change:
+
+```
+CUDA_NVCC_FLAGS
+${CUDA_NVCC_FLAGS};
+-O3 -lineinfo -gencode arch=compute_61,code=sm_61 -std=c++11
+)
+```
+To your device architecture on the CMakeList.txt for the space_quantization package.
+
+## Known issues
+For some reason despite being specified on the CMake files sparse_map_msgs is sometimes
+compiled after the other packages. This causes the compilation to fail, if this happens to you:
+
+```bash
+catkin_make --pkg sparse_map_msgs
+catkin_make
+```
+
+
+
+This will force to compile the msgs package before everything else.
 
 ## Usage
 

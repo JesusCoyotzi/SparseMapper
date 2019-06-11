@@ -1,4 +1,4 @@
-Ros kinetic uses  PCL 1.7 by default and in all its nodes
+Ros kinetic uses  PCL 1.7 by default and in all of its nodes
 from package pcl_ros and such.
 PCL 1.7 is incompatible with c++11 so that is not nice. But pcl 1.8 is!.
 So PCL nodes can be compiled in 1.8.
