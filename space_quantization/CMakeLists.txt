@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(space_quantization)
+project(space_quantization CXX CUDA)
+
 #set(CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
 #//can't compile
 #Ok this is ridiculous, PCL 1.7 is builts with c++ 0x
@@ -8,18 +9,21 @@ project(space_quantization)
 #to 1.8 as it is hardcoded to use 1.7 in most prebuilt binaries
 # Get the information about this package's buildtime dependencies
 # and on runtime.
-find_package(PCL 1.7 REQUIRED)
+
+find_package(PCL 1.8 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 #Esto ya es ocio
-#message(AUTHOR_WARNING "Los directorios de PCL son:" ${PCL_LIBRARY_DIRS} )
+#message(AUTHOR_WARNING "Las libraries de PCL son:" ${PCL_INCLUDE_DIRS} )
+#message(AUTHOR_WARNING "Las includes de PCL son:" ${PCL_LIBRARY_DIRS} )
 
 find_package(CUDA REQUIRED)
-find_package(catkin REQUIRED cmake_modules)
+#message(AUTHOR_WARNING "Las includes de CUDA son:" ${CUDA_INCLUDE_DIRS} )
+#find_package(catkin REQUIRED cmake_modules)
 
 #This is required if PCL to be compiled as part of the package, it is a bug
-set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
+#set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "" )
 # On cuda 9.1 and PCL 1.7.1 erase it and this package won't compile
 #Hopefully on melodic and pcl 1.8 it wont matter.
 
@@ -42,6 +46,7 @@ find_package(catkin REQUIRED COMPONENTS
 
  include_directories(
   include
+  ${CUDA_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
  )
 
