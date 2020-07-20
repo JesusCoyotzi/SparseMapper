@@ -4,16 +4,16 @@ from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Path
-from sparse_map_msgs.srv import MakePlan
+from nav_msgs.srv import GetPlan
 
-start = Point(3, -4, 0)
+start = PoseStamped()
 
 def goalCallback(msg):
-    goal = Point(msg.pose.position.x, msg.pose.position.y, msg.pose.position.z)
+    goal = msg
     try:
-        goalProxy = rospy.ServiceProxy("/sparse_map/make_plan", MakePlan)
-        pth = goalProxy(start, goal)
-        print("Path planning succesfull")
+        goalProxy = rospy.ServiceProxy("/move_base/make_plan", GetPlan)
+        pth = goalProxy(start, goal,0.3)
+        print("NavStack path planing succesfull")
         for p in pth.plan.poses:
             print((p.pose.position.x,p.pose.position.y,p.pose.position.z))
     except rospy.ServiceException as e:
@@ -21,15 +21,14 @@ def goalCallback(msg):
 
 def startCallBack(msg):
     global start
-    start = Point(msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z)
+    start = PoseStamped(msg.header,msg.pose.pose)
     #print(msg)
 
 def setup():
     rospy.init_node("goal_emitter", anonymous=False)
     rospy.Subscriber("/move_base_simple/goal", PoseStamped, goalCallback)
     rospy.Subscriber("/initialpose", PoseWithCovarianceStamped, startCallBack)
-    rospy.wait_for_service("/sparse_map/make_plan")
-    print("Use Rviz initial pose and goal to get a plan")
+    rospy.wait_for_service("/move_base/make_plan")
     rospy.spin()
 
 
