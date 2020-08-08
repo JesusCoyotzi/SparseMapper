@@ -1,3 +1,5 @@
+<?xml version="2.0" encoding="UTF-8"?>
+<!--Read file from pcd to pointcloud preprocess it and create map, must provide tf-->
 <launch>
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
   <arg name="name" default="bioroboticaV"/>
@@ -39,7 +41,8 @@
   <!-- head_rgbd_sensor_rgb_frame -->
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(find space_quantization)/cloud/$(arg name).pcd " output="screen">
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
-    <param name="frame_id" value="head_rgbd_sensor_rgb_frame" type="str"/>
+    <param name="frame_id" value="map" type="str"/>
+    <param name="latch" value="true" type="boolean"/>
   </node>
 
 </launch>

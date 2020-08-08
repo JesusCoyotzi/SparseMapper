@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <launch>
   <!--Publish a pcd as pointcloud and run clustering node, must provide tf-->
   <arg name="name" default="apt.pcd"/>
