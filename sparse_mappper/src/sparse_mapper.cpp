@@ -86,8 +86,8 @@ void sparseMapper::codebookCallback(const sparse_map_msgs::codebook &msg)
         edges = freeCodebook.size()+occCodebook.size();
         std::cout << "Got a codebook of:" << centroids.size() << " points"<< '\n';
         std::cout << "In frame " << codebookFrame << " on Stamp " << stamp << "\n";
-        std::cout << "Global map is " << freeCodebook.size() << "points long\n";
-        std::cout << "Occupied space is " << occCodebook.size()<< "points long\n";
+        std::cout << "Global map is " << freeCodebook.size() << " points long\n";
+        std::cout << "Occupied space is " << occCodebook.size()<< " points long\n";
 
         std_msgs::ColorRGBA freeColor = makeColor(0,1,0.2,1);
         std_msgs::ColorRGBA occColor = makeColor(1,0.2,0,1);

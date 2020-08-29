@@ -30,7 +30,7 @@
   <node name="sparseMap" pkg="sparse_mapper" type="sparse_mapper_node" output="screen">
     <remap from="codebook" to="/hsrb/codebook"/>
     <remap from="graph_marker" to="/hsrb/graph_marker"/>
-  <param name="free_thr" value="$(arg freeSpace)" type="double"/>
+    <param name="free_thr" value="$(arg freeSpace)" type="double"/>
     <param name="graph_file" value="$(find sparse_map_utils)/graphs/$(arg name)Full.txt" type="str"/>
   </node>
 
@@ -43,6 +43,7 @@
     <remap from="cloud_pcd" to="/hsrb/cloud"/>
     <param name="frame_id" value="map" type="str"/>
     <param name="latch" value="true" type="boolean"/>
+    <param name="interval" value="-1.0" type="double"/>
   </node>
 
 </launch>

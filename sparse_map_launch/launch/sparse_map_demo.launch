@@ -30,7 +30,7 @@
   <!-- head_rgbd_sensor_rgb_frame -->
   <!--- <node pkg="tf" type="static_transform_publisher" name="map_broadcaster" args="0 0 0 0 0 0 1 map head_rgbd_sensor_rgb_frame 100" /> -->
 
-  <!-- These is for visualization-->
+  <!-- This is for visualization-->
   <node name="cloudPublisher" pkg="pcl_ros" type="pcd_to_pointcloud" args="$(arg cloud_name)" output="screen">
     <remap from="cloud_pcd" to="/sparse_map/cloud"/>
     <param name="frame_id" value="map" type="str"/>

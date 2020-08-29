@@ -224,10 +224,10 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
         }
 
         labelSpaceAndPublish(space,codebook,partition,histogram,nValid);
-        std::cout << "Histogram:" << '\n';
+        /*std::cout << "Histogram:" << '\n';
         for (int i = 0; i < nClusters; i++) {
                 printf("Cluster[%d]: %d\n",i,histogram[i] );
-        }
+        }*/
         //free host memory
         free(space); free(codebook); free(partition); free(histogram);
 }
@@ -459,7 +459,7 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
         {
                 //Enable visualization:
                 // Ensemble pointcloud for free & occupied space.
-                // and vomit them on to a fancy cloud2 msg.
+                // and send them on to a fancy cloud2 msg.
                 sensor_msgs::PointCloud2 labeledCloud;
                 makeCloudHeader(labeledCloud,nPoints);
 
@@ -468,7 +468,7 @@ spaceSegmenter::labelSpaceAndPublish(point3* space,
                 std::vector<unsigned char> byteBlobLabel(labeledCloud.row_step);
                 charToFloat changer;
                 //This could be ewasily the most complex for in my
-                //whoole life
+                //whole life
                 for (int i=0, j = 0, w=0; j< nPoints; j++)
                 {
                         std::vector<unsigned char> tmp(4*4);

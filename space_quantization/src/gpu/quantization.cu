@@ -56,7 +56,7 @@ __device__ point3 randomPoint3(curandState *randState,point3 maxP,point3 minP)
 void initializeCodebook(point3 * codebook, point3 minPoint,
                         point3 maxPoint,int nClusters)
 {
-        //Initialize centroids bya bounding box uniform sampling.
+        //Initialize centroids via bounding box uniform sampling.
         printf("Initializing centroids\n");
         printf("Max point:\t"); printPoint3(maxPoint);
         printf("\nMin point:\t"); printPoint3(minPoint);
@@ -74,7 +74,7 @@ void initializeCodebook(point3 * codebook, point3 minPoint,
 void initializeCodebook(point3 * codebook, point3* points,
                         int pointSize, int nClusters)
 {
-        //Initilaize centroids in codebook by sampling points in the dataset. named as inner methos
+        //Initilaize centroids in codebook by sampling points in the dataset. named as inner method
         printf("Initializing centroids\n");
         srand(time(NULL));
 
@@ -117,8 +117,9 @@ __device__ void setZerosDevice(int *p,int n)
 
 __global__ void distanceKernel(point3 * points, point3 * centroids,float * distances, int k, int n )
 {
-        //distances[k*n]
-        /*The distance array is a 2d array but i flattened it into a one dimensional array cause i am
+        /*Computes the distance from points to centroids
+        Legacy implmentation with makePartition
+        The distance array is a 2d array but i flattened it into a one dimensional array cause i am
            to lazy to create a 2d array on cuda. */
         int idx = threadIdx.x + blockIdx.x * blockDim.x;
         if (idx < n) {
@@ -134,10 +135,46 @@ __global__ void distanceKernel(point3 * points, point3 * centroids,float * dista
         return;
 }
 
+__global__ void makePartition(int *partition,
+                              float *distances, int *histogram,
+                              int k, int n)
+{
+        /*Uses distance matrix to compute partition and histogram for centroids
+        Legacy implementation*/
+        int idx  = threadIdx.x + blockIdx.x * blockDim.x;
+        if (idx < n) {
+                //int tid = threadIdx.x;
+                int minixd=0;
+                float minDist=distances[idx];
+                for(int i=1; i<k; i++)
+                {
+                        if(minDist>distances[idx+n*i])
+                        {
+                                minixd=i;
+                                minDist=distances[idx+n*i];
+                        }
+                }
+                partition[idx]=minixd;
+                atomicAdd(&histogram[minixd],1);
+        }
+        return;
+}
+
+
 __global__ void separationKernel(point3 * points, point3 * centroids,
                                  int *histogram, int *partition,
                                  int k, int n)
 {
+        /*This kernerl computes the partition for all the points
+        and the current centroids
+        Input:
+            points:     Points cloud
+            centroids:  Previously assigned centroids
+        Output
+            histogram:  Vector of size k, each elements stores the count
+                      of points that belong to a certain centroid
+            partition:  Array of labels, assigns each point to a centroid
+        */
         int idx = threadIdx.x + blockIdx.x * blockDim.x;
         if (idx<n)
         {
@@ -156,43 +193,17 @@ __global__ void separationKernel(point3 * points, point3 * centroids,
         return;
 }
 
-__global__ void makePartition(int *partition,
-                              float *distances, int *histogram,
-                              int k, int n)
-{
-        int idx  = threadIdx.x + blockIdx.x * blockDim.x;
-        //__shared__ int sharedPartition[THREADS];
-        //setZerosDevice(histogram,k);
-        //__syncthreads();
-        if (idx < n) {
-                //int tid = threadIdx.x;
-                int minixd=0;
-                float minDist=distances[idx];
-                for(int i=1; i<k; i++)
-                {
-                        if(minDist>distances[idx+n*i])
-                        {
-                                minixd=i;
-                                minDist=distances[idx+n*i];
-                        }
-                }
-                partition[idx]=minixd;
-                atomicAdd(&histogram[minixd],1);
-        }
-        // __syncthreads();
-        // if (idx==0) {
-        //         printf("-----\n" );
-        //         for (int i = 0; i < k; i++) {
-        //                 printf("Histogram[%d]=%d\n",i,histogram[i] );
-        //         }
-        // }
-        return;
-}
-
 __global__ void prepareReduceArray(point3 *points, int *partition, point3 *reduceArrray, int centroid, int n)
 {
-        //takes the whole partition array and outputs a single array that only has points belonging to a
-        //particular centroid
+        /*takes the whole partition array and outputs a single array that only has points belonging to a
+        particular centroid 
+        Input:
+            points:      Point cloud
+            partition:   Array of labels, one for each point corresponding to its closest centroid 
+        Output:
+            reduceArray: Array with only points belonging to "centroid" or the zero vector
+                       This can be later reduced to compute the new centroid 
+        */
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
         if(idx < n)
         {
@@ -217,13 +228,18 @@ __global__ void recalcCentroidsInner(point3 * points,
                                      point3* partialResult,
                                      int n)
 {
-        //n = histogram[n]
+        /*Partial parallel reduction, computes the sum of all points up to block level
+        Inputs:
+            points:          Point cloud
+        Output:
+            partialReesult:   Reduced array if blocks>THREAD then this must be called
+                             again to reduce block level result            */
+        
         __shared__ point3 pointsShared[THREADS];
-        //__shared__ int partitionShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
         int tid = threadIdx.x;
         //This is the way to do it
-        //If shared memoery is no zeroed
+        //If shared memory is no zeroed
         ///Sometimes i will read random stuff from out of range
         point3 zero;
         zero.x=0; zero.y=0; zero.z=0;
@@ -232,18 +248,8 @@ __global__ void recalcCentroidsInner(point3 * points,
 
         if(idx < n)
         {
-                //set all to 0;
-                //This method is serial ==bad!!
-                // setZerosDevice(pointsShared,THREADS); //Size of shared memory
-                // //setZerosDevice(partitionShared,THREADS); //Size of shared memory
-                //This deaccelerates the code by a lot
-                //Whiuto some centroids are worng
-
                 //only copy from partition j
                 pointsShared[tid]=points[idx];
-                //makes two arrays [k k k 0 0 0 0 k k k]
-                //[1 1 1 0 0 0 0 1 1 1]
-                /*Array of valid points and zeros and array of ones*/
                 __syncthreads();
                 for (int s = blockDim.x/2; s>0; s>>=1)
                 {
@@ -268,7 +274,6 @@ __global__ void recalcCentroidsInner(point3 * points,
 
                 }
         }
-        //  __syncthreads();
 }
 
 __global__ void recalcCentroidsOuter(point3 * points,
@@ -279,6 +284,14 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                      point3 maxP,point3 minP
                                      )
 {
+        /*Computes the final reduce operation on points and computes
+          new centroids:
+        Input:
+            points:    Point Cloud
+            histogram: Histogram of points belonging to each centroid
+        Output:
+            centroids: Previous codebook
+            k:         Numbre of centroids            */
         //histogram is a count of how many elements belong to each centroid
         __shared__ point3 pointsShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
@@ -325,6 +338,14 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                      int k, int n
                                      )
 {
+        /*Computes the final reduce operation on points and computes
+          new centroids:
+        Input:
+            points:    Point Cloud
+            histogram: Histogram of points belonging to each centroid
+        Output:
+            centroids: Previous codebook
+            k:         Numbre of centroids            */
         //histogram is a count of how many elements belong to each centroid
         __shared__ point3 pointsShared[THREADS];
         int idx = blockIdx.x*blockDim.x+threadIdx.x;
@@ -335,8 +356,7 @@ __global__ void recalcCentroidsOuter(point3 * points,
         __syncthreads();
         if(idx < n)
         {
-
-                //set all to 0; //El error estaba en alocar n cachos
+                //set all to 0; 
                 // setZerosDevice(pointsShared,THREADS); //Size of shared memory
                 // __syncthreads();
 
@@ -367,11 +387,6 @@ __global__ void recalcCentroidsOuter(point3 * points,
                                 //        k,centroids[k].x,centroids[k].y,centroids[k].z);
                                 centroids[k] = mulPoint3(pointsShared[0],1.0/histogram[k]);
                         }
-                        // else
-                        // {
-                        //         //point3 rp3=randomPoint3(crs);
-                        //         centroids[k]= addPoint3(centroids[k],rp3);
-                        // }
                 }
         }
         //__syncthreads();
@@ -444,9 +459,6 @@ bool kmeans(point3 *h_points, int *h_partition,
         //int blks = nPoints/ THREADS;
         int blks = (nPoints + THREADS - 1) / THREADS;
         printf("Issuing %d blocks with %d threads\n",blks, THREADS);
-        //cudaDeviceSynchronize();
-        // recalcCentroids<<<(nPoints + THREADS - 1) / THREADS,THREADS>>>
-        // (d_points,d_codebook,d_partition,clusters,nPoints);
         for (int m = 0; m <iterations; m++) {
                 ///if blks > THREADS return error not enough memory
                 cudaMemset(d_histogram, 0, histogramSize);
@@ -462,10 +474,8 @@ bool kmeans(point3 *h_points, int *h_partition,
                         recalcCentroidsInner<<<blks,THREADS>>>
                         (d_reduceArray,d_reduceArray,nPoints);
                         while (blks>THREADS) {
-                                //Si entra aquí los resutlados parciales dan 0 y
-                                //no tengo idea por que.
-                                //Pero solo despues de una iteración
-                                //Ni siquiera agarra todos los puntos
+                                //In case we have more points than THREADS
+                                //This accumulates block level result
                                 int n = blks;
                                 blks = (blks + THREADS - 1) / THREADS;
                                 recalcCentroidsInner<<<blks,THREADS>>>
@@ -488,8 +498,8 @@ bool kmeans(point3 *h_points, int *h_partition,
                    histogramSize,cudaMemcpyDeviceToHost);
 
         //printVec(h_partition,nPoints);
-        printf("---Optimized centroids---\n");
-        printPoint3Array(h_codebook, clusters);
+        //printf("---Optimized centroids---\n");
+        //printPoint3Array(h_codebook, clusters);
         cudaFree(d_points); cudaFree(d_codebook);
         cudaFree(d_reduceArray); cudaFree(d_partialReduce); cudaFree(d_histogram);
 

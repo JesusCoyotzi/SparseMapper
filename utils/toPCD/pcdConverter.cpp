@@ -16,7 +16,7 @@ int main(int argc, char  *argv[]) {
         //Centers it on the centroid
         if (argc<3)
         {
-                std::cout << "Error: Usage: program obj/ply/pcd file [voxelSize]" << '\n';
+                std::cout << "Error: Usage: pdcConverter filename.[obj/ply/pcd] outfile.pcd [voxelSize]" << '\n';
                 return -1;
         }
         std::string pcdFile(argv[1]);
@@ -29,7 +29,7 @@ int main(int argc, char  *argv[]) {
                 if (pcl::io::loadPCDFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
                 {
                         PCL_ERROR ("Couldn't read file  as PCD\n");
-                        return -1;
+                        return 0;
                 }
 
 
@@ -51,7 +51,7 @@ int main(int argc, char  *argv[]) {
                 }
         }
 
-        std::cout << "Read cloud with " << cloud->points.size()<<"points\n";
+        std::cout << "Read cloud with " << cloud->points.size()<<" points\n";
         //Sample a few elements from the cloud for checking
         srand(time(NULL));
         for (int i = 0; i < 10; i++) {
@@ -66,13 +66,13 @@ int main(int argc, char  *argv[]) {
                 sor.setInputCloud (cloud);
                 sor.setLeafSize (leafSize, leafSize, leafSize);
                 sor.filter (*cloud);
-                std::cout << "Subsampling with leaf size" << leafSize << '\n';
-                //std::cout << "Subsampled to" << cloud->points.size() << '\n';
+                std::cout << "Subsampling with leaf size: " << leafSize << '\n';
+                std::cout << "Subsampled to: " << cloud->points.size() << '\n';
         }
 
         std::string outfile(argv[2]);
 
-        //SAve in binary mode to save meory and win precisionme
+        //Save in binary mode to save memory and get more precision
 
         pcl::io::savePCDFile(outfile, *cloud,true);
         std::cerr << "Saved " << cloud->points.size () << " data points to "  << argv[2] << std::endl;
