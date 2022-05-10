@@ -41,7 +41,8 @@ void initializeCodebook(point3 * codebook, point3* points,
 //Kmeans ++
 void kppInitCPU(point3 *points,  point3 *codebook,
                 int clusters, int nPoints);
-//cosas lbgosas
+
+// LBG related functions 
 bool LBGCPU(point3 *points,  point3 *codebook,
             int *histogram, int *partition,
             int iterations, int clusters, int nPoints);

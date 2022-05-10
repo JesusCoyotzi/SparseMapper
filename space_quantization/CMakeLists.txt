@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(space_quantization CXX CUDA)
+project(space_quantization CXX )
 
 #set(CMAKE_CXX_FLAGS "--std=gnu++11 ${CMAKE_CXX_FLAGS}")
 #//can't compile
@@ -18,7 +18,7 @@ add_definitions(${PCL_DEFINITIONS})
 #message(AUTHOR_WARNING "Las libraries de PCL son:" ${PCL_INCLUDE_DIRS} )
 #message(AUTHOR_WARNING "Las includes de PCL son:" ${PCL_LIBRARY_DIRS} )
 
-find_package(CUDA REQUIRED)
+enable_language(CUDA)
 #message(AUTHOR_WARNING "Las includes de CUDA son:" ${CUDA_INCLUDE_DIRS} )
 #find_package(catkin REQUIRED cmake_modules)
 
@@ -47,27 +47,32 @@ find_package(catkin REQUIRED COMPONENTS
  include_directories(
   include
   ${CUDA_INCLUDE_DIRS}
+  ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
   ${catkin_INCLUDE_DIRS}
  )
 
  #Cuda stuff
  #This is important set to your require compute capability, this was compiled
  #for a Gforce 1050 this compute capability 61
- if(CUDA_FOUND)
+ if(CMAKE_CUDA_COMPILER)
+ message(AUTHOR_WARNING "CUDA has been found" )
  set(
    CUDA_NVCC_FLAGS
    ${CUDA_NVCC_FLAGS};
    -O3 -lineinfo -gencode arch=compute_61,code=sm_61 -std=c++11
    )
    set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-   set(CUDA_SEPARABLE_COMPILATION ON)
+   #Separable compilation flag is not workin
+   #set(CUDA_SEPARABLE_COMPILATION ON)
+   #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -rdc true")
    set(CUDA_VERBOSE_BUILD OFF)
-   cuda_add_library(segmentationLib STATIC src/gpu/operations.cu src/gpu/quantization.cu  src/gpu/cpuQuantization.cu)
-
+   add_library(segmentationLib STATIC src/gpu/operations.cu src/gpu/quantization.cu  src/gpu/cpuQuantization.cu)
+   set_target_properties(segmentationLib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
    add_executable(segmentation_node src/gpu/space_seg.cpp include/space_seg.h src/seg_node.cpp)
    add_dependencies(segmentation_node segmentationLib ${catkin_EXPORTED_TARGETS})
    target_link_libraries(segmentation_node segmentationLib ${catkin_LIBRARIES})# segmentationLib)
  else()
+ message(AUTHOR_WARNING "CUDA has been not found" )
   add_library(segmentationLib STATIC src/cpu/operations.cpp src/cpu/cpuQuantization.cpp)
   add_executable(segmentation_node src/cpu/space_seg_cpu.cpp include/space_seg_cpu.h src/seg_node.cpp)
   add_dependencies(segmentation_node segmentationLib ${catkin_EXPORTED_TARGETS})

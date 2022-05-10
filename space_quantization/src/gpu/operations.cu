@@ -60,7 +60,3 @@ __device__ __host__ point3 mulPoint3(point3 p, float s)
         return mul;
 }
 
-__device__ __host__ float euclideanDistance(point3 p1, point3 p2)
-{
-        return ( (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)+(p1.z-p2.z)*(p1.z-p2.z));
-}

@@ -165,21 +165,21 @@ void spaceSegmenter::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& msg)
                 getMinMax(space,maxP,minP,nValid);
                 getAOBB(space,maxP,minP,nValid);
                 initializeCodebook(codebook,minP,maxP,nClusters);
-                segSuccess =kmeans(space,partition,codebook,histogram,iterations,
-                                   nClusters,nValid,maxP,minP);
+                segSuccess =kmeansCPU(space,partition,codebook,histogram,iterations,
+                                   nClusters,nValid);
         }
         else if (!method.compare("inner"))
         {
                 //Sample Uniformly one of the points as centroids
                 initializeCodebook(codebook,space,nValid,nClusters);
-                segSuccess = kmeans(space,partition,codebook,histogram,iterations,
+                segSuccess = kmeansCPU(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
         else if(!method.compare("kpp"))
         {
                 //kmeasn ++ initialization
                 kppInitCPU(space,codebook,nClusters,nValid);
-                segSuccess = kmeans(space,partition,codebook,histogram,iterations,
+                segSuccess = kmeansCPU(space,partition,codebook,histogram,iterations,
                                     nClusters,nValid);
         }
         else if(!method.compare("kmeansCPU"))

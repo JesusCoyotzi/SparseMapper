@@ -2,6 +2,10 @@
 #define THREADS 1024
 #define MAX_CENTROIDS 1024
 
+__device__ __host__ float euclideanDistance(point3 p1, point3 p2)
+{
+        return ( (p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)+(p1.z-p2.z)*(p1.z-p2.z));
+}
 
 point3 randomPoint3()
 {
