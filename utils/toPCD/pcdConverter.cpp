@@ -23,10 +23,10 @@ int main(int argc, char  *argv[]) {
         std::cout << "Reading file " << pcdFile<<'\n';
         boost::filesystem::path p(pcdFile);
         std::string fileType(p.extension().string());
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 
         if (!fileType.compare(".pcd")) {
-                if (pcl::io::loadPCDFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
+                if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (pcdFile, *cloud) == -1)
                 {
                         PCL_ERROR ("Couldn't read file  as PCD\n");
                         return 0;
@@ -35,7 +35,7 @@ int main(int argc, char  *argv[]) {
 
         }
         else if(!fileType.compare(".ply")) {
-                if(pcl::io::loadPLYFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
+                if(pcl::io::loadPLYFile<pcl::PointXYZRGB> (pcdFile, *cloud) == -1)
                 {
                         PCL_ERROR("Could not read file as PLY");
                         return -1;
@@ -43,7 +43,7 @@ int main(int argc, char  *argv[]) {
                 }
         }
         else if(!fileType.compare(".obj")) {
-                if(pcl::io::loadOBJFile<pcl::PointXYZ> (pcdFile, *cloud) == -1)
+                if(pcl::io::loadOBJFile<pcl::PointXYZRGB> (pcdFile, *cloud) == -1)
                 {
                         PCL_ERROR("Could not read file as OBJ");
                         return -1;
@@ -62,7 +62,7 @@ int main(int argc, char  *argv[]) {
         if (argc>3)
         {
                 float leafSize = atof(argv[3]);
-                pcl::VoxelGrid<pcl::PointXYZ> sor;
+                pcl::VoxelGrid<pcl::PointXYZRGB> sor;
                 sor.setInputCloud (cloud);
                 sor.setLeafSize (leafSize, leafSize, leafSize);
                 sor.filter (*cloud);

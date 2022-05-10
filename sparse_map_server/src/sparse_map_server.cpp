@@ -343,8 +343,6 @@ bool sparseMapServer::getPlan(sparse_map_msgs::MakePlan::Request &req,
 void sparseMapServer::remakeGraph(const std_msgs::Empty &msg)
 {
         //call function to remake graph based on params
-        //WARNING this functions has not yet been tested and online recalculation
-        // Of the graph is still not supported
         std::cout << "!!!Rebuilding graph!!!" << '\n';
         sparseMap.makeGraph();
 

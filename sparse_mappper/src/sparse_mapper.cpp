@@ -37,7 +37,7 @@ std_msgs::ColorRGBA sparseMapper::makeColor(float r,float g, float b, float a)
 
 void sparseMapper::makeCentroidsMarkerAndPublish(pointArray &codebook, std_msgs::ColorRGBA color,int id)
 {
-        const float radius = 0.05;
+        const float radius = 0.075;
         visualization_msgs::Marker centroidsMarker;
         //centroidsMarker.points.resize(codebook.size());
         centroidsMarker.ns = "centroids_static";
